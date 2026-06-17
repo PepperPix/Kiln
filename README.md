@@ -1,5 +1,7 @@
 # Kiln
 
+[![CI](https://github.com/CScharf/Kiln/actions/workflows/ci.yml/badge.svg)](https://github.com/CScharf/Kiln/actions/workflows/ci.yml)
+
 🔥 A fast, extensible static site generator for .NET — build beautiful websites from Markdown and templates.
 
 ## Status

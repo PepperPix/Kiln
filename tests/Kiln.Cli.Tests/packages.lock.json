@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Microsoft.Extensions.StaticAnalysis": {
+        "type": "Direct",
+        "requested": "[10.*, )",
+        "resolved": "10.7.0",
+        "contentHash": "rA7qa/5zGeuepU76QAfkaW6MmoDRDn7Rz5eH5d+KscjEe+gnW4FCudRXOPLLD9Hn+Mfi0/D/FD15jP3jcho/uQ==",
+        "dependencies": {
+          "Microsoft.VisualStudio.Threading.Analyzers": "17.14.15",
+          "SonarAnalyzer.CSharp": "10.16.0.128591"
+        }
+      },
+      "TUnit": {
+        "type": "Direct",
+        "requested": "[1.56.0, )",
+        "resolved": "1.56.0",
+        "contentHash": "K0Fpy4ubt4zW57xrzFN6rb6ep6ZHMhihbJu5i1zehjgl43bGs8jkt6TNIpQ2I/E1cHqtETrsNmFBL5l3VLMlIw==",
+        "dependencies": {
+          "Microsoft.Testing.Extensions.CodeCoverage": "18.8.0",
+          "Microsoft.Testing.Extensions.Telemetry": "2.2.3",
+          "Microsoft.Testing.Extensions.TrxReport": "2.2.3",
+          "TUnit.Assertions": "1.56.0",
+          "TUnit.Engine": "1.56.0"
+        }
+      },
+      "TUnit.Mocks": {
+        "type": "Direct",
+        "requested": "[1.56.0, )",
+        "resolved": "1.56.0",
+        "contentHash": "n7WpNUv3yeQfWL0X8rrl2loFV/Q3Ryai0p9nb/D6BjEhMsUPSlrSvA6tIgUhcNWqdqM3WLjRptVjoey00poeVw==",
+        "dependencies": {
+          "TUnit.Core": "1.56.0"
+        }
+      },
+      "EnumerableAsyncProcessor": {
+        "type": "Transitive",
+        "resolved": "3.8.4",
+        "contentHash": "KlbpupRCz3Kf+P7gsiDvFXJ980i/9lfihMZFmmxIk0Gf6mopEjy74OTJZmdaKDQpE29eQDBnMZB5khyW3eugrg=="
+      },
+      "Markdig": {
+        "type": "Transitive",
+        "resolved": "0.45.0",
+        "contentHash": "ObNLcA1b+0lpNNoEg256g9faMeJZi35wZW0AnKJ4nGPJe+5qkwnV26kUvQTHuanFnSX9SdvPzOO41BVJ6XarAg=="
+      },
+      "Microsoft.ApplicationInsights": {
+        "type": "Transitive",
+        "resolved": "2.23.0",
+        "contentHash": "nWArUZTdU7iqZLycLKWe0TDms48KKGE6pONH2terYNa8REXiqixrMOkf1sk5DHGMaUTqONU2YkS4SAXBhLStgw=="
+      },
+      "Microsoft.DiaSymReader": {
+        "type": "Transitive",
+        "resolved": "2.2.3",
+        "contentHash": "bhwzJfzyiJM0nXJyNB7Y9OfsEXyxLdDBHG99soIp5JjnPydwkOaBdRCtRtWgQh3noSLi2cSIZ/wpbHNNE9knxQ=="
+      },
+      "Microsoft.Extensions.DependencyInjection": {
+        "type": "Transitive",
+        "resolved": "10.0.9",
+        "contentHash": "NijozhERJDIaJ4k5TSMy1jOi0cSC2HfkvRD/Sl+kGSSKgVbFnF4GxgtMN/MrzHB8D1JxIrD4xSer9Blh9v3axQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.9"
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.9",
+        "contentHash": "g41l/30G3K4B/d/L8kjux0+30e27c8D0FVQ/PFCpbekgfDpj9mnDhieP67EqXWvl1EWNeZh2rpR4F5B/jcDOHA=="
+      },
+      "Microsoft.Extensions.DependencyModel": {
+        "type": "Transitive",
+        "resolved": "8.0.2",
+        "contentHash": "mUBDZZRgZrSyFOsJ2qJJ9fXfqd/kXJwf3AiDoqLD9m6TjY5OO/vLNOb9fb4juC0487eq4hcGN/M2Rh/CKS7QYw=="
+      },
+      "Microsoft.Testing.Extensions.CodeCoverage": {
+        "type": "Transitive",
+        "resolved": "18.8.0",
+        "contentHash": "euA4tpkGAkfHznVQrPzXFLNaUhcRCIKPkDmJJB+A2XU9d5ymHLhQ2Do0fGc/Z2y+VFUaNnM6vHhIrb4FW+qhtg==",
+        "dependencies": {
+          "Microsoft.DiaSymReader": "2.2.3",
+          "Microsoft.Extensions.DependencyModel": "8.0.2",
+          "Microsoft.Testing.Platform": "2.2.3"
+        }
+      },
+      "Microsoft.Testing.Extensions.Telemetry": {
+        "type": "Transitive",
+        "resolved": "2.2.3",
+        "contentHash": "mLdW+JOR3kXYGTdgR/qc/UZBA0r+eCR2k6bUxTcuDj5w9WdIQ7Lol5MBUU7YOSGd9bs9bvhSYWAptgz0YtQqCA==",
+        "dependencies": {
+          "Microsoft.ApplicationInsights": "2.23.0",
+          "Microsoft.Testing.Platform": "2.2.3"
+        }
+      },
+      "Microsoft.Testing.Extensions.TrxReport": {
+        "type": "Transitive",
+        "resolved": "2.2.3",
+        "contentHash": "9Hot3ty5ZVWHrW40k2NPfD0dCaPwIxj7j7VjujNYwpYkYw9AdbejPHjGNkL/gvUWorauJf5IkeDoUeIbS7LuUg==",
+        "dependencies": {
+          "Microsoft.Testing.Extensions.TrxReport.Abstractions": "2.2.3",
+          "Microsoft.Testing.Platform": "2.2.3"
+        }
+      },
+      "Microsoft.Testing.Extensions.TrxReport.Abstractions": {
+        "type": "Transitive",
+        "resolved": "2.2.3",
+        "contentHash": "hntvxJEkmUAx6C2xXc/PO38DqEQl4rimzOgSvTR1hAMruMid7R4RcXOrzzF33J66gKaN7jRaQ0TMW/nNfaV9jw==",
+        "dependencies": {
+          "Microsoft.Testing.Platform": "2.2.3"
+        }
+      },
+      "Microsoft.Testing.Platform": {
+        "type": "Transitive",
+        "resolved": "2.2.3",
+        "contentHash": "LhM1/Qoi8Ams5QcD4r3f09CSOono9iQr3NEJQItFtyzWB55nWTgEOsVqXqMWWWIwk3nkPqc+XfnlJmp8xUI5fg=="
+      },
+      "Microsoft.Testing.Platform.MSBuild": {
+        "type": "Transitive",
+        "resolved": "2.2.3",
+        "contentHash": "Q22jJYJLx4srTinsAuoCskqmzjrBJC8YeGJMHHIcrf1dQeHoEZ7wsqDzTlENkMoke2qfufF7U+9u58nlZunH/Q==",
+        "dependencies": {
+          "Microsoft.Testing.Platform": "2.2.3"
+        }
+      },
+      "Microsoft.VisualStudio.Threading.Analyzers": {
+        "type": "Transitive",
+        "resolved": "17.14.15",
+        "contentHash": "mXQPJsbuUD2ydq4/ffd8h8tSOFCXec+2xJOVNCvXjuMOq/+5EKHq3D2m2MC2+nUaXeFMSt66VS/J4HdKBixgcw=="
+      },
+      "Scriban": {
+        "type": "Transitive",
+        "resolved": "7.2.4",
+        "contentHash": "hx7WeBo0aObZ3v9ZzicZYQtu7fH+I1pRRnzQbv8r0blUhiH9Ay+60/GwkAJZJ7133dr3ZWkzqUqnSloczOf+jw=="
+      },
+      "SonarAnalyzer.CSharp": {
+        "type": "Transitive",
+        "resolved": "10.16.0.128591",
+        "contentHash": "W/jZGbsMFvnTY112Ab2WZArzWtkGQuMrQdromFpDak+GO/DKcgn4O2tTun/fQgDBpnQJOyyTdzQrQPzPJ544jg=="
+      },
+      "Spectre.Console": {
+        "type": "Transitive",
+        "resolved": "0.55.0",
+        "contentHash": "2TVhUHFsDux0Z+y2Hv4bFsOMuON4SuotEEKkMparFkp5Rm259naaaEQrN4Sv6C1cbsiGKPjfkJDGgUp+hZPjTw==",
+        "dependencies": {
+          "Spectre.Console.Ansi": "0.55.0"
+        }
+      },
+      "Spectre.Console.Ansi": {
+        "type": "Transitive",
+        "resolved": "0.55.0",
+        "contentHash": "GIfgOvuF8MpU52bprhwtDEtx0gmVIGOepM8bw0lH/TSMD0rg1Xp+5Y53kPG8rFVdcpbNANlhDQ5mEVVPO3/2Tg=="
+      },
+      "Spectre.Console.Cli": {
+        "type": "Transitive",
+        "resolved": "0.55.0",
+        "contentHash": "cFJTB1te4eaAICd4Zp+8T/kiRn1ikQxgGqmoNarb1qoQ/7LzHAvVQ62x5U9GW3E0QI7sZLcXIIoq4CpqgTx42Q==",
+        "dependencies": {
+          "Spectre.Console": "0.55.0"
+        }
+      },
+      "TUnit.Assertions": {
+        "type": "Transitive",
+        "resolved": "1.56.0",
+        "contentHash": "is0HoqC0UBIlD6tEJVm/MqariZT0Y6g+2khjKGLc4y7sFPGIUIF9KEzFcOB+hjLEzXSWJwb34G5bfSYw7qwTOg=="
+      },
+      "TUnit.Core": {
+        "type": "Transitive",
+        "resolved": "1.56.0",
+        "contentHash": "LTzkkcbeRu7CdAg9iyuQPWLiSS16HwIePmFqthRAu2Iz9DoaclJeL06SrWjJrEav6qXB9PJUjrweGbWPWOV/UA=="
+      },
+      "TUnit.Engine": {
+        "type": "Transitive",
+        "resolved": "1.56.0",
+        "contentHash": "O3B3QfaE6UpMSrhQi7H4pj3kePspPfB19BZOklZK2n1blCh93UDT5gXRq6LDwzTycCZyplJIzl1YqfY2pedKMQ==",
+        "dependencies": {
+          "EnumerableAsyncProcessor": "3.8.4",
+          "Microsoft.Testing.Extensions.TrxReport.Abstractions": "2.2.3",
+          "Microsoft.Testing.Platform": "2.2.3",
+          "Microsoft.Testing.Platform.MSBuild": "2.2.3",
+          "TUnit.Core": "1.56.0"
+        }
+      },
+      "YamlDotNet": {
+        "type": "Transitive",
+        "resolved": "16.3.0",
+        "contentHash": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA=="
+      },
+      "dotnet-kiln": {
+        "type": "Project",
+        "dependencies": {
+          "Kiln.Core": "[0.1.0, )",
+          "Microsoft.Extensions.DependencyInjection": "[10.*, )",
+          "Spectre.Console.Cli": "[0.55.*, )"
+        }
+      },
+      "kiln.core": {
+        "type": "Project",
+        "dependencies": {
+          "Markdig": "[0.*, )",
+          "Scriban": "[7.*, )",
+          "YamlDotNet": "[16.*, )"
+        }
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RepositoryUrl>https://github.com/PepperPix/Kiln</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <ItemGroup>
