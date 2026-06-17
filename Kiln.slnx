@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Kiln.Cli/Kiln.Cli.csproj" />
+    <Project Path="src/Kiln.Core/Kiln.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Kiln.Cli.Tests/Kiln.Cli.Tests.csproj" />
+    <Project Path="tests/Kiln.Core.Tests/Kiln.Core.Tests.csproj" />
+  </Folder>
+</Solution>
