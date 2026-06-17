@@ -1,9 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <StaticAnalysisCodeType>ProdLib</StaticAnalysisCodeType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Scriban" Version="7.*" />
+    <PackageReference Include="Markdig" Version="0.*" />
+    <PackageReference Include="YamlDotNet" Version="16.*" />
+  </ItemGroup>
 
 </Project>
