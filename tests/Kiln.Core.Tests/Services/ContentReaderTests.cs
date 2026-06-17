@@ -6,16 +6,16 @@ public class ContentReaderTests
 {
     private readonly ContentReader _reader = new(new MarkdownProcessor());
 
-    [Fact]
-    public void ReadAll_ReturnsEmptyForNonexistentDirectory()
+    [Test]
+    public async Task ReadAll_ReturnsEmptyForNonexistentDirectory()
     {
         var result = _reader.ReadAll("/nonexistent/path", "_site");
 
-        Assert.Empty(result);
+        await Assert.That(result).IsEmpty();
     }
 
-    [Fact]
-    public void ReadAll_ParsesFrontMatterAndContent()
+    [Test]
+    public async Task ReadAll_ParsesFrontMatterAndContent()
     {
         var tempDir = CreateTempContent(
             "test.md",
@@ -35,13 +35,14 @@ public class ContentReaderTests
         {
             var result = _reader.ReadAll(tempDir, "_site");
 
-            Assert.Single(result);
+            await Assert.That(result).HasSingleItem();
             var item = result[0];
-            Assert.Equal("Test Post", item.FrontMatter.Title);
-            Assert.Equal(new DateTime(2026, 6, 17), item.FrontMatter.Date);
-            Assert.Equal(["dotnet", "kiln"], item.FrontMatter.Tags);
-            Assert.Contains("<strong>world</strong>", item.HtmlContent);
-            Assert.Equal("test/index.html", item.OutputPath);
+            await Assert.That(item.FrontMatter.Title).IsEqualTo("Test Post");
+            await Assert.That(item.FrontMatter.Date).IsEqualTo(new DateTime(2026, 6, 17));
+            await Assert.That(item.FrontMatter.Tags).Contains("dotnet");
+            await Assert.That(item.FrontMatter.Tags).Contains("kiln");
+            await Assert.That(item.HtmlContent).Contains("<strong>world</strong>");
+            await Assert.That(item.OutputPath).IsEqualTo("test/index.html");
         }
         finally
         {
@@ -49,15 +50,15 @@ public class ContentReaderTests
         }
     }
 
-    [Fact]
-    public void ReadAll_SkipsFilesWithoutFrontMatter()
+    [Test]
+    public async Task ReadAll_SkipsFilesWithoutFrontMatter()
     {
         var tempDir = CreateTempContent("no-frontmatter.md", "Just plain markdown.");
 
         try
         {
             var result = _reader.ReadAll(tempDir, "_site");
-            Assert.Empty(result);
+            await Assert.That(result).IsEmpty();
         }
         finally
         {

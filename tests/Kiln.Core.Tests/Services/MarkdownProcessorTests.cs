@@ -6,29 +6,29 @@ public class MarkdownProcessorTests
 {
     private readonly MarkdownProcessor _processor = new();
 
-    [Fact]
-    public void ToHtml_ConvertsBasicMarkdown()
+    [Test]
+    public async Task ToHtml_ConvertsBasicMarkdown()
     {
         var html = _processor.ToHtml("# Hello\n\nThis is **bold**.");
 
-        Assert.Contains("<h1 id=\"hello\">Hello</h1>", html);
-        Assert.Contains("<strong>bold</strong>", html);
+        await Assert.That(html).Contains("<h1 id=\"hello\">Hello</h1>");
+        await Assert.That(html).Contains("<strong>bold</strong>");
     }
 
-    [Fact]
-    public void ToHtml_ConvertsCodeBlocks()
+    [Test]
+    public async Task ToHtml_ConvertsCodeBlocks()
     {
         var html = _processor.ToHtml("```csharp\nvar x = 1;\n```");
 
-        Assert.Contains("<code", html);
-        Assert.Contains("var x = 1;", html);
+        await Assert.That(html).Contains("<code");
+        await Assert.That(html).Contains("var x = 1;");
     }
 
-    [Fact]
-    public void ToHtml_EmptyInput_ReturnsEmpty()
+    [Test]
+    public async Task ToHtml_EmptyInput_ReturnsEmpty()
     {
         var html = _processor.ToHtml("");
 
-        Assert.Equal("", html.Trim());
+        await Assert.That(html.Trim()).IsEqualTo("");
     }
 }

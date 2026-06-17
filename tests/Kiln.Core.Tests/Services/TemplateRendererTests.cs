@@ -7,8 +7,8 @@ public class TemplateRendererTests
 {
     private readonly TemplateRenderer _renderer = new();
 
-    [Fact]
-    public void Render_AppliesLayoutWithSiteAndPageData()
+    [Test]
+    public async Task Render_AppliesLayoutWithSiteAndPageData()
     {
         var tempTheme = CreateTempTheme(
             layout: "<html><title>{{ page.title }} — {{ site.title }}</title><body>{{ page.content }}</body></html>");
@@ -20,8 +20,8 @@ public class TemplateRendererTests
 
             var result = _renderer.Render(item, site, tempTheme);
 
-            Assert.Contains("<title>Test Post — Test Site</title>", result);
-            Assert.Contains("<p>Hello</p>", result);
+            await Assert.That(result).Contains("<title>Test Post — Test Site</title>");
+            await Assert.That(result).Contains("<p>Hello</p>");
         }
         finally
         {
@@ -29,22 +29,14 @@ public class TemplateRendererTests
         }
     }
 
-    [Fact]
-    public void Render_ThrowsForMissingLayout()
+    [Test]
+    public async Task Render_ThrowsForMissingLayout()
     {
-        var tempTheme = CreateTempTheme(layout: "");
+        var tempTheme = CreateTempTheme(layout: "<html></html>");
         var missingLayoutItem = CreateTestItem("<p>Hello</p>", layout: "nonexistent");
-        File.Delete(Path.Combine(tempTheme, "layouts", "nonexistent.html"));
 
-        try
-        {
-            Assert.Throws<FileNotFoundException>(() =>
-                _renderer.Render(missingLayoutItem, CreateTestSite(), tempTheme));
-        }
-        finally
-        {
-            Directory.Delete(tempTheme, true);
-        }
+        await Assert.That(() => _renderer.Render(missingLayoutItem, CreateTestSite(), tempTheme))
+            .ThrowsExactly<FileNotFoundException>();
     }
 
     private static string CreateTempTheme(string layout)
