@@ -1,0 +1,20 @@
+root = true
+
+[*.cs]
+# General formatting
+indent_style = space
+indent_size = 4
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# ReSharper/Rider: Redundant qualifiers as suggestion (not warning)
+resharper_redundant_using_directive_highlighting = suggestion
+
+# Configuration DTOs use reflection-based deserialization (YamlDotNet).
+# Suppress "property accessor never used" for the Configuration folder.
+[src/Kiln.Core/Configuration/**.cs]
+resharper_unused_auto_property_accessor_global_highlighting = none
+resharper_class_never_instantiated_global_highlighting = none
+resharper_collection_never_updated_global_highlighting = none
