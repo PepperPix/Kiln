@@ -25,6 +25,114 @@ public class SiteBuilderTests
         }
     }
 
+    [Test]
+    public async Task BuildAsync_CopiesThemeAssetsToAssetsSubdir()
+    {
+        var tempDir = CreateSiteWithThemeAsset();
+
+        try
+        {
+            var builder = CreateBuilder();
+            var result = await builder.BuildAsync(tempDir);
+
+            await Assert.That(result.Success).IsTrue();
+            await Assert.That(File.Exists(Path.Combine(tempDir, "_site", "assets", "css", "style.css"))).IsTrue();
+            await Assert.That(File.Exists(Path.Combine(tempDir, "_site", "css", "style.css"))).IsFalse();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task BuildAsync_CopiesPageBundleAssetsToAssetsContentDir()
+    {
+        var tempDir = CreateSiteWithPageBundle();
+
+        try
+        {
+            var builder = CreateBuilder();
+            var result = await builder.BuildAsync(tempDir);
+
+            await Assert.That(result.Success).IsTrue();
+            await Assert.That(File.Exists(Path.Combine(tempDir, "_site", "assets", "content", "posts", "with-image", "hero.txt"))).IsTrue();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    private static string CreateSiteWithThemeAsset()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"kiln-assets-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(dir, "content", "posts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "layouts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "partials"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "static", "css"));
+
+        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+            """
+            title: Test Site
+            baseUrl: http://localhost:5555
+            collections:
+              posts:
+                directory: content/posts
+                permalink: /blog/:slug/
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "posts", "hello.md"),
+            """
+            ---
+            title: Hello
+            ---
+            Content
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
+            "<html>{{ page.content }}</html>");
+
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "static", "css", "style.css"),
+            "body { color: red; }");
+
+        return dir;
+    }
+
+    private static string CreateSiteWithPageBundle()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"kiln-bundle-{Guid.NewGuid():N}");
+        var bundleDir = Path.Combine(dir, "content", "posts", "with-image");
+        Directory.CreateDirectory(bundleDir);
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "layouts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "partials"));
+
+        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+            """
+            title: Test Site
+            baseUrl: http://localhost:5555
+            collections:
+              posts:
+                directory: content/posts
+                permalink: /blog/:slug/
+            """);
+
+        File.WriteAllText(Path.Combine(bundleDir, "index.md"),
+            """
+            ---
+            title: Post With Image
+            ---
+            Content
+            """);
+
+        File.WriteAllText(Path.Combine(bundleDir, "hero.txt"), "asset content");
+
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
+            "<html>{{ page.content }}</html>");
+
+        return dir;
+    }
+
     private static ISiteBuilder CreateBuilder()
     {
         var markdownProcessor = new MarkdownProcessor();

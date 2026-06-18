@@ -89,15 +89,23 @@ public sealed class SiteBuilder(
             }
         }
 
-        // Copy static assets from theme
-        var staticDir = Path.Combine(themePath, "static");
-        if (Directory.Exists(staticDir))
-            CopyDirectory(staticDir, outputDir);
+        // Copy static assets from theme → _site/assets/ (lowest priority)
+        var assetsOutputDir = Path.Combine(outputDir, "assets");
+        var themeStaticDir = Path.Combine(themePath, "static");
+        if (Directory.Exists(themeStaticDir))
+            CopyDirectory(themeStaticDir, assetsOutputDir);
 
-        // Copy static assets from site (overrides theme)
+        // Copy static assets from site → _site/assets/ (overrides theme, warns on collision)
         var siteStaticDir = Path.Combine(projectPath, "static");
         if (Directory.Exists(siteStaticDir))
-            CopyDirectory(siteStaticDir, outputDir);
+            CopyDirectoryWithCollisionWarning(siteStaticDir, assetsOutputDir, config.Theme, warnings);
+
+        // Copy co-located assets from Page Bundles → _site/assets/content/<collection>/<slug>/
+        foreach (var item in allItems.Where(static i => i.AssetDirectory is not null))
+        {
+            var destDir = Path.Combine(assetsOutputDir, "content", item.Collection.Name, item.Slug);
+            CopyNonMarkdownFiles(item.AssetDirectory!, destDir);
+        }
 
         stopwatch.Stop();
         return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);
@@ -134,6 +142,34 @@ public sealed class SiteBuilder(
             var destPath = Path.Combine(destDir, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
             File.Copy(file, destPath, overwrite: true);
+        }
+    }
+
+    private static void CopyDirectoryWithCollisionWarning(
+        string sourceDir, string destDir, string themeName, Collection<string> warnings)
+    {
+        foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDir, file);
+            var destPath = Path.Combine(destDir, relativePath);
+
+            if (File.Exists(destPath))
+                warnings.Add($"Asset '{relativePath}' in static/ overrides same file from theme '{themeName}'");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+            File.Copy(file, destPath, overwrite: true);
+        }
+    }
+
+    private static void CopyNonMarkdownFiles(string sourceDir, string destDir)
+    {
+        foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.TopDirectoryOnly))
+        {
+            if (Path.GetExtension(file).Equals(".md", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            Directory.CreateDirectory(destDir);
+            File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)), overwrite: true);
         }
     }
 }

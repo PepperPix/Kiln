@@ -19,5 +19,11 @@ public sealed class ContentItem
     public required ContentGroup Collection { get; init; }
     public Dictionary<string, object> Extra { get; init; } = [];
     public Dictionary<string, object> Taxonomies { get; init; } = [];
+
+    /// <summary>
+    /// Path to the directory containing co-located assets (Page Bundle).
+    /// Null when the item is a plain .md file.
+    /// </summary>
+    public string? AssetDirectory { get; init; }
 }
 

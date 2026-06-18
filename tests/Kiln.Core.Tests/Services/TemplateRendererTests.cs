@@ -68,6 +68,52 @@ public class TemplateRendererTests
             .ThrowsExactly<FileNotFoundException>();
     }
 
+    [Test]
+    public async Task Render_AssetUrlFunctionResolvesPath()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html><head>{{ asset_url 'css/style.css' }}</head></html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var site = CreateTestSite(collection);
+
+            var result = _renderer.Render(item, site, tempTheme);
+
+            await Assert.That(result).Contains("/assets/css/style.css");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
+    public async Task Render_PageAssetUrlFunctionResolvesColocatedAsset()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html>{{ page_asset_url 'hero.jpg' }}</html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var site = CreateTestSite(collection);
+
+            var result = _renderer.Render(item, site, tempTheme);
+
+            await Assert.That(result).Contains("/assets/content/posts/test-post/hero.jpg");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
     private static string CreateTempTheme(string layout, string layoutName)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-theme-{Guid.NewGuid():N}");

@@ -37,7 +37,8 @@ public sealed class TemplateRenderer : ITemplateRenderer
             title = site.Title,
             description = site.Description,
             base_url = site.BaseUrl.ToString().TrimEnd('/'),
-            language = site.Language
+            language = site.Language,
+            asset_prefix = site.AssetPrefix
         });
 
         scriptObject.Add("page", new
@@ -87,6 +88,17 @@ public sealed class TemplateRenderer : ITemplateRenderer
             var partialTemplate = Template.Parse(File.ReadAllText(partialPath), partialPath);
             return partialTemplate.Render(context);
         }));
+
+        // asset_url: resolves a path relative to the configured asset prefix
+        var assetPrefix = site.AssetPrefix.TrimEnd('/');
+        scriptObject.Import("asset_url", new Func<string, string>(
+            path => $"{assetPrefix}/{path.TrimStart('/')}"));
+
+        // page_asset_url: resolves a co-located asset filename for the current page bundle
+        var collectionName = item.Collection.Name;
+        var itemSlug = item.Slug;
+        scriptObject.Import("page_asset_url", new Func<string, string>(
+            filename => $"{assetPrefix}/content/{collectionName}/{itemSlug}/{filename.TrimStart('/')}"));
 
         context.PushGlobal(scriptObject);
         return template.Render(context);

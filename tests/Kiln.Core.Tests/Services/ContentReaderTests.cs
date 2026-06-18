@@ -74,8 +74,7 @@ public class ContentReaderTests
     public async Task ReadCollection_SortsDateDesc()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(tempDir);
-        await File.WriteAllTextAsync(Path.Combine(tempDir, "old.md"),
+        Directory.CreateDirectory(tempDir);        await File.WriteAllTextAsync(Path.Combine(tempDir, "old.md"),
             """
             ---
             title: Old
@@ -101,6 +100,73 @@ public class ContentReaderTests
             await Assert.That(result.Count).IsEqualTo(expectedCount);
             await Assert.That(result[0].Title).IsEqualTo("New");
             await Assert.That(result[1].Title).IsEqualTo("Old");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_DetectsPageBundle()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        var bundleDir = Path.Combine(tempDir, "my-post");
+        Directory.CreateDirectory(bundleDir);
+
+        await File.WriteAllTextAsync(Path.Combine(bundleDir, "index.md"),
+            """
+            ---
+            title: Bundle Post
+            date: 2026-06-18
+            ---
+
+            Content with ![hero](hero.txt)
+            """).ConfigureAwait(false);
+
+        await File.WriteAllTextAsync(Path.Combine(bundleDir, "hero.txt"), "asset").ConfigureAwait(false);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            var item = result[0];
+            await Assert.That(item.Title).IsEqualTo("Bundle Post");
+            await Assert.That(item.Slug).IsEqualTo("my-post");
+            await Assert.That(item.AssetDirectory).IsNotNull();
+            await Assert.That(item.AssetDirectory).IsEqualTo(bundleDir);
+            await Assert.That(item.HtmlContent).Contains("/assets/content/posts/my-post/hero.txt");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_IgnoresSubdirWithoutIndexMd()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        var subDir = Path.Combine(tempDir, "not-a-bundle");
+        Directory.CreateDirectory(subDir);
+
+        await File.WriteAllTextAsync(Path.Combine(subDir, "post.md"),
+            """
+            ---
+            title: Not a bundle
+            ---
+            content
+            """).ConfigureAwait(false);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            // post.md is inside a subdir without index.md — should be ignored
+            await Assert.That(result).IsEmpty();
         }
         finally
         {

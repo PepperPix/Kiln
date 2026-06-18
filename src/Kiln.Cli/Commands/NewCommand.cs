@@ -151,7 +151,7 @@ public sealed class NewCommand : Command<NewCommand.Settings>
         File.WriteAllText(Path.Combine(projectPath, "themes", "default", "partials", "head.html"),
             """
             <meta name="description" content="{{ page.description ?? site.description }}">
-            <link rel="stylesheet" href="/css/style.css">
+            <link rel="stylesheet" href="{{ asset_url 'css/style.css' }}">
             """);
 
         // Default stylesheet
