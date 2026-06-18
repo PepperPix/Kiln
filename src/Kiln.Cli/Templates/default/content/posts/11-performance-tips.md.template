@@ -1,0 +1,146 @@
+---
+id: {{ID11}}
+title: Performance Tips and Optimization
+date: {{DATE-9}}
+tags:
+  - performance
+  - optimization
+  - best-practices
+categories:
+  - advanced
+---
+
+Kiln is already fast, but here are tips to optimize your site further for speed and SEO.
+
+## Asset Namespace Optimization
+
+Kiln's Asset Namespace feature organizes assets by content type and location:
+
+```
+assets/
+├── content/
+│   ├── posts/
+│   │   └── my-post/
+│   │       └── diagram.png
+│   └── pages/
+│       └── about-logo.svg
+├── shared/
+│   ├── fonts/
+│   └── icons/
+└── vendor/
+    └── scripts/
+```
+
+Assets are served at predictable URLs:
+- `/assets/content/posts/my-post/diagram.png`
+- `/assets/shared/fonts/main.woff2`
+
+This structure:
+- **Colocates assets** with content (easier management)
+- **Enables cache busting** per content item
+- **Allows aggressive caching** for shared assets
+- **Reduces build complexity** (no asset duplication)
+
+## Image Optimization
+
+```markdown
+![Article banner](./my-image.webp)
+```
+
+- Use **WebP format** for modern browsers (smaller files)
+- **Compress PNG/JPEG** with tools like ImageOptim
+- Provide **descriptive alt text** for accessibility and SEO
+- Use **responsive images** with srcset (optional plugin)
+
+## CSS Performance
+
+```css
+/* Minimize CSS specificity */
+.post-title { font-size: 2rem; }
+
+/* Use CSS variables for theming */
+:root {
+  --spacing-unit: 1rem;
+  --color-primary: #007acc;
+}
+
+/* Avoid @import in CSS (blocks rendering) */
+```
+
+- **Minify CSS** via `site.yaml` build options
+- **Use CSS variables** for maintainability
+- **Limit font files**: Load only necessary weights
+- **Inline critical CSS** for above-the-fold content
+
+## Build Performance
+
+```bash
+# Fast rebuild for large sites
+kiln build --incremental
+
+# Parallel processing (default)
+kiln build --threads 8
+```
+
+Kiln automatically:
+- Caches intermediate results
+- Parallelizes page generation
+- Skips unchanged files
+
+For monitoring:
+
+```bash
+kiln build --verbose  # Show timing per step
+```
+
+## Caching Headers
+
+Configure your web server for optimal caching:
+
+```nginx
+# nginx example
+location /assets/ {
+  expires 1y;
+  add_header Cache-Control "public, immutable";
+}
+
+location /css/ {
+  expires 30d;
+  add_header Cache-Control "public";
+}
+
+location / {
+  expires 1h;
+  add_header Cache-Control "public";
+}
+```
+
+## SEO Performance
+
+- **Structured data**: Add JSON-LD to `head.html`
+- **Sitemap**: Enabled by default in RSS feeds
+- **Open Graph**: Add tags in `partials/head.html`
+- **Heading hierarchy**: Use `h2`, `h3`, not multiple `h1`s
+
+## Monitoring
+
+Use lighthouse or similar tools:
+
+```bash
+# Google Lighthouse CLI
+lighthouse https://example.com --output=html
+```
+
+Focus on:
+- **Core Web Vitals**: LCP, FID, CLS
+- **First Contentful Paint**: <1.8s
+- **Largest Contentful Paint**: <2.5s
+
+## Content Best Practices
+
+- **Keep posts focused**: Easier to read, faster to load
+- **Use clear headings**: Improves readability and SEO
+- **Optimize media**: Compress before uploading
+- **Update old posts**: Refresh content for better search ranking
+
+Performance is a feature. Make it a priority from the start!

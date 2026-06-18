@@ -1,0 +1,29 @@
+---
+id: {{ID1}}
+title: Welcome to Kiln
+date: {{DATE-0}}
+tags:
+  - kiln
+  - getting-started
+---
+
+Welcome to **Kiln**, a powerful and flexible static site generator built on .NET.
+
+This blog demonstrates all the features Kiln offers out-of-the-box. Read through these posts to learn how Kiln works and what you can build with it.
+
+## What is Kiln?
+
+Kiln transforms your Markdown content into a blazing-fast static website. No database, no server complexity — just pure, fast HTML served anywhere.
+
+## Key Features
+
+- **Content Collections**: Organize your posts, pages, and custom collections
+- **Markdown-First**: Write in Markdown, customize with Frontmatter
+- **Built-in Taxonomies**: Tags, categories, or custom taxonomies
+- **Code Highlighting**: Prism.js integration for syntax highlighting
+- **Page Bundles**: Co-locate assets with your content
+- **Theming**: Flexible template system with Liquid/Scriban
+- **Plugins**: Extend Kiln with custom functionality
+- **Performance**: Lightning-fast builds and deployments
+
+Start exploring — each post showcases a different Kiln feature. Happy building!

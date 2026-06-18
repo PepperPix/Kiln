@@ -1,0 +1,143 @@
+---
+id: {{ID10}}
+title: Configuration Deep Dive
+date: {{DATE-8}}
+tags:
+  - configuration
+  - yaml
+  - advanced
+categories:
+  - tutorial
+---
+
+`site.yaml` is the central configuration file for your Kiln site. This post covers all available options.
+
+## Site Metadata
+
+```yaml
+title: My Kiln Site
+description: A blazingly fast static site generator
+baseUrl: https://example.com
+language: en
+theme: default
+```
+
+- `title`: Site name (used in templates)
+- `description`: Meta description tag
+- `baseUrl`: Full URL to your site
+- `language`: Language code (for HTML lang attribute)
+- `theme`: Theme directory name
+
+## Collections
+
+```yaml
+collections:
+  posts:
+    directory: content/posts
+    permalink: /blog/:slug/
+    sort: date desc
+    paginate: 10
+    feed: true
+    layout: post
+    taxonomies:
+      - tags
+      - categories
+  pages:
+    directory: content/pages
+    permalink: /:slug/
+    sort: weight asc
+    layout: page
+```
+
+- `directory`: Source directory
+- `permalink`: URL pattern (`:slug`, `:date`, `:title`)
+- `sort`: Field and direction (`date desc`, `weight asc`)
+- `paginate`: Items per page (pagination enabled if >0)
+- `feed`: Generate RSS feed?
+- `layout`: Default template name
+- `taxonomies`: Applied taxonomy types
+
+## Taxonomies
+
+```yaml
+taxonomies:
+  tags:
+    permalink: /tags/:slug/
+    paginate: 20
+    layout: taxonomy
+  categories:
+    permalink: /categories/:slug/
+    paginate: 10
+    layout: taxonomy
+```
+
+- `permalink`: URL pattern for taxonomy pages
+- `paginate`: Items per page
+- `layout`: Template for category pages
+
+## Menus
+
+```yaml
+menus:
+  main:
+    - title: Home
+      ref: posts/
+    - title: About
+      ref: pages/about
+    - title: External
+      url: https://example.com
+      external: true
+```
+
+- `title`: Display text
+- `ref`: Link to collection/page
+- `url`: External URL (sets `external: true`)
+
+## Build Options
+
+```yaml
+build:
+  outputDirectory: _site
+  cleanBefore: true
+  minifyHtml: false
+  minifyCss: false
+```
+
+- `outputDirectory`: Where to generate the site
+- `cleanBefore`: Remove old output before build?
+- `minifyHtml`: Compress HTML output?
+- `minifyCss`: Compress CSS files?
+
+## Development
+
+```yaml
+dev:
+  port: 5555
+  watch: true
+  liveReload: true
+```
+
+- `port`: Dev server port
+- `watch`: Watch files for changes?
+- `liveReload`: Auto-refresh browser?
+
+## Advanced
+
+```yaml
+markdown:
+  extensions:
+    - strikethrough
+    - tables
+    - task-lists
+
+feeds:
+  - collection: posts
+    permalink: /feed.xml
+```
+
+- `markdown.extensions`: Enable CommonMark extensions
+- `feeds`: RSS feeds per collection
+
+Full documentation at [Kiln Docs](https://github.com/PepperPix/Kiln)
+
+Understanding these options gives you full control over your Kiln site!

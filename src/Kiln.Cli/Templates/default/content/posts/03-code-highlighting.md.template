@@ -1,0 +1,123 @@
+---
+id: {{ID4}}
+title: Code Highlighting with Prism.js
+date: {{DATE-2}}
+tags:
+  - code
+  - development
+  - syntax-highlighting
+---
+
+Kiln integrates **Prism.js** for beautiful syntax highlighting across all supported languages.
+
+## C# Example
+
+```csharp
+using System;
+using Kiln.Core;
+
+public class SiteBuilder
+{
+    private readonly Configuration _config;
+
+    public SiteBuilder(Configuration config)
+    {
+        _config = config ?? throw new ArgumentNullException(nameof(config));
+    }
+
+    public void Build()
+    {
+        Console.WriteLine($"Building {_config.Title}...");
+        // Build your site here
+    }
+}
+```
+
+## JavaScript/TypeScript
+
+```javascript
+// Frontend interactivity with Kiln
+class SiteNavigator {
+  constructor(rootSelector) {
+    this.root = document.querySelector(rootSelector);
+    this.init();
+  }
+
+  init() {
+    console.log("Initializing site navigation...");
+    this.attachEventListeners();
+  }
+
+  attachEventListeners() {
+    document.querySelectorAll('a[data-nav]')
+      .forEach(link => {
+        link.addEventListener('click', (e) => this.navigate(e));
+      });
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  new SiteNavigator('[data-navigator]');
+});
+```
+
+## YAML Configuration
+
+```yaml
+title: My Kiln Site
+description: A blazingly fast static site
+baseUrl: https://example.com
+theme: default
+
+collections:
+  posts:
+    directory: content/posts
+    permalink: /blog/:slug/
+    sort: date desc
+    taxonomies:
+      - tags
+      - categories
+
+taxonomies:
+  tags:
+    permalink: /tags/:slug/
+  categories:
+    permalink: /categories/:slug/
+```
+
+## HTML/CSS
+
+```html
+<article class="post">
+  <header class="post-header">
+    <h1 class="post-title">{{ page.title }}</h1>
+    <time class="post-date">{{ page.date | format_date }}</time>
+  </header>
+  <div class="post-content">
+    {{ content }}
+  </div>
+</article>
+```
+
+```css
+.post {
+  max-width: 65ch;
+  margin: 2rem auto;
+  padding: 1rem;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.post-header {
+  border-bottom: 2px solid var(--color-primary);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.post-title {
+  margin: 0.5rem 0;
+  font-size: 2rem;
+}
+```
+
+Prism supports **60+ languages** out of the box. Check the language identifier in the code fence to enable highlighting!

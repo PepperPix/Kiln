@@ -1,0 +1,100 @@
+---
+id: {{ID12}}
+title: What's Next? Your Kiln Journey Continues
+date: {{DATE-10}}
+tags:
+  - roadmap
+  - community
+  - getting-involved
+---
+
+You've explored Kiln's core features. Here's how to continue your journey and contribute to the project.
+
+## Next Steps
+
+### Build Your Own Site
+
+- **Copy this theme**: Use the default Kiln theme as a starting point
+- **Create custom collections**: Portfolio, documentation, wiki
+- **Design your layout**: Modify CSS variables and templates
+- **Deploy**: Choose a platform (GitHub Pages, Netlify, Azure SWA)
+- **Celebrate**: Share your Kiln-powered site with the community
+
+### Explore Advanced Features
+
+- **Plugins**: Extend Kiln with custom functionality
+- **Custom taxonomies**: Organize content your way
+- **Liquid filters**: Create powerful templates
+- **Asset namespacing**: Better asset management
+- **Build hooks**: Pre/post-build automation
+
+### Learn from Examples
+
+- **Blog**: Multi-author blog with tags, categories, search
+- **Portfolio**: Project showcase with filtering
+- **Documentation site**: Multi-version docs with search
+- **E-commerce**: Product listings with filtering
+
+## Getting Help
+
+### Documentation
+
+- [GitHub README](https://github.com/PepperPix/Kiln) — Quick start and API reference
+- [Examples Repository](https://github.com/PepperPix/Kiln-Examples) — Real-world samples
+- [Discussion Board](https://github.com/PepperPix/Kiln/discussions) — Ask questions
+
+### Community
+
+Join our community:
+- **GitHub Discussions**: Ask questions, share projects
+- **Issues**: Report bugs, request features
+- **Pull Requests**: Contribute code improvements
+- **Twitter**: Follow for updates and announcements
+
+## Roadmap
+
+Planned features for Kiln:
+
+- **Search**: Built-in full-text search
+- **Comments**: Disqus/Utterances integration
+- **Analytics**: Native analytics dashboard
+- **Admin Panel**: Web-based content editor
+- **Database Backend**: SQLite, PostgreSQL support (coming)
+- **Internationalization**: Multi-language sites
+- **E-commerce**: Product management
+
+Check [GitHub Issues](https://github.com/PepperPix/Kiln/issues) for active development.
+
+## Contributing
+
+Help make Kiln better:
+
+1. **Report bugs**: Found an issue? Create a GitHub issue with details
+2. **Suggest features**: Share ideas in Discussions
+3. **Improve docs**: Fix typos, add examples
+4. **Write plugins**: Share your extensions as NuGet packages
+5. **Code contributions**: Fork, create a branch, submit PR
+
+All contributions are welcome!
+
+## Say Thank You
+
+If you love Kiln:
+- ⭐ **Star** the [GitHub repository](https://github.com/PepperPix/Kiln)
+- 📢 **Share** your site with the community
+- 💬 **Mention** Kiln in your blog or talks
+- 🤝 **Contribute** code or feedback
+
+## Final Thoughts
+
+Kiln is designed to be:
+- **Fast**: Blazing-fast builds and deployments
+- **Simple**: Markdown in, static HTML out
+- **Powerful**: Flexible enough for any static site
+- **Community-driven**: Your feedback shapes the roadmap
+
+Thank you for exploring Kiln. Happy building! 🚀
+
+---
+
+*Questions? Join the community at [github.com/PepperPix/Kiln](https://github.com/PepperPix/Kiln)*

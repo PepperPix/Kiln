@@ -1,23 +1,28 @@
 /* Prism.js — Ember Theme */
 code[class*="language-"],
 pre[class*="language-"] {
-  color: var(--color-code-text);
-  font-family: var(--font-mono);
-  text-align: left;
-  white-space: pre;
-  word-spacing: normal;
-  word-break: normal;
-  tab-size: 2;
-  hyphens: none;
-  background: var(--color-code-bg);
+	color: var(--color-code-text);
+	font-family: var(--font-mono);
+	text-align: left;
+	white-space: pre;
+	word-spacing: normal;
+	word-break: normal;
+	tab-size: 2;
+	hyphens: none;
+	background: var(--color-code-bg);
 }
 
 .token.comment,
 .token.prolog,
 .token.doctype,
-.token.cdata { color: #78716c; font-style: italic; }
+.token.cdata {
+	color: #78716c;
+	font-style: italic;
+}
 
-.token.punctuation { color: #a8a29e; }
+.token.punctuation {
+	color: #a8a29e;
+}
 
 .token.property,
 .token.tag,
@@ -25,33 +30,51 @@ pre[class*="language-"] {
 .token.number,
 .token.constant,
 .token.symbol,
-.token.deleted { color: #fb923c; }
+.token.deleted {
+	color: #fb923c;
+}
 
 .token.selector,
 .token.attr-name,
 .token.string,
 .token.char,
 .token.builtin,
-.token.inserted { color: #86efac; }
+.token.inserted {
+	color: #86efac;
+}
 
 .token.operator,
 .token.entity,
-.token.url { color: #d6d3d1; }
+.token.url {
+	color: #d6d3d1;
+}
 
 .token.atrule,
 .token.attr-value,
-.token.keyword { color: #c084fc; }
+.token.keyword {
+	color: #c084fc;
+}
 
 .token.function,
-.token.class-name { color: #60a5fa; }
+.token.class-name {
+	color: #60a5fa;
+}
 
 .token.regex,
 .token.important,
-.token.variable { color: #fbbf24; }
+.token.variable {
+	color: #fbbf24;
+}
 
 .token.important,
-.token.bold { font-weight: bold; }
+.token.bold {
+	font-weight: bold;
+}
 
-.token.italic { font-style: italic; }
+.token.italic {
+	font-style: italic;
+}
 
-.token.namespace { opacity: 0.7; }
+.token.namespace {
+	opacity: 0.7;
+}

@@ -1,0 +1,109 @@
+---
+id: {{ID9}}
+title: Plugins and Slots
+date: {{DATE-7}}
+tags:
+  - plugins
+  - extensibility
+  - architecture
+---
+
+**Plugins** extend Kiln's functionality without modifying core code. **Slots** are the extension points where plugins hook in.
+
+## What are Slots?
+
+Slots are predefined hook points in Kiln's build pipeline where custom logic runs:
+
+| Slot | When | Purpose |
+|------|------|---------|
+| `content:loaded` | After content loaded | Modify frontmatter, metadata |
+| `build:before` | Before site build | Pre-process assets |
+| `build:after` | After site build | Post-process, validate |
+| `page:rendered` | After page rendered | Modify HTML output |
+
+## Creating a Plugin
+
+A plugin is a .NET class implementing `IKilnPlugin`:
+
+```csharp
+using Kiln.Core.Plugins;
+
+public class MyCustomPlugin : IKilnPlugin
+{
+    public string Name => "My Custom Plugin";
+    public string Version => "1.0.0";
+
+    public void Register(IPluginContext context)
+    {
+        context.OnSlot("content:loaded", OnContentLoaded);
+        context.OnSlot("build:after", OnBuildAfter);
+    }
+
+    private void OnContentLoaded(IContentMetadata metadata)
+    {
+        // Modify frontmatter here
+        if (metadata.Tags.Count == 0)
+        {
+            metadata.Tags.Add("untagged");
+        }
+    }
+
+    private void OnBuildAfter(IBuildContext context)
+    {
+        Console.WriteLine($"Build completed: {context.PagesGenerated} pages");
+    }
+}
+```
+
+## Installing Plugins
+
+Plugins can be distributed as:
+
+1. **NuGet Packages**: Add to project dependencies
+2. **Local Assemblies**: Place in `plugins/` directory
+3. **Source Files**: Include `.cs` files in plugin directory
+
+Register plugins in `site.yaml`:
+
+```yaml
+plugins:
+  - name: MyCustomPlugin
+    enabled: true
+```
+
+## Plugin Use Cases
+
+- **SEO Optimization**: Auto-generate meta tags, sitemaps
+- **Analytics**: Track page generation, build time
+- **Media Processing**: Resize images, generate WebP variants
+- **Validation**: Check broken links, missing images
+- **Notifications**: Alert on build failures, new posts
+
+## Filesystem Plugin Location
+
+Kiln scans `plugins/` directory for plugin assemblies:
+
+```
+plugins/
+├── MyPlugin.dll
+├── MyPlugin.pdb
+└── MyPlugin.deps.json
+```
+
+## Plugin Discovery
+
+Kiln automatically:
+- Discovers plugins in `plugins/` and registered NuGet packages
+- Loads plugin assemblies
+- Calls `Register()` on each plugin
+- Executes slot handlers in order
+
+## Best Practices
+
+- **Keep it simple**: Focus on one responsibility
+- **Document slots**: Explain what data is available
+- **Handle errors**: Don't crash the build
+- **Use meaningful names**: Clear plugin and slot names
+- **Version your plugins**: Semantic versioning
+
+Plugins make Kiln infinitely extensible!

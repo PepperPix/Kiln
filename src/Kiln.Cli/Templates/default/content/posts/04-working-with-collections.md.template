@@ -1,0 +1,92 @@
+---
+id: {{ID5}}
+title: Working with Collections
+date: {{DATE-3}}
+tags:
+  - collections
+  - architecture
+---
+
+**Collections** are the heart of Kiln. They organize your content into logical groups with consistent structure, metadata, and rendering.
+
+## What is a Collection?
+
+A collection is a directory of content items (Markdown files) that share:
+- A common location (e.g., `content/posts/`)
+- Consistent Frontmatter structure
+- Shared layout template
+- Optional sorting and pagination rules
+
+## Built-in Collections
+
+Kiln includes two default collections:
+
+### Posts Collection
+
+```yaml
+collections:
+  posts:
+    directory: content/posts
+    permalink: /blog/:slug/
+    sort: date desc
+    layout: post
+    paginate: 10
+```
+
+Posts are sorted by date (newest first), paginated at 10 items per page, and rendered with the `post.html` layout.
+
+### Pages Collection
+
+```yaml
+collections:
+  pages:
+    directory: content/pages
+    permalink: /:slug/
+    sort: weight asc
+    layout: page
+```
+
+Pages are sorted by `weight` (Frontmatter field), allowing you to control menu order.
+
+## Creating Custom Collections
+
+You can create as many collections as you need. Example:
+
+```yaml
+collections:
+  projects:
+    directory: content/projects
+    permalink: /portfolio/:slug/
+    layout: project
+    taxonomies:
+      - technologies
+      - year
+```
+
+Each item in the collection becomes a page with its own URL and can be listed on category pages.
+
+## Collection Metadata
+
+Every item in a collection automatically gets:
+- `url`: The generated URL
+- `slug`: URL-friendly name
+- `content`: Rendered HTML
+- `title`, `date`, `tags`: Custom Frontmatter
+- `collection`: The collection name
+
+This metadata is available in templates for navigation, related posts, and more.
+
+## Accessing Collections
+
+In Kiln templates, you can iterate over collections:
+
+```liquid
+{% for post in collections.posts %}
+  <article>
+    <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+    <time>{{ post.date }}</time>
+  </article>
+{% endfor %}
+```
+
+Collections make it easy to build blogs, portfolios, documentation sites, and more!

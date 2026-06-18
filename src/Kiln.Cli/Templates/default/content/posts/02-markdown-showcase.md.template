@@ -1,0 +1,72 @@
+---
+id: {{ID3}}
+title: Markdown Showcase
+date: {{DATE-1}}
+tags:
+  - markdown
+  - formatting
+---
+
+This post demonstrates Markdown formatting capabilities supported by Kiln.
+
+## Headings
+
+All heading levels (h2-h6) are supported. Use `##` for h2, `###` for h3, and so on.
+
+## Text Formatting
+
+You can use **bold** and *italic* text. You can also use ***bold and italic*** together.
+
+You can create ~~strikethrough~~ text and `inline code`.
+
+## Lists
+
+### Unordered Lists
+
+- Item one
+- Item two
+  - Nested item
+  - Another nested item
+- Item three
+
+### Ordered Lists
+
+1. First item
+2. Second item
+3. Third item
+
+## Blockquotes
+
+> This is a blockquote. You can use blockquotes to highlight important information or quotes from other sources.
+>
+> > Blockquotes can be nested too!
+
+## Tables
+
+| Feature | Support | Notes |
+|---------|---------|-------|
+| Markdown | ✓ | Full GFM support |
+| Frontmatter | ✓ | YAML format |
+| Links | ✓ | Internal and external |
+| Images | ✓ | Relative and absolute paths |
+
+## Links and Images
+
+[Link to Kiln repository](https://github.com/PepperPix/Kiln)
+
+Images are embedded the same way as Markdown links, with an exclamation mark prefix:
+
+![Kiln Logo](/themes/default/static/favicon.svg)
+
+## Code Blocks
+
+Inline code uses backticks: `var x = 42;`
+
+Code blocks are created with triple backticks and optional language identifier:
+
+```
+// Plain text code block
+const greeting = "Hello, Kiln!";
+```
+
+Learn more about code highlighting in the next post!

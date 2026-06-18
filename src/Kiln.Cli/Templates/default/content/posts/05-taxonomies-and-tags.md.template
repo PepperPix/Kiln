@@ -1,0 +1,98 @@
+---
+id: {{ID6}}
+title: Taxonomies and Tags
+date: {{DATE-4}}
+tags:
+  - taxonomies
+  - organization
+  - tags
+categories:
+  - features
+---
+
+**Taxonomies** in Kiln let you organize and cross-reference your content through tags, categories, or any custom dimension.
+
+## What are Taxonomies?
+
+A taxonomy is a classification system applied to collection items via Frontmatter. Common examples:
+- **Tags**: Topics or keywords (e.g., `kiln`, `getting-started`, `development`)
+- **Categories**: Broader groupings (e.g., `tutorial`, `feature`, `announcement`)
+- **Authors**: For multi-author blogs
+- **Years**: For chronological archives
+- **Technologies**: For portfolio sites
+
+## Defining Taxonomies
+
+Taxonomies are configured in `site.yaml`:
+
+```yaml
+taxonomies:
+  tags:
+    permalink: /tags/:slug/
+    paginate: 20
+  categories:
+    permalink: /categories/:slug/
+    paginate: 10
+```
+
+And applied to collections:
+
+```yaml
+collections:
+  posts:
+    taxonomies:
+      - tags
+      - categories
+```
+
+## Using Tags in Frontmatter
+
+Simply add a list to your Frontmatter:
+
+```yaml
+---
+title: My Post
+tags:
+  - kiln
+  - getting-started
+  - documentation
+categories:
+  - tutorial
+---
+```
+
+## Generated Pages
+
+Kiln automatically generates:
+- `/tags/kiln/` — All posts tagged "kiln"
+- `/tags/getting-started/` — All posts tagged "getting-started"
+- `/categories/tutorial/` — All posts categorized "tutorial"
+
+Paginated at the configured limit.
+
+## Displaying Taxonomy Links
+
+In templates, display tags and categories:
+
+```liquid
+<div class="post-tags">
+  {% for tag in page.tags %}
+    <a href="/tags/{{ tag | slugify }}/" class="tag">{{ tag }}</a>
+  {% endfor %}
+</div>
+
+<div class="post-categories">
+  {% for cat in page.categories %}
+    <span class="category">{{ cat }}</span>
+  {% endfor %}
+</div>
+```
+
+## Benefits
+
+- **Discoverability**: Readers find related content through tags
+- **SEO**: Dedicated tag pages for keyword targeting
+- **Organization**: Structure content without rigid hierarchies
+- **Flexibility**: Add or remove tags without changing permalinks
+
+Taxonomies are a powerful way to organize and surface your content!

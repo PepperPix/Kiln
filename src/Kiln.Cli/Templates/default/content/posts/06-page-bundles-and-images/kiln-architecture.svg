@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
+  <!-- Title -->
+  <text x="300" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#333">
+    Kiln Architecture Overview
+  </text>
+
+  <!-- Content Layer -->
+  <rect x="20" y="70" width="140" height="80" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+  <text x="90" y="105" font-size="14" font-weight="bold" text-anchor="middle" fill="#1976d2">Content</text>
+  <text x="90" y="125" font-size="11" text-anchor="middle" fill="#333">Markdown</text>
+  <text x="90" y="140" font-size="11" text-anchor="middle" fill="#333">Frontmatter</text>
+
+  <!-- Collections Layer -->
+  <rect x="200" y="70" width="140" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+  <text x="270" y="105" font-size="14" font-weight="bold" text-anchor="middle" fill="#7b1fa2">Collections</text>
+  <text x="270" y="125" font-size="11" text-anchor="middle" fill="#333">Posts</text>
+  <text x="270" y="140" font-size="11" text-anchor="middle" fill="#333">Pages</text>
+
+  <!-- Builder/Engine Layer -->
+  <rect x="380" y="70" width="140" height="80" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="5"/>
+  <text x="450" y="105" font-size="14" font-weight="bold" text-anchor="middle" fill="#388e3c">Builder</text>
+  <text x="450" y="125" font-size="11" text-anchor="middle" fill="#333">Process</text>
+  <text x="450" y="140" font-size="11" text-anchor="middle" fill="#333">Render</text>
+
+  <!-- Arrow 1: Content to Collections -->
+  <path d="M 160 110 L 200 110" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="180" y="100" font-size="10" text-anchor="middle" fill="#666">Load</text>
+
+  <!-- Arrow 2: Collections to Builder -->
+  <path d="M 340 110 L 380 110" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="360" y="100" font-size="10" text-anchor="middle" fill="#666">Build</text>
+
+  <!-- Output -->
+  <rect x="40" y="210" width="500" height="80" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="5"/>
+  <text x="290" y="240" font-size="14" font-weight="bold" text-anchor="middle" fill="#f57c00">Output (_site/)</text>
+  <text x="100" y="265" font-size="11" fill="#333">HTML Pages</text>
+  <text x="270" y="265" font-size="11" fill="#333">Static Assets</text>
+  <text x="480" y="265" font-size="11" fill="#333">Taxonomies</text>
+  <text x="100" y="280" font-size="11" fill="#333">RSS Feeds</text>
+  <text x="270" y="280" font-size="11" fill="#333">Sitemaps</text>
+  <text x="480" y="280" font-size="11" fill="#333">Search Index</text>
+
+  <!-- Arrow 3: Builder to Output -->
+  <path d="M 450 150 L 450 190 L 290 190 L 290 210" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="430" y="180" font-size="10" text-anchor="middle" fill="#666">Deploy</text>
+
+  <!-- Theme/Templates (Side) -->
+  <rect x="420" y="300" width="140" height="70" fill="#fce4ec" stroke="#c2185b" stroke-width="2" rx="5"/>
+  <text x="490" y="325" font-size="12" font-weight="bold" text-anchor="middle" fill="#c2185b">Themes</text>
+  <text x="490" y="345" font-size="10" text-anchor="middle" fill="#333">Layouts</text>
+  <text x="490" y="360" font-size="10" text-anchor="middle" fill="#333">Partials</text>
+
+  <!-- Arrow to Themes -->
+  <path d="M 450 150 Q 490 220 490 300" stroke="#999" stroke-width="1.5" stroke-dasharray="5,5" fill="none" marker-end="url(#arrowhead-gray)"/>
+  <text x="510" y="230" font-size="10" fill="#999">uses</text>
+
+  <!-- Arrow Markers -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#666"/>
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#999"/>
+    </marker>
+  </defs>
+
+  <!-- Footer -->
+  <text x="300" y="385" font-size="10" text-anchor="middle" fill="#999">Content → Collections → Builder → Output</text>
+</svg>

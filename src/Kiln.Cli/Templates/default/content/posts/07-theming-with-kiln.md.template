@@ -1,0 +1,104 @@
+---
+id: {{ID7}}
+title: Theming with Kiln
+date: {{DATE-5}}
+tags:
+  - themes
+  - customization
+  - design
+---
+
+Kiln's theming system makes it easy to customize the look and feel of your site without touching core functionality.
+
+## Theme Structure
+
+A Kiln theme is organized as:
+
+```
+themes/
+└── default/
+    ├── layouts/          # Page templates
+    │   ├── default.html
+    │   ├── post.html
+    │   └── page.html
+    ├── partials/         # Reusable components
+    │   ├── header.html
+    │   ├── footer.html
+    │   └── nav.html
+    └── static/           # CSS, JS, images
+        ├── css/
+        └── js/
+```
+
+## Layouts
+
+Layouts are Liquid templates that wrap your content:
+
+```html
+<!DOCTYPE html>
+<html lang="{{ site.language }}">
+<head>
+  {% include 'partials/head.html' %}
+</head>
+<body>
+  {% include 'partials/header.html' %}
+  <main>
+    {{ content }}
+  </main>
+  {% include 'partials/footer.html' %}
+</body>
+</html>
+```
+
+## Partials
+
+Reusable components reduce repetition:
+
+```html
+<!-- partials/header.html -->
+<header class="site-header">
+  <h1><a href="/">{{ site.title }}</a></h1>
+  {% include 'partials/nav.html' %}
+</header>
+```
+
+## CSS Variables
+
+The default Kiln theme uses CSS custom properties (variables) for easy customization:
+
+```css
+:root {
+  --color-primary: #007acc;
+  --color-secondary: #f0f0f0;
+  --font-family-sans: system-ui, -apple-system, sans-serif;
+  --font-size-base: 16px;
+  --max-width: 65ch;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base);
+  max-width: var(--max-width);
+}
+```
+
+Override these in your own CSS to customize the site instantly.
+
+## Creating a Custom Theme
+
+1. Copy `themes/default/` to `themes/my-theme/`
+2. Modify layouts, partials, and CSS
+3. Update `site.yaml`:
+   ```yaml
+   theme: my-theme
+   ```
+
+## Asset Serving
+
+Static assets (CSS, images) in `themes/*/static/` are served at:
+- `/css/style.css` from `themes/default/static/css/style.css`
+- `/images/logo.svg` from `themes/default/static/images/logo.svg`
+
+Keep your static assets organized for easy maintainability.
+
+Theming in Kiln is flexible, fast, and beginner-friendly!

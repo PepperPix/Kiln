@@ -1,0 +1,104 @@
+---
+id: {{ID8}}
+title: Deploy Your Site
+date: {{DATE-6}}
+tags:
+  - deployment
+  - ci-cd
+  - hosting
+---
+
+Once you've built your Kiln site, deploying it is straightforward. Static sites can be hosted anywhere.
+
+## Build Output
+
+Running `kiln build` generates a `_site/` directory with:
+- Static HTML files
+- CSS and JavaScript
+- Images and other assets
+
+This entire directory is what you deploy.
+
+## GitHub Pages
+
+GitHub Pages is perfect for Kiln sites hosted on GitHub:
+
+1. Push your site to a GitHub repository
+2. In repository settings, enable GitHub Pages
+3. Set the source branch (usually `main` or `gh-pages`)
+4. Your site is live at `https://username.github.io/repo`
+
+Automate this with GitHub Actions:
+
+```yaml
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.x'
+      - run: dotnet run --project src/Kiln.Cli -- build .
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+```
+
+## Azure Static Web Apps
+
+Azure SWA offers global distribution and edge caching:
+
+1. Create a Static Web App in Azure Portal
+2. Connect your GitHub repository
+3. Configure the build output directory: `_site`
+4. Deploy automatically on every push
+
+## Netlify
+
+Netlify's drag-and-drop interface makes deployment simple:
+
+1. Create a `netlify.toml`:
+   ```toml
+   [build]
+   command = "dotnet run --project src/Kiln.Cli -- build ."
+   publish = "_site"
+   ```
+2. Connect your GitHub repository in Netlify Dashboard
+3. Your site is live with automatic deployments
+
+## Vercel
+
+Vercel works similarly to Netlify:
+
+1. Import your GitHub project
+2. Set build command: `dotnet run --project src/Kiln.Cli -- build .`
+3. Set output directory: `_site`
+4. Deploy with one click
+
+## Custom Servers
+
+For any web server (Apache, Nginx, custom VPS):
+
+1. Build locally: `kiln build`
+2. Upload `_site/` directory via FTP, SCP, or Git
+3. Configure your web server to serve the content
+4. Optionally set up automated deployments with webhooks
+
+## Performance Tips
+
+- Enable gzip compression in your web server
+- Use a CDN for global distribution
+- Set proper cache headers for static assets
+- Minify CSS and JavaScript (optional, can be added as build step)
+
+Deploying a Kiln site is as simple as uploading static files. Choose the platform that fits your needs!

@@ -33,8 +33,6 @@ taxonomies:
 menus:
   main:
     - title: Home
-      url: /
-    - title: Blog
       ref: posts/
     - title: About
       ref: pages/about

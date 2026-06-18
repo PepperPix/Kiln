@@ -1,0 +1,73 @@
+---
+id: {{ID14}}
+title: Privacy & Impressum
+weight: 20
+---
+
+## Privacy Policy
+
+This site is built with **Kiln**, a static site generator. No user data is collected, stored, or transmitted.
+
+### What data do we collect?
+
+- **None** — This is a static website.
+- No cookies, no tracking, no analytics by default.
+- If you choose to add third-party analytics or comments, those services have their own privacy policies.
+
+### Third-party services (if enabled)
+
+If you've configured:
+- **Google Analytics**: Data is handled per Google's privacy policy
+- **Disqus Comments**: Comments are handled per Disqus's privacy policy
+- **CDN or hosting provider**: Infrastructure data per their policies
+
+### Contact
+
+For questions about this privacy policy, contact the site owner.
+
+---
+
+## Impressum (Imprint)
+
+### Website Operator
+
+**Your Organization Name**  
+Your Address  
+City, Country  
+
+Email: contact@example.com  
+Phone: +1 (555) 123-4567
+
+### Responsible for Content
+
+[Your Name]  
+[Your Title]
+
+### Disclaimer
+
+This website is provided as-is. The operator makes no warranties about the accuracy or completeness of content. All information is for informational purposes only.
+
+### Liability Limitation
+
+The operator shall not be liable for damages arising from the use of this website, including but not limited to lost profits, lost data, or business interruption.
+
+### Links
+
+Links to third-party websites are provided for convenience. The operator is not responsible for the content of external websites.
+
+### Modifications
+
+This site is updated regularly. Terms and conditions may change without notice.
+
+---
+
+## GDPR Compliance
+
+If you're operating this site in the EU/EEA, ensure:
+- ✅ No personal data collection by default
+- ✅ Privacy policy visible and accessible
+- ✅ Opt-in for cookies/tracking (if applicable)
+- ✅ Clear consent mechanisms for data processing
+- ✅ User rights: access, rectification, deletion
+
+This template is a starting point — **consult a legal professional** for your jurisdiction's requirements.
