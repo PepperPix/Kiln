@@ -25,5 +25,9 @@ public sealed class ContentItem
     /// Null when the item is a plain .md file.
     /// </summary>
     public string? AssetDirectory { get; init; }
+
+    public ContentItem? Next { get; set; }
+    public ContentItem? Prev { get; set; }
+    public Dictionary<string, ContentItem> ResolvedReferences { get; } = [];
 }
 

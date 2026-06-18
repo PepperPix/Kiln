@@ -11,6 +11,16 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         .IgnoreUnmatchedProperties()
         .Build();
 
+    private static readonly IDeserializer RawYamlDeserializer = new DeserializerBuilder()
+        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .Build();
+
+    private static readonly HashSet<string> KnownFrontMatterKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "id", "title", "date", "draft", "layout", "slug", "description",
+        "url", "weight", "tags", "categories", "extra"
+    };
+
     public IReadOnlyList<ContentItem> ReadCollection(ContentGroup collection, string projectPath)
     {
         ArgumentNullException.ThrowIfNull(collection);
@@ -49,7 +59,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
     private ContentItem? ReadFile(string filePath, string contentDirectory, ContentGroup collection, string? assetDirectory)
     {
         var content = File.ReadAllText(filePath);
-        var (frontMatter, body) = ParseFrontMatter(content);
+        var (frontMatter, body, extraFromFrontMatter) = ParseFrontMatter(content);
 
         if (frontMatter is null)
             return null;
@@ -63,6 +73,8 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
                 : Path.GetFileNameWithoutExtension(filePath));
 
         var extra = new Dictionary<string, object>(frontMatter.Extra);
+        foreach (var (k, v) in extraFromFrontMatter)
+            extra.TryAdd(k, v);
         if (!string.IsNullOrEmpty(frontMatter.PermalinkOverride))
             extra["permalink_override"] = frontMatter.PermalinkOverride;
 
@@ -114,20 +126,27 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         };
     }
 
-    private static (FrontMatter? frontMatter, string body) ParseFrontMatter(string content)
+    private static (FrontMatter? frontMatter, string body, Dictionary<string, object> extraFromFrontMatter) ParseFrontMatter(string content)
     {
         if (!content.StartsWith("---", StringComparison.Ordinal))
-            return (null, content);
+            return (null, content, []);
 
         var endIndex = content.IndexOf("---", 3, StringComparison.Ordinal);
         if (endIndex < 0)
-            return (null, content);
+            return (null, content, []);
 
         var yamlBlock = content[3..endIndex].Trim();
         var body = content[(endIndex + 3)..].Trim();
 
         var frontMatter = YamlDeserializer.Deserialize<FrontMatter>(yamlBlock);
-        return (frontMatter, body);
+
+        var rawAll = RawYamlDeserializer.Deserialize<Dictionary<string, object>>(yamlBlock)
+            ?? [];
+        var extraFromFrontMatter = rawAll
+            .Where(kvp => !KnownFrontMatterKeys.Contains(kvp.Key))
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        return (frontMatter, body, extraFromFrontMatter);
     }
 }
 

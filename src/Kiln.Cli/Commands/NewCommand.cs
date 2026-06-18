@@ -62,8 +62,10 @@ public sealed class NewCommand : Command<NewCommand.Settings>
             taxonomies:
               tags:
                 permalink: /tags/:slug/
+                paginate: 20
               categories:
                 permalink: /categories/:slug/
+                paginate: 10
             """);
 
         var helloWorldId = Guid.NewGuid().ToString("D");
@@ -150,7 +152,7 @@ public sealed class NewCommand : Command<NewCommand.Settings>
         // Head partial
         File.WriteAllText(Path.Combine(projectPath, "themes", "default", "partials", "head.html"),
             """
-            <meta name="description" content="{{ page.description ?? site.description }}">
+            <meta name="description" content="{{ site.description }}">
             <link rel="stylesheet" href="{{ asset_url 'css/style.css' }}">
             """);
 
@@ -159,6 +161,90 @@ public sealed class NewCommand : Command<NewCommand.Settings>
             """
             :root { font-family: system-ui, sans-serif; line-height: 1.6; }
             body { max-width: 48rem; margin: 2rem auto; padding: 0 1rem; }
+            """);
+
+        // Collection index layout (posts)
+        File.WriteAllText(Path.Combine(projectPath, "themes", "default", "layouts", "posts-index.html"),
+            """
+            <!DOCTYPE html>
+            <html lang="{{ site.language }}">
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Blog &mdash; {{ site.title }}</title>
+                {{ include 'head' }}
+            </head>
+            <body>
+                <header><h1><a href="/">{{ site.title }}</a></h1></header>
+                <main>
+                    <h1>Blog</h1>
+                    {{ for item in paginator.items }}
+                    <article>
+                        <h2><a href="{{ item.url }}">{{ item.title }}</a></h2>
+                        {{ if item.date }}<time>{{ item.date | date.to_string '%Y-%m-%d' }}</time>{{ end }}
+                        {{ if item.description }}<p>{{ item.description }}</p>{{ end }}
+                    </article>
+                    {{ end }}
+
+                    {{ if paginator.total_pages > 1 }}
+                    <nav>
+                        {{ if paginator.prev_url }}<a href="{{ paginator.prev_url }}">&larr; Newer</a>{{ end }}
+                        <span>Page {{ paginator.page }} of {{ paginator.total_pages }}</span>
+                        {{ if paginator.next_url }}<a href="{{ paginator.next_url }}">Older &rarr;</a>{{ end }}
+                    </nav>
+                    {{ end }}
+                </main>
+            </body>
+            </html>
+            """);
+
+        // Taxonomy term layout
+        File.WriteAllText(Path.Combine(projectPath, "themes", "default", "layouts", "taxonomy.html"),
+            """
+            <!DOCTYPE html>
+            <html lang="{{ site.language }}">
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>{{ taxonomy.term }} &mdash; {{ site.title }}</title>
+                {{ include 'head' }}
+            </head>
+            <body>
+                <header><h1><a href="/">{{ site.title }}</a></h1></header>
+                <main>
+                    <h1>{{ taxonomy.name }}: {{ taxonomy.term }}</h1>
+                    {{ for item in taxonomy.items }}
+                    <article>
+                        <h2><a href="{{ item.url }}">{{ item.title }}</a></h2>
+                        {{ if item.date }}<time>{{ item.date | date.to_string '%Y-%m-%d' }}</time>{{ end }}
+                    </article>
+                    {{ end }}
+                </main>
+            </body>
+            </html>
+            """);
+
+        // Taxonomy overview layout
+        File.WriteAllText(Path.Combine(projectPath, "themes", "default", "layouts", "taxonomy-index.html"),
+            """
+            <!DOCTYPE html>
+            <html lang="{{ site.language }}">
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>{{ taxonomy.name }} &mdash; {{ site.title }}</title>
+                {{ include 'head' }}
+            </head>
+            <body>
+                <header><h1><a href="/">{{ site.title }}</a></h1></header>
+                <main>
+                    <h1>All {{ taxonomy.name }}</h1>
+                    {{ for term in taxonomy.terms }}
+                    <a href="{{ term.url }}">{{ term.name }} ({{ term.count }})</a>
+                    {{ end }}
+                </main>
+            </body>
+            </html>
             """);
 
         AnsiConsole.MarkupLine($"[green]Created[/] new site at [blue]{projectPath}[/]");

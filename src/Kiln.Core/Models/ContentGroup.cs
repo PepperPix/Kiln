@@ -26,4 +26,18 @@ public sealed class ContentGroup
             return new Uri($"{sep}{Name}{sep}", UriKind.Relative);
         }
     }
+
+    /// <summary>
+    /// The URL of the collection's index page, derived from the Permalink pattern.
+    /// E.g. permalink "/blog/:slug/" → IndexUrl "/blog/".
+    /// </summary>
+    public Uri IndexUrl
+    {
+        get
+        {
+            var slugPos = Permalink.IndexOf(":slug", StringComparison.OrdinalIgnoreCase);
+            var path = slugPos < 0 ? $"/{Name}/" : Permalink[..slugPos];
+            return new Uri(path, UriKind.Relative);
+        }
+    }
 }
