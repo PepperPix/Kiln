@@ -10,6 +10,7 @@ services.AddSingleton<IContentReader, ContentReader>();
 services.AddSingleton<ITemplateRenderer, TemplateRenderer>();
 services.AddSingleton<IPermalinkGenerator, PermalinkGenerator>();
 services.AddSingleton<ISiteConfigLoader, SiteConfigLoader>();
+services.AddSingleton<IPluginLoader, PluginLoader>();
 services.AddSingleton<ISiteBuilder, SiteBuilder>();
 services.AddSingleton<IDevServer, DevServer>();
 

@@ -8,10 +8,11 @@ using Scriban.Runtime;
 
 public sealed class TemplateRenderer : ITemplateRenderer
 {
-    public string Render(ContentItem item, SiteConfiguration site, string themePath)
+    public string Render(ContentItem item, SiteConfiguration site, string themePath, IReadOnlyList<PluginDefinition> plugins)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(site);
+        ArgumentNullException.ThrowIfNull(plugins);
 
         var layoutName = item.Layout ?? item.Collection.Layout;
         var layoutPath = ResolveLayoutPath(themePath,
@@ -19,7 +20,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             "default.html");
 
         return RenderTemplate(layoutPath, themePath, site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>(), ctx =>
-            BuildItemScriptObject(item, site, themePath, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>(), ctx));
+            BuildItemScriptObject(item, site, themePath, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>(), ctx, plugins));
     }
 
     public string RenderCollectionIndex(
@@ -27,12 +28,14 @@ public sealed class TemplateRenderer : ITemplateRenderer
         Paginator paginator,
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         SiteConfiguration site,
-        string themePath)
+        string themePath,
+        IReadOnlyList<PluginDefinition> plugins)
     {
         ArgumentNullException.ThrowIfNull(collection);
         ArgumentNullException.ThrowIfNull(paginator);
         ArgumentNullException.ThrowIfNull(allTaxonomies);
         ArgumentNullException.ThrowIfNull(site);
+        ArgumentNullException.ThrowIfNull(plugins);
 
         var layoutPath = ResolveLayoutPath(themePath,
             $"{collection.Name}-index.html",
@@ -44,7 +47,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             var indexUrl = paginator.Page == 1
                 ? collection.IndexUrl.OriginalString
                 : $"{collection.IndexUrl.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, indexUrl);
+            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, indexUrl, plugins, collection.Plugins);
             so.Add("collection", BuildCollectionObject(collection));
             so.Add("paginator", BuildPaginatorObject(paginator));
             return so;
@@ -56,12 +59,14 @@ public sealed class TemplateRenderer : ITemplateRenderer
         Paginator paginator,
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         SiteConfiguration site,
-        string themePath)
+        string themePath,
+        IReadOnlyList<PluginDefinition> plugins)
     {
         ArgumentNullException.ThrowIfNull(term);
         ArgumentNullException.ThrowIfNull(paginator);
         ArgumentNullException.ThrowIfNull(allTaxonomies);
         ArgumentNullException.ThrowIfNull(site);
+        ArgumentNullException.ThrowIfNull(plugins);
 
         var layoutPath = ResolveLayoutPath(themePath,
             $"taxonomy-{term.Taxonomy.Name}.html",
@@ -73,7 +78,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             var termPageUrl = paginator.Page == 1
                 ? term.Url.OriginalString
                 : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, termPageUrl);
+            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, termPageUrl, plugins, null);
             so.Add("taxonomy", new
             {
                 name = term.Taxonomy.Name,
@@ -91,12 +96,14 @@ public sealed class TemplateRenderer : ITemplateRenderer
         IReadOnlyList<TaxonomyTerm> terms,
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         SiteConfiguration site,
-        string themePath)
+        string themePath,
+        IReadOnlyList<PluginDefinition> plugins)
     {
         ArgumentNullException.ThrowIfNull(taxonomy);
         ArgumentNullException.ThrowIfNull(terms);
         ArgumentNullException.ThrowIfNull(allTaxonomies);
         ArgumentNullException.ThrowIfNull(site);
+        ArgumentNullException.ThrowIfNull(plugins);
 
         var overviewUrl = GetTaxonomyOverviewUrl(taxonomy);
 
@@ -107,7 +114,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         return RenderTemplate(layoutPath, themePath, site, allTaxonomies, ctx =>
         {
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, overviewUrl.OriginalString);
+            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, overviewUrl.OriginalString, plugins, null);
             so.Add("taxonomy", new
             {
                 name = taxonomy.Name,
@@ -151,9 +158,10 @@ public sealed class TemplateRenderer : ITemplateRenderer
         SiteConfiguration site,
         string themePath,
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
-        TemplateContext context)
+        TemplateContext context,
+        IReadOnlyList<PluginDefinition> plugins)
     {
-        var so = BuildCommonScriptObject(site, allTaxonomies, themePath, context, item.Url.OriginalString);
+        var so = BuildCommonScriptObject(site, allTaxonomies, themePath, context, item.Url.OriginalString, plugins, item.Collection.Plugins);
 
         var pageObj = new ScriptObject();
         pageObj.Add("id", item.Id);
@@ -168,7 +176,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
         pageObj.Add("extra", item.Extra);
         pageObj.Add("tags", item.Taxonomies.GetValueOrDefault("tags"));
         pageObj.Add("categories", item.Taxonomies.GetValueOrDefault("categories"));
-        pageObj.Add("collection", new { name = item.Collection.Name, url = item.Collection.IndexUrl.OriginalString, feed = item.Collection.Feed });
+        pageObj.Add("collection", new { name = item.Collection.Name, url = item.Collection.IndexUrl.OriginalString, feed = item.Collection.Feed, plugins = item.Collection.Plugins });
         pageObj.Add("next", item.Next is null ? null : (object)new
         {
             title = item.Next.Title,
@@ -206,7 +214,9 @@ public sealed class TemplateRenderer : ITemplateRenderer
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         string themePath,
         TemplateContext context,
-        string? currentUrl = null)
+        string? currentUrl,
+        IReadOnlyList<PluginDefinition> plugins,
+        Dictionary<string, object>? currentCollectionPlugins)
     {
         var so = new ScriptObject();
 
@@ -264,7 +274,90 @@ public sealed class TemplateRenderer : ITemplateRenderer
         so.Import("asset_url", new Func<string, string>(
             path => $"{assetPrefix}/{path.TrimStart('/')}"));
 
+        // plugin_asset_url
+        so.Import("plugin_asset_url", new Func<string, string, string>(
+            (pluginName, path) => $"{assetPrefix}/plugins/{pluginName}/{path.TrimStart('/')}"));
+
+        // slot — renders all plugin partials for the given slot name
+        so.Import("slot", new Func<string, string>(slotName =>
+        {
+            var applicablePlugins = plugins
+                .Where(p => p.Slots.Contains(slotName, StringComparer.OrdinalIgnoreCase))
+                .Where(p => IsPluginEnabledForCollection(currentCollectionPlugins, Path.GetFileName(p.Directory)))
+                .OrderBy(p => GetPluginPriority(site, Path.GetFileName(p.Directory)));
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var plugin in applicablePlugins)
+            {
+                var pluginKey = Path.GetFileName(plugin.Directory);
+                // Lookup: theme-override → plugin-default
+                var themeOverridePath = Path.Combine(themePath, "plugins", pluginKey, "slots", $"{slotName}.html");
+                var pluginDefaultPath = Path.Combine(plugin.Directory, "slots", $"{slotName}.html");
+
+                string? slotFilePath;
+                if (File.Exists(themeOverridePath))
+                    slotFilePath = themeOverridePath;
+                else if (File.Exists(pluginDefaultPath))
+                    slotFilePath = pluginDefaultPath;
+                else
+                    slotFilePath = null;
+
+                if (slotFilePath is null) continue;
+
+                var slotTemplate = Template.Parse(File.ReadAllText(slotFilePath), slotFilePath);
+                sb.Append(slotTemplate.Render(context));
+            }
+            return sb.ToString();
+        }));
+
         return so;
+    }
+
+    private static bool IsPluginEnabledForCollection(Dictionary<string, object>? collectionPlugins, string pluginKey)
+    {
+        if (collectionPlugins is null || !collectionPlugins.TryGetValue(pluginKey, out var raw))
+            return false;
+        if (raw is IDictionary<object, object> yamlDict)
+        {
+            if (yamlDict.TryGetValue("enabled", out var enabledVal))
+            {
+                if (enabledVal is bool b) return b;
+                return string.Equals(enabledVal?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+            }
+            return false;
+        }
+        if (raw is IDictionary<string, object> strDict)
+        {
+            if (strDict.TryGetValue("enabled", out var enabledVal))
+            {
+                if (enabledVal is bool b) return b;
+                return string.Equals(enabledVal?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+            }
+            return false;
+        }
+        return false;
+    }
+
+    private static int GetPluginPriority(SiteConfiguration site, string pluginKey)
+    {
+        if (!site.Plugins.TryGetValue(pluginKey, out var raw)) return int.MaxValue;
+        if (raw is IDictionary<object, object> yamlDict)
+        {
+            if (yamlDict.TryGetValue("priority", out var priorityVal))
+            {
+                if (priorityVal is int i) return i;
+                return int.TryParse(priorityVal?.ToString(), out var p) ? p : int.MaxValue;
+            }
+        }
+        else if (raw is IDictionary<string, object> strDict)
+        {
+            if (strDict.TryGetValue("priority", out var priorityVal))
+            {
+                if (priorityVal is int i) return i;
+                return int.TryParse(priorityVal?.ToString(), out var p) ? p : int.MaxValue;
+            }
+        }
+        return int.MaxValue;
     }
 
     private static object BuildCollectionObject(ContentGroup collection)
@@ -274,7 +367,8 @@ public sealed class TemplateRenderer : ITemplateRenderer
             name = collection.Name,
             items = collection.Items.Where(static i => !i.Draft).Select(BuildItemSummary).ToList(),
             url = collection.IndexUrl.OriginalString,
-            feed = collection.Feed
+            feed = collection.Feed,
+            plugins = collection.Plugins
         };
     }
 

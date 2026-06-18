@@ -140,7 +140,8 @@ public class SiteBuilderTests
         var templateRenderer = new TemplateRenderer();
         var permalinkGenerator = new PermalinkGenerator();
         var configLoader = new SiteConfigLoader();
-        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader);
+        var pluginLoader = new PluginLoader();
+        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader);
     }
 
     private static string CreateSiteWithCollision()

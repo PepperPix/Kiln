@@ -121,18 +121,23 @@ public sealed class NewCommand : Command<NewCommand.Settings>
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>{{ page.title }} — {{ site.title }}</title>
                 {{ include 'head' }}
+                {{ slot 'head' }}
             </head>
             <body>
+                {{ slot 'body_start' }}
                 <header>
                     <h1><a href="/">{{ site.title }}</a></h1>
                 </header>
                 <main>
                     <article>
+                        {{ slot 'before_content' }}
                         <h1>{{ page.title }}</h1>
                         {{ if page.date }}<time>{{ page.date | date.to_string '%Y-%m-%d' }}</time>{{ end }}
                         {{ page.content }}
+                        {{ slot 'after_content' }}
                     </article>
                 </main>
+                {{ slot 'body_end' }}
             </body>
             </html>
             """);
@@ -147,14 +152,19 @@ public sealed class NewCommand : Command<NewCommand.Settings>
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>{{ page.title }} — {{ site.title }}</title>
                 {{ include 'head' }}
+                {{ slot 'head' }}
             </head>
             <body>
+                {{ slot 'body_start' }}
                 <header>
                     <h1><a href="/">{{ site.title }}</a></h1>
                 </header>
                 <main>
+                    {{ slot 'before_content' }}
                     {{ page.content }}
+                    {{ slot 'after_content' }}
                 </main>
+                {{ slot 'body_end' }}
             </body>
             </html>
             """);

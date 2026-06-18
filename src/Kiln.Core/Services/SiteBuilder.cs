@@ -8,7 +8,8 @@ public sealed class SiteBuilder(
     IContentReader contentReader,
     ITemplateRenderer templateRenderer,
     IPermalinkGenerator permalinkGenerator,
-    ISiteConfigLoader configLoader) : ISiteBuilder
+    ISiteConfigLoader configLoader,
+    IPluginLoader pluginLoader) : ISiteBuilder
 {
     public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default)
     {
@@ -26,6 +27,9 @@ public sealed class SiteBuilder(
             errors.Add($"Theme directory not found: {themePath}");
             return MakeResult(0, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
         }
+
+        // Discover plugins
+        var plugins = pluginLoader.LoadPlugins(projectPath);
 
         // Read all collections and assign URLs
         var allItems = new List<ContentItem>();
@@ -139,7 +143,7 @@ public sealed class SiteBuilder(
 
             try
             {
-                var html = templateRenderer.Render(item, config, themePath);
+                var html = templateRenderer.Render(item, config, themePath, plugins);
                 var outputPath = Path.Combine(outputDir, item.OutputPath);
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                 await File.WriteAllTextAsync(outputPath, html, ct).ConfigureAwait(false);
@@ -169,7 +173,7 @@ public sealed class SiteBuilder(
                 ct.ThrowIfCancellationRequested();
                 try
                 {
-                    var html = templateRenderer.RenderCollectionIndex(collection, paginator, allTaxonomyTerms, config, themePath);
+                    var html = templateRenderer.RenderCollectionIndex(collection, paginator, allTaxonomyTerms, config, themePath, plugins);
                     var indexBase = collection.IndexUrl.OriginalString;
                     var pageUrl = paginator.Page == 1
                         ? indexBase
@@ -198,7 +202,7 @@ public sealed class SiteBuilder(
             try
             {
                 var overviewUrl = TemplateRenderer.GetTaxonomyOverviewUrl(taxDef);
-                var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, allTaxonomyTerms, config, themePath);
+                var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, allTaxonomyTerms, config, themePath, plugins);
                 var outputPath = Path.Combine(outputDir, ToOutputPath(overviewUrl));
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                 await File.WriteAllTextAsync(outputPath, html, ct).ConfigureAwait(false);
@@ -223,7 +227,7 @@ public sealed class SiteBuilder(
                 {
                     try
                     {
-                        var html = templateRenderer.RenderTaxonomyTerm(term, paginator, allTaxonomyTerms, config, themePath);
+                        var html = templateRenderer.RenderTaxonomyTerm(term, paginator, allTaxonomyTerms, config, themePath, plugins);
                         var pageUrl = paginator.Page == 1
                             ? term.Url.OriginalString
                             : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
@@ -258,6 +262,16 @@ public sealed class SiteBuilder(
         {
             var destDir = Path.Combine(assetsOutputDir, "content", item.Collection.Name, item.Slug);
             CopyNonMarkdownFiles(item.AssetDirectory!, destDir);
+        }
+
+        // Copy plugin assets: plugins/<name>/static/ → _site/assets/plugins/<name>/
+        foreach (var plugin in plugins)
+        {
+            var pluginStaticDir = Path.Combine(plugin.Directory, "static");
+            if (!Directory.Exists(pluginStaticDir)) continue;
+            var pluginKey = Path.GetFileName(plugin.Directory);
+            var pluginAssetsDir = Path.Combine(assetsOutputDir, "plugins", pluginKey);
+            CopyDirectory(pluginStaticDir, pluginAssetsDir);
         }
 
         // Generate sitemap.xml
