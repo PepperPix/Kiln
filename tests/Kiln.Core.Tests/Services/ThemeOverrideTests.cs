@@ -16,24 +16,24 @@ public class ThemeOverrideTests
         // Plugin default slot
         var pluginDir = Path.Combine(dir, "plugins", "disqus");
         Directory.CreateDirectory(Path.Combine(pluginDir, "slots"));
-        File.WriteAllText(Path.Combine(pluginDir, "plugin.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "plugin.yaml"),
             "name: Disqus\nslots:\n  - after_content\n");
-        File.WriteAllText(Path.Combine(pluginDir, "slots", "after_content.html"),
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "slots", "after_content.html"),
             "<div>PLUGIN DEFAULT</div>");
 
         // Theme override
         var themePluginSlotDir = Path.Combine(themeDir, "plugins", "disqus", "slots");
         Directory.CreateDirectory(themePluginSlotDir);
-        File.WriteAllText(Path.Combine(themePluginSlotDir, "after_content.html"),
+        await File.WriteAllTextAsync(Path.Combine(themePluginSlotDir, "after_content.html"),
             "<div>THEME OVERRIDE</div>");
 
         Directory.CreateDirectory(Path.Combine(themeDir, "layouts"));
         Directory.CreateDirectory(Path.Combine(themeDir, "partials"));
         Directory.CreateDirectory(Path.Combine(dir, "content", "posts"));
-        File.WriteAllText(Path.Combine(themeDir, "layouts", "default.html"),
+        await File.WriteAllTextAsync(Path.Combine(themeDir, "layouts", "default.html"),
             "{{ slot 'after_content' }}");
 
-        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(dir, "site.yaml"),
             """
             title: Test
             baseUrl: http://localhost
@@ -74,18 +74,18 @@ public class ThemeOverrideTests
 
         var pluginDir = Path.Combine(dir, "plugins", "analytics");
         Directory.CreateDirectory(Path.Combine(pluginDir, "slots"));
-        File.WriteAllText(Path.Combine(pluginDir, "plugin.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "plugin.yaml"),
             "name: Analytics\nslots:\n  - head\n");
-        File.WriteAllText(Path.Combine(pluginDir, "slots", "head.html"),
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "slots", "head.html"),
             "<script>ANALYTICS</script>");
 
         Directory.CreateDirectory(Path.Combine(themeDir, "layouts"));
         Directory.CreateDirectory(Path.Combine(themeDir, "partials"));
         Directory.CreateDirectory(Path.Combine(dir, "content", "posts"));
-        File.WriteAllText(Path.Combine(themeDir, "layouts", "default.html"),
+        await File.WriteAllTextAsync(Path.Combine(themeDir, "layouts", "default.html"),
             "{{ slot 'head' }}{{ page.content }}");
 
-        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(dir, "site.yaml"),
             """
             title: Test
             baseUrl: http://localhost

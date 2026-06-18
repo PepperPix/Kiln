@@ -10,7 +10,7 @@ public class SlotRenderingTests
     [Test]
     public async Task Slot_RendersPluginPartial_WhenEnabled()
     {
-        var (projectDir, themePath) = CreateSiteWithPlugin(
+        var (projectDir, themePath) = await CreateSiteWithPlugin(
             pluginName: "test-plugin",
             slotName: "after_content",
             slotContent: "<div>PLUGIN CONTENT</div>",
@@ -19,8 +19,8 @@ public class SlotRenderingTests
 
         try
         {
-            var layout = "{{ page.content }}{{ slot 'after_content' }}";
-            File.WriteAllText(Path.Combine(themePath, "layouts", "default.html"), layout);
+            const string layout = "{{ page.content }}{{ slot 'after_content' }}";
+            await File.WriteAllTextAsync(Path.Combine(themePath, "layouts", "default.html"), layout);
 
             var collection = CreateTestCollection(projectDir);
             var item = CreateTestItem(collection);
@@ -40,7 +40,7 @@ public class SlotRenderingTests
     [Test]
     public async Task Slot_DoesNotRender_WhenPluginNotEnabled()
     {
-        var (projectDir, themePath) = CreateSiteWithPlugin(
+        var (projectDir, themePath) = await CreateSiteWithPlugin(
             pluginName: "test-plugin",
             slotName: "after_content",
             slotContent: "<div>SHOULD NOT APPEAR</div>",
@@ -49,8 +49,8 @@ public class SlotRenderingTests
 
         try
         {
-            var layout = "{{ page.content }}{{ slot 'after_content' }}";
-            File.WriteAllText(Path.Combine(themePath, "layouts", "default.html"), layout);
+            const string layout = "{{ page.content }}{{ slot 'after_content' }}";
+            await File.WriteAllTextAsync(Path.Combine(themePath, "layouts", "default.html"), layout);
 
             var collection = CreateTestCollection(projectDir);
             var item = CreateTestItem(collection);
@@ -70,7 +70,7 @@ public class SlotRenderingTests
     [Test]
     public async Task Slot_DoesNotRender_WhenCollectionHasNoPluginConfig()
     {
-        var (projectDir, themePath) = CreateSiteWithPlugin(
+        var (projectDir, themePath) = await CreateSiteWithPlugin(
             pluginName: "test-plugin",
             slotName: "after_content",
             slotContent: "<div>NO CONFIG</div>",
@@ -79,8 +79,8 @@ public class SlotRenderingTests
 
         try
         {
-            var layout = "{{ page.content }}{{ slot 'after_content' }}";
-            File.WriteAllText(Path.Combine(themePath, "layouts", "default.html"), layout);
+            const string layout = "{{ page.content }}{{ slot 'after_content' }}";
+            await File.WriteAllTextAsync(Path.Combine(themePath, "layouts", "default.html"), layout);
 
             var collection = CreateTestCollection(projectDir);
             var item = CreateTestItem(collection);
@@ -108,18 +108,18 @@ public class SlotRenderingTests
         // Plugin A - priority 20 (renders second)
         var pluginADir = Path.Combine(dir, "plugins", "plugin-a");
         Directory.CreateDirectory(Path.Combine(pluginADir, "slots"));
-        File.WriteAllText(Path.Combine(pluginADir, "plugin.yaml"), "name: Plugin A\nslots:\n  - after_content\n");
-        File.WriteAllText(Path.Combine(pluginADir, "slots", "after_content.html"), "SECOND");
+        await File.WriteAllTextAsync(Path.Combine(pluginADir, "plugin.yaml"), "name: Plugin A\nslots:\n  - after_content\n");
+        await File.WriteAllTextAsync(Path.Combine(pluginADir, "slots", "after_content.html"), "SECOND");
 
         // Plugin B - priority 5 (renders first)
         var pluginBDir = Path.Combine(dir, "plugins", "plugin-b");
         Directory.CreateDirectory(Path.Combine(pluginBDir, "slots"));
-        File.WriteAllText(Path.Combine(pluginBDir, "plugin.yaml"), "name: Plugin B\nslots:\n  - after_content\n");
-        File.WriteAllText(Path.Combine(pluginBDir, "slots", "after_content.html"), "FIRST");
+        await File.WriteAllTextAsync(Path.Combine(pluginBDir, "plugin.yaml"), "name: Plugin B\nslots:\n  - after_content\n");
+        await File.WriteAllTextAsync(Path.Combine(pluginBDir, "slots", "after_content.html"), "FIRST");
 
-        File.WriteAllText(Path.Combine(themeDir, "layouts", "default.html"), "{{ slot 'after_content' }}");
+        await File.WriteAllTextAsync(Path.Combine(themeDir, "layouts", "default.html"), "{{ slot 'after_content' }}");
 
-        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(dir, "site.yaml"),
             """
             title: Test
             baseUrl: http://localhost
@@ -169,9 +169,9 @@ public class SlotRenderingTests
         Directory.CreateDirectory(Path.Combine(themeDir, "partials"));
         Directory.CreateDirectory(Path.Combine(dir, "content", "posts"));
 
-        File.WriteAllText(Path.Combine(themeDir, "layouts", "default.html"),
+        await File.WriteAllTextAsync(Path.Combine(themeDir, "layouts", "default.html"),
             "<body>{{ page.content }}{{ slot 'after_content' }}</body>");
-        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(dir, "site.yaml"),
             "title: T\nbaseUrl: http://localhost\ncollections:\n  posts:\n    directory: content/posts\n");
 
         try
@@ -191,7 +191,7 @@ public class SlotRenderingTests
         }
     }
 
-    private static (string projectDir, string themePath) CreateSiteWithPlugin(
+    private static async Task<(string projectDir, string themePath)> CreateSiteWithPlugin(
         string pluginName,
         string slotName,
         string slotContent,
@@ -206,9 +206,9 @@ public class SlotRenderingTests
 
         var pluginDir = Path.Combine(dir, "plugins", pluginName);
         Directory.CreateDirectory(Path.Combine(pluginDir, "slots"));
-        File.WriteAllText(Path.Combine(pluginDir, "plugin.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "plugin.yaml"),
             $"name: {pluginName}\nslots:\n  - {slotName}\n");
-        File.WriteAllText(Path.Combine(pluginDir, "slots", $"{slotName}.html"), slotContent);
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "slots", $"{slotName}.html"), slotContent);
 
         var collectionPluginsBlock = collectionPluginsYaml is not null
             ? $"\n    plugins:\n      {collectionPluginsYaml.Replace("\n", "\n      ")}"
@@ -217,7 +217,7 @@ public class SlotRenderingTests
             ? $"\nplugins:\n  {globalPluginsYaml.Replace("\n", "\n  ")}"
             : "";
 
-        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(dir, "site.yaml"),
             $"""
             title: Test
             baseUrl: http://localhost

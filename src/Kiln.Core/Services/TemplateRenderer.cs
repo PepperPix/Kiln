@@ -19,7 +19,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             $"{layoutName}.html",
             "default.html");
 
-        return RenderTemplate(layoutPath, themePath, site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>(), ctx =>
+        return RenderTemplate(layoutPath, ctx =>
             BuildItemScriptObject(item, site, themePath, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>(), ctx, plugins));
     }
 
@@ -42,7 +42,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             "index.html",
             "default.html");
 
-        return RenderTemplate(layoutPath, themePath, site, allTaxonomies, ctx =>
+        return RenderTemplate(layoutPath, ctx =>
         {
             var indexUrl = paginator.Page == 1
                 ? collection.IndexUrl.OriginalString
@@ -73,7 +73,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             "taxonomy.html",
             "default.html");
 
-        return RenderTemplate(layoutPath, themePath, site, allTaxonomies, ctx =>
+        return RenderTemplate(layoutPath, ctx =>
         {
             var termPageUrl = paginator.Page == 1
                 ? term.Url.OriginalString
@@ -112,7 +112,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             "taxonomy-index.html",
             "default.html");
 
-        return RenderTemplate(layoutPath, themePath, site, allTaxonomies, ctx =>
+        return RenderTemplate(layoutPath, ctx =>
         {
             var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, overviewUrl.OriginalString, plugins, null);
             so.Add("taxonomy", new
@@ -135,9 +135,6 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
     private static string RenderTemplate(
         string layoutPath,
-        string themePath,
-        SiteConfiguration site,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         Func<TemplateContext, ScriptObject> buildScriptObject)
     {
         var templateSource = File.ReadAllText(layoutPath);
@@ -231,7 +228,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         var collectionsDict = site.Collections.ToDictionary(
             kvp => kvp.Key,
-            kvp => (object)BuildCollectionObject(kvp.Value));
+            kvp => BuildCollectionObject(kvp.Value));
         so.Add("collections", collectionsDict);
         so.Add("plugins", site.Plugins);
         so.Add("theme", site.ThemeConfig);
@@ -317,47 +314,32 @@ public sealed class TemplateRenderer : ITemplateRenderer
     {
         if (collectionPlugins is null || !collectionPlugins.TryGetValue(pluginKey, out var raw))
             return false;
-        if (raw is IDictionary<object, object> yamlDict)
+
+        var enabledVal = raw switch
         {
-            if (yamlDict.TryGetValue("enabled", out var enabledVal))
-            {
-                if (enabledVal is bool b) return b;
-                return string.Equals(enabledVal?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
-            }
-            return false;
-        }
-        if (raw is IDictionary<string, object> strDict)
-        {
-            if (strDict.TryGetValue("enabled", out var enabledVal))
-            {
-                if (enabledVal is bool b) return b;
-                return string.Equals(enabledVal?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
-            }
-            return false;
-        }
-        return false;
+            IDictionary<object, object> yamlDict when yamlDict.TryGetValue("enabled", out var v) => v,
+            IDictionary<string, object> strDict when strDict.TryGetValue("enabled", out var v) => v,
+            _ => null
+        };
+
+        if (enabledVal is null) return false;
+        if (enabledVal is bool b) return b;
+        return string.Equals(enabledVal.ToString(), "true", StringComparison.OrdinalIgnoreCase);
     }
 
     private static int GetPluginPriority(SiteConfiguration site, string pluginKey)
     {
         if (!site.Plugins.TryGetValue(pluginKey, out var raw)) return int.MaxValue;
-        if (raw is IDictionary<object, object> yamlDict)
+
+        var priorityVal = raw switch
         {
-            if (yamlDict.TryGetValue("priority", out var priorityVal))
-            {
-                if (priorityVal is int i) return i;
-                return int.TryParse(priorityVal?.ToString(), out var p) ? p : int.MaxValue;
-            }
-        }
-        else if (raw is IDictionary<string, object> strDict)
-        {
-            if (strDict.TryGetValue("priority", out var priorityVal))
-            {
-                if (priorityVal is int i) return i;
-                return int.TryParse(priorityVal?.ToString(), out var p) ? p : int.MaxValue;
-            }
-        }
-        return int.MaxValue;
+            IDictionary<object, object> yamlDict when yamlDict.TryGetValue("priority", out var v) => v,
+            IDictionary<string, object> strDict when strDict.TryGetValue("priority", out var v) => v,
+            _ => null
+        };
+
+        if (priorityVal is int i) return i;
+        return int.TryParse(priorityVal?.ToString(), out var p) ? p : int.MaxValue;
     }
 
     private static object BuildCollectionObject(ContentGroup collection)

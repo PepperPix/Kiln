@@ -140,8 +140,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
 
         var frontMatter = YamlDeserializer.Deserialize<FrontMatter>(yamlBlock);
 
-        var rawAll = RawYamlDeserializer.Deserialize<Dictionary<string, object>>(yamlBlock)
-            ?? [];
+        var rawAll = RawYamlDeserializer.Deserialize<Dictionary<string, object>>(yamlBlock);
         var extraFromFrontMatter = rawAll
             .Where(kvp => !KnownFrontMatterKeys.Contains(kvp.Key))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);

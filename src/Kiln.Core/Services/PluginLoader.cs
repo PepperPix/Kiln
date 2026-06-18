@@ -34,8 +34,6 @@ public sealed class PluginLoader : IPluginLoader
                 continue;
 
             var dto = YamlDeserializer.Deserialize<PluginDefinitionDto>(File.ReadAllText(configPath));
-            if (dto is null)
-                continue;
 
             var pluginName = Path.GetFileName(pluginDir);
             var definition = new PluginDefinition

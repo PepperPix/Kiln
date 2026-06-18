@@ -17,11 +17,10 @@ public sealed class DevServer(ISiteBuilder siteBuilder) : IDevServer
         listener.Start();
 
         // File watcher for auto-rebuild
-        using var watcher = new FileSystemWatcher(projectPath)
-        {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName
-        };
+        var watcher = new FileSystemWatcher(projectPath);
+        watcher.IncludeSubdirectories = true;
+        watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
+        using var watcherScope = watcher;
 
         watcher.Changed += OnChange;
         watcher.Created += OnChange;

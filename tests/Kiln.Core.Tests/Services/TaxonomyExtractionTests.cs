@@ -1,6 +1,5 @@
 namespace Kiln.Core.Tests.Services;
 
-using System.Collections.ObjectModel;
 using Kiln.Models;
 using Kiln.Services;
 

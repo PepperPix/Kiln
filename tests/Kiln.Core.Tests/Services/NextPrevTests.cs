@@ -93,7 +93,9 @@ public class NextPrevTests
                 sort: date asc
             """);
 
+#pragma warning disable S109
         for (var i = 1; i <= 3; i++)
+#pragma warning restore S109
         {
             File.WriteAllText(Path.Combine(dir, "content", "posts", $"post-0{i}.md"),
                 $"""

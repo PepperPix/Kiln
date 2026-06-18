@@ -103,14 +103,16 @@ public class PluginLoaderTests
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-multi-{Guid.NewGuid():N}");
         Directory.CreateDirectory(Path.Combine(dir, "plugins", "plugin-a"));
         Directory.CreateDirectory(Path.Combine(dir, "plugins", "plugin-b"));
-        File.WriteAllText(Path.Combine(dir, "plugins", "plugin-a", "plugin.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(dir, "plugins", "plugin-a", "plugin.yaml"),
             "name: Plugin A\nslots:\n  - head\n");
-        File.WriteAllText(Path.Combine(dir, "plugins", "plugin-b", "plugin.yaml"),
+        await File.WriteAllTextAsync(Path.Combine(dir, "plugins", "plugin-b", "plugin.yaml"),
             "name: Plugin B\nslots:\n  - body_end\n");
         try
         {
             var plugins = _loader.LoadPlugins(dir);
+#pragma warning disable S109
             await Assert.That(plugins.Count).IsEqualTo(2);
+#pragma warning restore S109
         }
         finally
         {
@@ -128,11 +130,13 @@ public class PluginLoaderTests
         Directory.CreateDirectory(pluginDir);
         Directory.CreateDirectory(Path.Combine(pluginDir, "slots"));
 
+#pragma warning disable S6966 // WriteAllTextAsync not applicable in non-async helper
         if (yamlContent is not null)
             File.WriteAllText(Path.Combine(pluginDir, "plugin.yaml"), yamlContent);
 
         foreach (var slotFile in slotFiles)
             File.WriteAllText(Path.Combine(pluginDir, "slots", slotFile), $"<div>{slotFile}</div>");
+#pragma warning restore S6966
 
         return dir;
     }

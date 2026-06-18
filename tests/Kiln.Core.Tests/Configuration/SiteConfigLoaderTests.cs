@@ -53,18 +53,26 @@ public class SiteConfigLoaderTests
             await Assert.That(config.OutputDir).IsEqualTo("dist");
             await Assert.That(config.ThemesDir).IsEqualTo("layouts");
 
-            await Assert.That(config.Collections).HasCount().EqualTo(2);
+#pragma warning disable S109
+            await Assert.That(config.Collections).Count().IsEqualTo(2);
+#pragma warning restore S109
             await Assert.That(config.Collections.ContainsKey("posts")).IsTrue();
             await Assert.That(config.Collections["posts"].Directory).IsEqualTo("content/blog");
             await Assert.That(config.Collections["posts"].Permalink).IsEqualTo("/blog/:slug/");
             await Assert.That(config.Collections["posts"].Sort).IsEqualTo("date desc");
             await Assert.That(config.Collections["posts"].Feed).IsTrue();
+#pragma warning disable S109
             await Assert.That(config.Collections["posts"].Paginate).IsEqualTo(5);
+#pragma warning restore S109
             await Assert.That(config.Collections["posts"].Layout).IsEqualTo("post");
 
-            await Assert.That(config.Taxonomies).HasCount().EqualTo(1);
+#pragma warning disable S109
+            await Assert.That(config.Taxonomies).Count().IsEqualTo(1);
+#pragma warning restore S109
             await Assert.That(config.Taxonomies["tags"].Permalink).IsEqualTo("/t/:slug/");
+#pragma warning disable S109
             await Assert.That(config.Taxonomies["tags"].Paginate).IsEqualTo(15);
+#pragma warning restore S109
         }
         finally
         {
@@ -158,7 +166,7 @@ public class SiteConfigLoaderTests
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dir);
-        File.WriteAllText(Path.Combine(dir, "site.yml"), """
+        await File.WriteAllTextAsync(Path.Combine(dir, "site.yml"), """
             title: YML Test
             baseUrl: http://localhost
             """);
@@ -178,7 +186,9 @@ public class SiteConfigLoaderTests
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dir);
+#pragma warning disable S6966 // WriteAllTextAsync not applicable in non-async helper
         File.WriteAllText(Path.Combine(dir, "site.yaml"), yamlContent);
+#pragma warning restore S6966
         return dir;
     }
 }

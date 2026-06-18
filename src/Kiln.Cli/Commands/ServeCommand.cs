@@ -30,16 +30,9 @@ public sealed class ServeCommand(IDevServer devServer) : AsyncCommand<ServeComma
         AnsiConsole.MarkupLine($"[green]Serving[/] at [blue]http://localhost:{settings.Port}/[/]");
         AnsiConsole.MarkupLine("[dim]Press Ctrl+C to stop.[/]");
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            cts.Cancel();
-        };
-
         try
         {
-            await devServer.RunAsync(projectPath, settings.Port, settings.IncludeDrafts, cts.Token).ConfigureAwait(false);
+            await devServer.RunAsync(projectPath, settings.Port, settings.IncludeDrafts, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
