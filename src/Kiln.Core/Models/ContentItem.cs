@@ -1,24 +1,23 @@
 namespace Kiln.Models;
 
-/// <summary>
-/// A single content item (post or page) with parsed front matter and body.
-/// </summary>
 public sealed class ContentItem
 {
+    public string? Id { get; init; }
+    public required string Title { get; init; }
+    public DateTime? Date { get; init; }
+    public bool Draft { get; init; }
+    public required string Slug { get; init; }
+    public string? Description { get; init; }
+    public string? Layout { get; init; }
+    public int Weight { get; init; }
     public required string SourcePath { get; init; }
     public required string RelativePath { get; init; }
-    public required FrontMatter FrontMatter { get; init; }
     public required string RawContent { get; init; }
     public required string HtmlContent { get; init; }
-    public required string OutputPath { get; init; }
-    public Uri Url
-    {
-        get
-        {
-            var sep = Path.AltDirectorySeparatorChar;
-            return new Uri(
-                $"{sep}{OutputPath.Replace(Path.DirectorySeparatorChar, sep).TrimEnd(sep)}",
-                UriKind.Relative);
-        }
-    }
+    public required Uri Url { get; set; }
+    public required string OutputPath { get; set; }
+    public required ContentGroup Collection { get; init; }
+    public Dictionary<string, object> Extra { get; init; } = [];
+    public Dictionary<string, object> Taxonomies { get; init; } = [];
 }
+

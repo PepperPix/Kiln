@@ -1,5 +1,6 @@
 namespace Kiln.Services;
 
+using System.Linq;
 using Kiln.Models;
 using Scriban;
 using Scriban.Runtime;
@@ -10,11 +11,16 @@ public sealed class TemplateRenderer : ITemplateRenderer
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(site);
-        var layoutName = item.FrontMatter.Layout ?? "default";
+        var layoutName = item.Layout ?? item.Collection.Layout;
         var layoutPath = Path.Combine(themePath, "layouts", $"{layoutName}.html");
 
         if (!File.Exists(layoutPath))
-            throw new FileNotFoundException($"Layout '{layoutName}' not found at: {layoutPath}");
+        {
+            var fallback = Path.Combine(themePath, "layouts", "default.html");
+            if (!File.Exists(fallback))
+                throw new FileNotFoundException($"Layout '{layoutName}' not found at: {layoutPath}");
+            layoutPath = fallback;
+        }
 
         var templateSource = File.ReadAllText(layoutPath);
         var template = Template.Parse(templateSource, layoutPath);
@@ -26,25 +32,49 @@ public sealed class TemplateRenderer : ITemplateRenderer
         var context = new TemplateContext();
         var scriptObject = new ScriptObject();
 
-        // Expose site and page data to templates
         scriptObject.Add("site", new
         {
             title = site.Title,
             description = site.Description,
-            base_url = site.BaseUrl,
+            base_url = site.BaseUrl.ToString().TrimEnd('/'),
             language = site.Language
         });
 
         scriptObject.Add("page", new
         {
-            title = item.FrontMatter.Title,
-            date = item.FrontMatter.Date,
-            description = item.FrontMatter.Description,
-            tags = item.FrontMatter.Tags,
-            categories = item.FrontMatter.Categories,
+            id = item.Id,
+            title = item.Title,
+            date = item.Date,
             content = item.HtmlContent,
-            url = item.Url
+            url = item.Url.OriginalString,
+            slug = item.Slug,
+            description = item.Description,
+            draft = item.Draft,
+            weight = item.Weight,
+            extra = item.Extra,
+            tags = item.Taxonomies.GetValueOrDefault("tags"),
+            categories = item.Taxonomies.GetValueOrDefault("categories"),
+            collection = new { name = item.Collection.Name, url = item.Collection.Url.OriginalString }
         });
+
+        scriptObject.Add("collection", new
+        {
+            name = item.Collection.Name,
+            items = item.Collection.Items.Where(static i => !i.Draft).ToList(),
+            url = item.Collection.Url
+        });
+
+        var collectionsDict = site.Collections.ToDictionary(
+            kvp => kvp.Key,
+            kvp => (object)new
+            {
+                name = kvp.Value.Name,
+                items = kvp.Value.Items.Where(static i => !i.Draft).ToList(),
+                url = kvp.Value.Url.OriginalString
+            });
+        scriptObject.Add("collections", collectionsDict);
+        scriptObject.Add("plugins", site.Plugins);
+        scriptObject.Add("theme", site.ThemeConfig);
 
         // Include function for partials
         var partialsDir = Path.Combine(themePath, "partials");
@@ -62,3 +92,4 @@ public sealed class TemplateRenderer : ITemplateRenderer
         return template.Render(context);
     }
 }
+

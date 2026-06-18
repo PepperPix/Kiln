@@ -11,8 +11,13 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         .IgnoreUnmatchedProperties()
         .Build();
 
-    public IReadOnlyList<ContentItem> ReadAll(string contentDirectory, string outputDir)
+    public IReadOnlyList<ContentItem> ReadCollection(ContentGroup collection, string projectPath)
     {
+        ArgumentNullException.ThrowIfNull(collection);
+        var contentDirectory = Path.IsPathRooted(collection.Directory)
+            ? collection.Directory
+            : Path.Combine(projectPath, collection.Directory);
+
         if (!Directory.Exists(contentDirectory))
             return [];
 
@@ -21,15 +26,15 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
 
         foreach (var file in files)
         {
-            var item = ReadFile(file, contentDirectory, outputDir);
+            var item = ReadFile(file, contentDirectory, collection);
             if (item is not null)
                 items.Add(item);
         }
 
-        return items.OrderByDescending(i => i.FrontMatter.Date).ToList();
+        return ApplySort(items, collection.Sort);
     }
 
-    private ContentItem? ReadFile(string filePath, string contentDirectory, string outputDir)
+    private ContentItem? ReadFile(string filePath, string contentDirectory, ContentGroup collection)
     {
         var content = File.ReadAllText(filePath);
         var (frontMatter, body) = ParseFrontMatter(content);
@@ -39,16 +44,51 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
 
         var relativePath = Path.GetRelativePath(contentDirectory, filePath);
         var slug = frontMatter.Slug ?? Path.GetFileNameWithoutExtension(filePath);
-        var outputPath = Path.Combine(slug, "index.html");
+
+        var extra = new Dictionary<string, object>(frontMatter.Extra);
+        if (!string.IsNullOrEmpty(frontMatter.PermalinkOverride))
+            extra["permalink_override"] = frontMatter.PermalinkOverride;
+
+        var taxonomies = new Dictionary<string, object>();
+        foreach (var taxName in collection.Taxonomies)
+        {
+            if (string.Equals(taxName, "tags", StringComparison.OrdinalIgnoreCase))
+                taxonomies[taxName] = frontMatter.Tags;
+            else if (string.Equals(taxName, "categories", StringComparison.OrdinalIgnoreCase))
+                taxonomies[taxName] = frontMatter.Categories;
+        }
 
         return new ContentItem
         {
+            Id = frontMatter.Id,
+            Title = frontMatter.Title,
+            Date = frontMatter.Date,
+            Draft = frontMatter.Draft,
+            Slug = slug,
+            Description = frontMatter.Description,
+            Layout = frontMatter.Layout,
+            Weight = frontMatter.Weight,
             SourcePath = filePath,
             RelativePath = relativePath,
-            FrontMatter = frontMatter,
             RawContent = body,
             HtmlContent = markdownProcessor.ToHtml(body),
-            OutputPath = outputPath
+            Url = collection.Url,
+            OutputPath = "",
+            Collection = collection,
+            Extra = extra,
+            Taxonomies = taxonomies
+        };
+    }
+
+    private static List<ContentItem> ApplySort(List<ContentItem> items, string sort)
+    {
+        return sort switch
+        {
+            "date desc" => [.. items.OrderByDescending(i => i.Date)],
+            "date asc" => [.. items.OrderBy(i => i.Date)],
+            "title asc" => [.. items.OrderBy(i => i.Title, StringComparer.OrdinalIgnoreCase)],
+            "weight asc" => [.. items.OrderBy(i => i.Weight).ThenBy(i => i.Title, StringComparer.OrdinalIgnoreCase)],
+            _ => items
         };
     }
 
@@ -68,3 +108,4 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         return (frontMatter, body);
     }
 }
+

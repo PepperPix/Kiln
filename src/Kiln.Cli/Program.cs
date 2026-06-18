@@ -8,6 +8,7 @@ var services = new ServiceCollection();
 services.AddSingleton<IMarkdownProcessor, MarkdownProcessor>();
 services.AddSingleton<IContentReader, ContentReader>();
 services.AddSingleton<ITemplateRenderer, TemplateRenderer>();
+services.AddSingleton<IPermalinkGenerator, PermalinkGenerator>();
 services.AddSingleton<ISiteConfigLoader, SiteConfigLoader>();
 services.AddSingleton<ISiteBuilder, SiteBuilder>();
 services.AddSingleton<IDevServer, DevServer>();
