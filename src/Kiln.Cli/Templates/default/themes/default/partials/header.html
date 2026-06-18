@@ -1,0 +1,35 @@
+<header>
+    <div class="header-inner">
+        <a href="/" class="site-logo" aria-label="{{ site.title }}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                <style>
+                    @keyframes kiln-s1{0%{transform:translateY(0);opacity:.7}50%{transform:translateY(-6px) translateX(2px);opacity:.4}100%{transform:translateY(-12px) translateX(-1px);opacity:0}}
+                    @keyframes kiln-s2{0%{transform:translateY(0);opacity:.5}50%{transform:translateY(-8px) translateX(-2px);opacity:.3}100%{transform:translateY(-14px) translateX(1px);opacity:0}}
+                    @keyframes kiln-s3{0%{transform:translateY(0);opacity:.6}50%{transform:translateY(-7px) translateX(1px);opacity:.35}100%{transform:translateY(-13px) translateX(-2px);opacity:0}}
+                    .ks1{animation:kiln-s1 3s ease-out infinite}
+                    .ks2{animation:kiln-s2 3.5s ease-out infinite .8s}
+                    .ks3{animation:kiln-s3 2.8s ease-out infinite 1.6s}
+                    @keyframes kiln-glow{0%,100%{opacity:.6}50%{opacity:1}}
+                    .kg{animation:kiln-glow 2s ease-in-out infinite}
+                </style>
+                <path class="ks1" d="M28 16 Q26 12 28 8" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round"/>
+                <path class="ks2" d="M32 16 Q34 11 32 6" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round"/>
+                <path class="ks3" d="M36 16 Q34 13 36 9" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round"/>
+                <rect x="26" y="16" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="2.5"/>
+                <line x1="24" y1="16" x2="40" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M20 26 L44 26 L48 54 L16 54 Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M26 54 L26 42 Q26 36 32 36 Q38 36 38 42 L38 54" stroke="currentColor" stroke-width="2.5"/>
+                <ellipse class="kg" cx="32" cy="48" rx="4" ry="3" fill="var(--color-accent)" opacity=".6"/>
+                <line x1="14" y1="54" x2="50" y2="54" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span>{{ site.title }}</span>
+        </a>
+        {{ if menus && menus.main }}
+        <nav aria-label="Main navigation">
+            {{ for item in menus.main }}
+            <a href="{{ item.url }}"{{ if item.active }} class="active"{{ end }}>{{ item.title }}</a>
+            {{ end }}
+        </nav>
+        {{ end }}
+    </div>
+</header>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="{{ site.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Blog &mdash; {{ site.title }}</title>
+    {{ include 'head' }}
+    {{ slot 'head' }}
+</head>
+<body>
+    {{ slot 'body_start' }}
+    {{ include 'header' }}
+    <main>
+        {{ slot 'before_content' }}
+        <h1>Blog</h1>
+        {{ for item in paginator.items }}
+        <article class="post-card">
+            <h2><a href="{{ item.url }}">{{ item.title }}</a></h2>
+            <div class="post-meta">
+                {{ if item.date }}<time datetime="{{ item.date | date.to_string '%Y-%m-%d' }}">{{ item.date | date.to_string '%B %d, %Y' }}</time>{{ end }}
+                {{ if item.tags && item.tags.size > 0 }}
+                <span class="tags">
+                    {{ for tag in item.tags }}<a href="/tags/{{ tag }}/" class="tag">{{ tag }}</a>{{ end }}
+                </span>
+                {{ end }}
+            </div>
+            {{ if item.description }}<p>{{ item.description }}</p>{{ end }}
+        </article>
+        {{ end }}
+        {{ if paginator.total_pages > 1 }}
+        <nav class="pagination">
+            {{ if paginator.prev_url }}<a href="{{ paginator.prev_url }}" class="pagination-prev">&larr; Newer</a>{{ end }}
+            <span>Page {{ paginator.page }} of {{ paginator.total_pages }}</span>
+            {{ if paginator.next_url }}<a href="{{ paginator.next_url }}" class="pagination-next">Older &rarr;</a>{{ end }}
+        </nav>
+        {{ end }}
+        {{ slot 'after_content' }}
+    </main>
+    {{ include 'footer' }}
+    {{ slot 'body_end' }}
+</body>
+</html>

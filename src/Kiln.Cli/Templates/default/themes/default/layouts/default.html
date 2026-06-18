@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="{{ site.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ if page }}{{ page.title }} &mdash; {{ end }}{{ site.title }}</title>
+    {{ include 'head' }}
+    {{ slot 'head' }}
+</head>
+<body>
+    {{ slot 'body_start' }}
+    {{ include 'header' }}
+    <main>
+        {{ slot 'before_content' }}
+        <article>
+            {{ if page }}<h1>{{ page.title }}</h1>{{ end }}
+            {{ if page }}{{ page.content }}{{ end }}
+        </article>
+        {{ slot 'after_content' }}
+    </main>
+    {{ include 'footer' }}
+    {{ slot 'body_end' }}
+</body>
+</html>

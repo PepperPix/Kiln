@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="{{ site.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ taxonomy.term }} &mdash; {{ site.title }}</title>
+    {{ include 'head' }}
+    {{ slot 'head' }}
+</head>
+<body>
+    {{ slot 'body_start' }}
+    {{ include 'header' }}
+    <main>
+        {{ slot 'before_content' }}
+        <h1>{{ taxonomy.name }}: {{ taxonomy.term }}</h1>
+        {{ for item in taxonomy.items }}
+        <article class="post-card">
+            <h2><a href="{{ item.url }}">{{ item.title }}</a></h2>
+            <div class="post-meta">
+                {{ if item.date }}<time datetime="{{ item.date | date.to_string '%Y-%m-%d' }}">{{ item.date | date.to_string '%B %d, %Y' }}</time>{{ end }}
+            </div>
+        </article>
+        {{ end }}
+        {{ slot 'after_content' }}
+    </main>
+    {{ include 'footer' }}
+    {{ slot 'body_end' }}
+</body>
+</html>

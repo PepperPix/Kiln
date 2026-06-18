@@ -1,0 +1,7 @@
+---
+id: {{ID2}}
+title: About
+weight: 10
+---
+
+This is the about page. Edit `content/pages/about.md` to update it.

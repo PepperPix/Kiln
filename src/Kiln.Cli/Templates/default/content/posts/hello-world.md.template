@@ -1,0 +1,25 @@
+---
+id: {{ID1}}
+title: Hello World
+date: {{DATE}}
+tags:
+  - kiln
+  - getting-started
+---
+
+Welcome to your new **Kiln** site!
+
+This is your first post. Edit it or create new `.md` files in `content/posts/`.
+
+## Code highlighting
+
+Kiln uses Prism.js for syntax highlighting:
+
+```csharp
+var site = new KilnSite("My Site");
+site.Build();
+```
+
+```javascript
+console.log("Hello, Kiln!");
+```

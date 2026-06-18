@@ -1,0 +1,40 @@
+title: {{NAME}}
+description: A new Kiln site
+baseUrl: http://localhost:5555
+language: en
+theme: default
+
+collections:
+  posts:
+    directory: content/posts
+    permalink: /blog/:slug/
+    sort: date desc
+    feed: true
+    paginate: 10
+    taxonomies:
+      - tags
+      - categories
+    layout: post
+
+  pages:
+    directory: content/pages
+    permalink: /:slug/
+    sort: weight asc
+    layout: page
+
+taxonomies:
+  tags:
+    permalink: /tags/:slug/
+    paginate: 20
+  categories:
+    permalink: /categories/:slug/
+    paginate: 10
+
+menus:
+  main:
+    - title: Home
+      url: /
+    - title: Blog
+      ref: posts/
+    - title: About
+      ref: pages/about
