@@ -41,7 +41,10 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         return RenderTemplate(layoutPath, themePath, site, allTaxonomies, ctx =>
         {
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx);
+            var indexUrl = paginator.Page == 1
+                ? collection.IndexUrl.OriginalString
+                : $"{collection.IndexUrl.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
+            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, indexUrl);
             so.Add("collection", BuildCollectionObject(collection));
             so.Add("paginator", BuildPaginatorObject(paginator));
             return so;
@@ -67,7 +70,10 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         return RenderTemplate(layoutPath, themePath, site, allTaxonomies, ctx =>
         {
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx);
+            var termPageUrl = paginator.Page == 1
+                ? term.Url.OriginalString
+                : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
+            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, termPageUrl);
             so.Add("taxonomy", new
             {
                 name = term.Taxonomy.Name,
@@ -101,7 +107,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         return RenderTemplate(layoutPath, themePath, site, allTaxonomies, ctx =>
         {
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx);
+            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, overviewUrl.OriginalString);
             so.Add("taxonomy", new
             {
                 name = taxonomy.Name,
@@ -147,7 +153,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         TemplateContext context)
     {
-        var so = BuildCommonScriptObject(site, allTaxonomies, themePath, context);
+        var so = BuildCommonScriptObject(site, allTaxonomies, themePath, context, item.Url.OriginalString);
 
         var pageObj = new ScriptObject();
         pageObj.Add("id", item.Id);
@@ -162,7 +168,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
         pageObj.Add("extra", item.Extra);
         pageObj.Add("tags", item.Taxonomies.GetValueOrDefault("tags"));
         pageObj.Add("categories", item.Taxonomies.GetValueOrDefault("categories"));
-        pageObj.Add("collection", new { name = item.Collection.Name, url = item.Collection.IndexUrl.OriginalString });
+        pageObj.Add("collection", new { name = item.Collection.Name, url = item.Collection.IndexUrl.OriginalString, feed = item.Collection.Feed });
         pageObj.Add("next", item.Next is null ? null : (object)new
         {
             title = item.Next.Title,
@@ -199,7 +205,8 @@ public sealed class TemplateRenderer : ITemplateRenderer
         SiteConfiguration site,
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         string themePath,
-        TemplateContext context)
+        TemplateContext context,
+        string? currentUrl = null)
     {
         var so = new ScriptObject();
 
@@ -235,6 +242,12 @@ public sealed class TemplateRenderer : ITemplateRenderer
         }
         so.Add("taxonomies", taxonomiesObj);
 
+        // menus — active flag computed from currentUrl
+        var menusObj = new ScriptObject();
+        foreach (var (name, menu) in site.Menus)
+            menusObj.Add(name, menu.Items.Select(i => BuildMenuItemObject(i, currentUrl)).ToList());
+        so.Add("menus", menusObj);
+
         // include partial
         var partialsDir = Path.Combine(themePath, "partials");
         so.Import("include", new Func<string, string>(partialName =>
@@ -260,8 +273,36 @@ public sealed class TemplateRenderer : ITemplateRenderer
         {
             name = collection.Name,
             items = collection.Items.Where(static i => !i.Draft).Select(BuildItemSummary).ToList(),
-            url = collection.IndexUrl.OriginalString
+            url = collection.IndexUrl.OriginalString,
+            feed = collection.Feed
         };
+    }
+
+    private static object BuildMenuItemObject(MenuItem item, string? currentUrl)
+    {
+        var children = item.Children.Select(c => BuildMenuItemObject(c, currentUrl)).ToList();
+        var active = IsMenuItemActive(item, currentUrl);
+        return new
+        {
+            title = item.Title,
+            url = item.Url?.OriginalString,
+            external = item.External,
+            active,
+            children
+        };
+    }
+
+    private static bool IsMenuItemActive(MenuItem item, string? currentUrl)
+    {
+        if (currentUrl is null) return false;
+        var selfActive = item.Url is not null &&
+            string.Equals(item.Url.OriginalString, currentUrl, StringComparison.OrdinalIgnoreCase);
+        if (selfActive) return true;
+        foreach (var child in item.Children)
+        {
+            if (IsMenuItemActive(child, currentUrl)) return true;
+        }
+        return false;
     }
 
     private static object BuildPaginatorObject(Paginator paginator)

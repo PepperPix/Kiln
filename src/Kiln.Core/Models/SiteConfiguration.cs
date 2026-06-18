@@ -12,6 +12,7 @@ public sealed class SiteConfiguration
     public string ThemesDir { get; init; } = "themes";
     public Dictionary<string, ContentGroup> Collections { get; init; } = [];
     public Dictionary<string, TaxonomyDefinition> Taxonomies { get; init; } = [];
+    public Dictionary<string, Menu> Menus { get; init; } = [];
     public Dictionary<string, object> Plugins { get; init; } = [];
     public Dictionary<string, object> ThemeConfig { get; init; } = [];
     public Dictionary<string, object> Extra { get; init; } = [];

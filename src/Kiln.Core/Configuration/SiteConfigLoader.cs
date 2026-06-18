@@ -62,6 +62,19 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             }
         }
 
+        var menus = new Dictionary<string, Menu>();
+        if (dto.Menus is not null)
+        {
+            foreach (var (name, itemDtos) in dto.Menus)
+            {
+                menus[name] = new Menu
+                {
+                    Name = name,
+                    Items = new System.Collections.ObjectModel.Collection<MenuItem>(itemDtos.Select(MapMenuItem).ToList())
+                };
+            }
+        }
+
         return new SiteConfiguration
         {
             Title = dto.Title,
@@ -74,9 +87,22 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             ThemesDir = dto.ThemesDir ?? "themes",
             Collections = collections,
             Taxonomies = taxonomies,
+            Menus = menus,
             Plugins = dto.Plugins ?? [],
             ThemeConfig = dto.ThemeConfig ?? [],
             Extra = dto.Extra ?? []
+        };
+    }
+
+    private static MenuItem MapMenuItem(MenuItemDto dto)
+    {
+        return new MenuItem
+        {
+            Title = dto.Title ?? string.Empty,
+            Url = dto.Url is not null ? new Uri(dto.Url, UriKind.RelativeOrAbsolute) : null,
+            Ref = dto.Ref,
+            External = dto.External,
+            Children = new System.Collections.ObjectModel.Collection<MenuItem>(dto.Children?.Select(MapMenuItem).ToList() ?? [])
         };
     }
 
@@ -101,7 +127,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
 
     // DTOs for YAML deserialization — properties are assigned by YamlDotNet via reflection
 
-#pragma warning disable S3459, S1144 // Properties are assigned/read by YamlDotNet via reflection
+#pragma warning disable S3459, S1144, S3996 // Properties are assigned/read by YamlDotNet via reflection
 
     private sealed class SiteConfigDto
     {
@@ -116,9 +142,19 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public string? ThemesDir { get; set; }
         public Dictionary<string, CollectionDto>? Collections { get; set; }
         public Dictionary<string, TaxonomyDto>? Taxonomies { get; set; }
+        public Dictionary<string, List<MenuItemDto>>? Menus { get; set; }
         public Dictionary<string, object>? Plugins { get; set; }
         public Dictionary<string, object>? ThemeConfig { get; set; }
         public Dictionary<string, object>? Extra { get; set; }
+    }
+
+    private sealed class MenuItemDto
+    {
+        public string? Title { get; set; }
+        public string? Url { get; set; }
+        public string? Ref { get; set; }
+        public bool External { get; set; }
+        public List<MenuItemDto>? Children { get; set; }
     }
 
     private sealed class CollectionDto
@@ -141,6 +177,6 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public int? Paginate { get; set; }
     }
 
-#pragma warning restore S3459, S1144
+#pragma warning restore S3459, S1144, S3996
 }
 

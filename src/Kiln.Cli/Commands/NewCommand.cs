@@ -66,6 +66,16 @@ public sealed class NewCommand : Command<NewCommand.Settings>
               categories:
                 permalink: /categories/:slug/
                 paginate: 10
+
+            menus:
+              main:
+                - title: Home
+                  url: /
+                  external: true
+                - title: Blog
+                  ref: posts/
+                - title: About
+                  ref: pages/about
             """);
 
         var helloWorldId = Guid.NewGuid().ToString("D");
@@ -154,6 +164,12 @@ public sealed class NewCommand : Command<NewCommand.Settings>
             """
             <meta name="description" content="{{ site.description }}">
             <link rel="stylesheet" href="{{ asset_url 'css/style.css' }}">
+            {{ if page && page.collection && page.collection.feed }}
+            <link rel="alternate" type="application/atom+xml" title="{{ site.title }} Feed" href="{{ site.base_url }}{{ page.collection.url }}feed.xml">
+            {{ end }}
+            {{ if collection && collection.feed }}
+            <link rel="alternate" type="application/atom+xml" title="{{ site.title }} Feed" href="{{ site.base_url }}{{ collection.url }}feed.xml">
+            {{ end }}
             """);
 
         // Default stylesheet
