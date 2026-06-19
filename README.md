@@ -11,19 +11,16 @@ Kiln is a fast, extensible static site generator for .NET. It is distributed as 
 Install the global tool (once published) and create a site:
 
 ```bash
-rtk dotnet tool install -g dotnet-kiln
-rtk kiln new my-site
+dotnet tool install -g dotnet-kiln
+kiln new my-site
 ```
 
 Build and serve locally:
 
 ```bash
-rtk kiln build
-rtk kiln serve
+kiln build
+kiln serve
 ```
-
-> Notes:
-- Local CLI examples above use the `rtk` prefix as a token-saving wrapper for shell commands.
 
 ## Features
 
@@ -58,15 +55,15 @@ Common commands (exact names):
 Examples:
 
 ```bash
-rtk kiln new blog
-rtk kiln build
-rtk kiln serve
+kiln new blog
+kiln build
+kiln serve
 
 # Initialize GitHub Pages deployment workflow in the current project
-rtk kiln deploy github-pages
+kiln deploy github-pages
 
 # Initialize Azure Static Web Apps workflow and staticwebapp.config.json
-rtk kiln deploy azure-swa
+kiln deploy azure-swa
 ```
 
 Important: the `deploy` command expects a target argument, e.g. `github-pages` or `azure-swa`.
