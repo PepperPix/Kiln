@@ -12,7 +12,7 @@
     <Nullable>enable</Nullable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>kiln</ToolCommandName>
-    <PackageId>dotnet-kiln</PackageId>
+    <PackageId>Kiln</PackageId>
     <Description>A fast, extensible static site generator for .NET</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/PepperPix/Kiln</PackageProjectUrl>

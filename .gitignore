@@ -6,3 +6,4 @@ obj/
 .idea/
 *.DS_Store
 TestResults/
+node_modules/

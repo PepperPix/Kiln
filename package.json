@@ -1,0 +1,78 @@
+{
+	"name": "kiln-release",
+	"version": "0.0.0-development",
+	"private": true,
+	"description": "Release tooling for the Kiln static site generator.",
+	"scripts": {
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"@commitlint/cli": "^21.0.1",
+		"@commitlint/config-conventional": "^21.0.1",
+		"@droidsolutions-oss/semantic-release-nuget": "^2.0.1",
+		"@droidsolutions-oss/semantic-release-update-file": "^1.4.0",
+		"@semantic-release/changelog": "^6.0.3",
+		"@semantic-release/git": "^10.0.1",
+		"husky": "^9.1.7",
+		"semantic-release": "^25.0.3"
+	},
+	"release": {
+		"branches": [
+			"main",
+			{
+				"name": "beta",
+				"prerelease": true
+			}
+		],
+		"plugins": [
+			"@semantic-release/commit-analyzer",
+			"@semantic-release/release-notes-generator",
+			"@semantic-release/changelog",
+			[
+				"@droidsolutions-oss/semantic-release-update-file",
+				{
+					"files": [
+						{
+							"path": [
+								"Directory.Build.props"
+							],
+							"type": "xml",
+							"replacements": [
+								{
+									"key": "Version",
+									"value": "${nextRelease.version}"
+								},
+								{
+									"key": "InformationalVersion",
+									"value": "${nextRelease.version}"
+								},
+								{
+									"key": "RepositoryCommit",
+									"value": "${nextRelease.gitHead}"
+								}
+							]
+						}
+					]
+				}
+			],
+			"@droidsolutions-oss/semantic-release-nuget",
+			[
+				"@semantic-release/git",
+				{
+					"assets": [
+						"CHANGELOG.md",
+						"Directory.Build.props"
+					],
+					"message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+				}
+			],
+			"@semantic-release/github"
+		],
+		"includeSymbols": true,
+		"projectPath": [
+			"src/Kiln.Cli/Kiln.Cli.csproj"
+		],
+		"npmPublish": false,
+		"usePackageVersion": true
+	}
+}

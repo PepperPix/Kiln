@@ -11,7 +11,7 @@ Kiln is a fast, extensible static site generator for .NET. It is distributed as 
 Install the global tool (once published) and create a site:
 
 ```bash
-dotnet tool install -g dotnet-kiln
+dotnet tool install -g Kiln
 kiln new my-site
 ```
 

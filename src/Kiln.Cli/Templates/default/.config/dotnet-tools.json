@@ -2,7 +2,7 @@
 	"version": 1,
 	"isRoot": true,
 	"tools": {
-		"dotnet-kiln": {
+		"Kiln": {
 			"version": "0.1.0",
 			"commands": ["kiln"]
 		}

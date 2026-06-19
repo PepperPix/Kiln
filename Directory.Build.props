@@ -1,6 +1,8 @@
 <Project>
   <PropertyGroup>
     <Version>0.1.0</Version>
+    <InformationalVersion>0.1.0</InformationalVersion>
+    <RepositoryCommit></RepositoryCommit>
     <Authors>Marcel Kummerow</Authors>
     <Company>CScharf</Company>
     <Product>Kiln</Product>
