@@ -1,12 +1,10 @@
 {
-  "version": 1,
-  "isRoot": true,
-  "tools": {
-    "dotnet-kiln": {
-      "version": "0.1.0",
-      "commands": [
-        "kiln"
-      ]
-    }
-  }
+	"version": 1,
+	"isRoot": true,
+	"tools": {
+		"dotnet-kiln": {
+			"version": "0.1.0",
+			"commands": ["kiln"]
+		}
+	}
 }
