@@ -13,7 +13,7 @@ jobs:
   release:
     name: Semantic Release
     runs-on: ubuntu-22.04
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta') && vars.RELEASE_ENABLED == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,4 +50,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
           NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
-        run: npx semantic-release ${{ vars.RELEASE_ENABLED == 'true' && '' || '--dry-run' }}
+        run: npx semantic-release
