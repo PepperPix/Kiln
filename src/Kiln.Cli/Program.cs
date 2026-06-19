@@ -30,6 +30,9 @@ app.Configure(config =>
 
     config.AddCommand<NewCommand>("new")
         .WithDescription("Create a new site project.");
+
+    config.AddCommand<DeployCommand>("deploy")
+        .WithDescription("Initialize CI/CD deployment for various targets.");
 });
 
 return await app.RunAsync(args).ConfigureAwait(false);

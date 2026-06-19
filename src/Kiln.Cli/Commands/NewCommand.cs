@@ -20,6 +20,7 @@ public sealed class NewCommand : Command<NewCommand.Settings>
     // Files ending in .template have placeholders replaced; the .template extension is stripped.
     private static readonly (string Resource, string Target)[] TemplateEntries =
     [
+        (".config/dotnet-tools.json",                                  ".config/dotnet-tools.json"),
         ("site.yaml.template",                                         "site.yaml"),
         ("content/posts/hello-world.md.template",                      "content/posts/hello-world.md"),
         ("content/posts/01-welcome-to-kiln.md.template",               "content/posts/01-welcome-to-kiln.md"),
