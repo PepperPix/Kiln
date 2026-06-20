@@ -1,0 +1,11 @@
+---
+title: Welcome to {{NAME}}
+layout: home
+description: The homepage of {{NAME}}, built with Kiln.
+---
+
+This is your new Kiln site. Edit `content/index.md` to change this homepage, and
+look at the **Latest posts** list below — it is generated automatically from your
+`posts` collection.
+
+Start writing in `content/posts/` and run a build to see new entries appear here.

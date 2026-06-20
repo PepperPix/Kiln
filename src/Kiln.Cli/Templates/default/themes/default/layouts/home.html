@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="{{ site.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page.title }} — {{ site.title }}</title>
+    {{ include 'head' }}
+    {{ slot 'head' }}
+</head>
+<body>
+    {{ slot 'body_start' }}
+    {{ include 'header' }}
+    <main>
+        {{ slot 'before_content' }}
+        <section class="hero">
+            <h1>{{ page.title }}</h1>
+            {{ page.content }}
+        </section>
+        <section class="recent-posts">
+            <h2>Latest posts</h2>
+            {{ include 'recent-posts' }}
+            <p><a href="{{ collections.posts.url }}">All posts →</a></p>
+        </section>
+        {{ slot 'after_content' }}
+    </main>
+    {{ include 'footer' }}
+    {{ slot 'body_end' }}
+</body>
+</html>

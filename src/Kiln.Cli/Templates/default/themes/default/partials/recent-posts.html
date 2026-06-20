@@ -1,0 +1,9 @@
+<ul class="post-list">
+    {{ for item in collections.posts.items | limit 5 }}
+    <li>
+        <a href="{{ item.url }}">{{ item.title }}</a>
+        {{ if item.date }}<time datetime="{{ item.date | date.to_string '%Y-%m-%d' }}">{{ item.date | date.to_string '%B %d, %Y' }}</time>{{ end }}
+        {{ if item.description }}<span class="post-excerpt">{{ item.description }}</span>{{ end }}
+    </li>
+    {{ end }}
+</ul>

@@ -121,9 +121,8 @@ jobs:
 
         const string config = """
 {
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/assets/*"]
+  "responseOverrides": {
+    "404": { "rewrite": "/404.html" }
   },
   "routes": [
     {

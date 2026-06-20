@@ -4,6 +4,9 @@ baseUrl: http://localhost:5555
 language: en
 theme: default
 
+home:
+  page: content/index.md
+
 collections:
   posts:
     directory: content/posts
@@ -33,6 +36,8 @@ taxonomies:
 menus:
   main:
     - title: Home
+      url: /
+    - title: Blog
       ref: posts/
     - title: About
       ref: pages/about
