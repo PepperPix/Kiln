@@ -46,6 +46,44 @@ public sealed class SiteBuilder(
             allItems.AddRange(items);
         }
 
+        if (config.Home?.Collection is { } homeCollectionName)
+        {
+            var promoted = config.Collections[homeCollectionName];
+            promoted.IndexUrlOverride = new Uri("/", UriKind.Relative);
+            if (promoted.Paginate is null)
+                errors.Add($"home.collection requires 'paginate' on collection '{homeCollectionName}'.");
+        }
+
+        if (config.Home?.Page is { } homePageRel)
+        {
+            var homePageAbsolute = Path.Combine(projectPath, homePageRel);
+            if (!File.Exists(homePageAbsolute))
+            {
+                errors.Add($"home.page not found: {homePageRel}");
+            }
+            else
+            {
+                try
+                {
+                    var homeCollection = new ContentGroup { Name = "home", Layout = "home" };
+                    var homeItem = contentReader.ReadSingleFile(homePageAbsolute, homeCollection);
+                    homeItem.Url = new Uri("/", UriKind.Relative);
+                    homeItem.OutputPath = ToOutputPath(homeItem.Url);
+                    homeCollection.Items.Add(homeItem);
+                    allItems.Add(homeItem);
+                }
+#pragma warning disable CA1031
+                catch (Exception ex)
+#pragma warning restore CA1031
+                {
+                    errors.Add($"home.page could not be read: {homePageRel} ({ex.Message})");
+                }
+            }
+        }
+
+        if (errors.Count > 0)
+            return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
+
         // Set next/prev navigation within each collection
         foreach (var collection in config.Collections.Values)
         {
@@ -88,6 +126,7 @@ public sealed class SiteBuilder(
 
         // Extract taxonomy terms (aggregate across all collections)
         var allTaxonomyTerms = ExtractTaxonomyTerms(config, includeDrafts);
+        var sharedRenderContext = SharedRenderContext.Build(config, allTaxonomyTerms);
 
         // Collect all virtual page URLs for collision checking
         var virtualUrls = CollectVirtualUrls(config, allTaxonomyTerms, includeDrafts);
@@ -143,7 +182,7 @@ public sealed class SiteBuilder(
 
             try
             {
-                var html = templateRenderer.Render(item, config, themePath, plugins);
+                var html = templateRenderer.Render(item, sharedRenderContext, config, themePath, plugins);
                 var outputPath = Path.Combine(outputDir, item.OutputPath);
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                 await File.WriteAllTextAsync(outputPath, html, ct).ConfigureAwait(false);
@@ -173,7 +212,7 @@ public sealed class SiteBuilder(
                 ct.ThrowIfCancellationRequested();
                 try
                 {
-                    var html = templateRenderer.RenderCollectionIndex(collection, paginator, allTaxonomyTerms, config, themePath, plugins);
+                    var html = templateRenderer.RenderCollectionIndex(collection, paginator, sharedRenderContext, config, themePath, plugins);
                     var indexBase = collection.IndexUrl.OriginalString;
                     var pageUrl = paginator.Page == 1
                         ? indexBase
@@ -202,7 +241,7 @@ public sealed class SiteBuilder(
             try
             {
                 var overviewUrl = TemplateRenderer.GetTaxonomyOverviewUrl(taxDef);
-                var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, allTaxonomyTerms, config, themePath, plugins);
+                var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, sharedRenderContext, config, themePath, plugins);
                 var outputPath = Path.Combine(outputDir, ToOutputPath(overviewUrl));
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                 await File.WriteAllTextAsync(outputPath, html, ct).ConfigureAwait(false);
@@ -227,7 +266,7 @@ public sealed class SiteBuilder(
                 {
                     try
                     {
-                        var html = templateRenderer.RenderTaxonomyTerm(term, paginator, allTaxonomyTerms, config, themePath, plugins);
+                        var html = templateRenderer.RenderTaxonomyTerm(term, paginator, sharedRenderContext, config, themePath, plugins);
                         var pageUrl = paginator.Page == 1
                             ? term.Url.OriginalString
                             : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
@@ -243,6 +282,27 @@ public sealed class SiteBuilder(
                         errors.Add($"Error rendering taxonomy term '{taxName}/{term.Slug}': {ex.Message}");
                     }
                 }
+            }
+        }
+
+        // Emit a 404 page only when the theme provides a dedicated '404.html' layout.
+        // We deliberately do NOT fall back to 'default.html' here: that layout expects a
+        // 'page' content item (e.g. page.content), which the not-found page does not bind.
+        // A theme without a 404 layout simply gets no 404 page rather than a failed build.
+        var hasNotFoundLayout = File.Exists(Path.Combine(themePath, "layouts", "404.html"));
+        if (hasNotFoundLayout)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                var notFoundHtml = templateRenderer.RenderNotFound(sharedRenderContext, config, themePath, plugins);
+                await File.WriteAllTextAsync(Path.Combine(outputDir, "404.html"), notFoundHtml, ct).ConfigureAwait(false);
+            }
+#pragma warning disable CA1031
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                errors.Add($"Error rendering not-found page: {ex.Message}");
             }
         }
 

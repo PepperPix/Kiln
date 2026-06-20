@@ -182,6 +182,129 @@ public class SiteConfigLoaderTests
         }
     }
 
+    [Test]
+    public async Task Load_HomePageAndCollectionSet_Throws()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            collections:
+              posts:
+                directory: content/posts
+            home:
+              page: content/index.md
+              collection: posts
+            """);
+
+        try
+        {
+            await Assert.That(() => _loader.Load(dir))
+                .ThrowsExactly<InvalidOperationException>()
+                .WithMessageContaining("home");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_HomeBlockEmpty_Throws()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            home: {}
+            """);
+
+        try
+        {
+            await Assert.That(() => _loader.Load(dir))
+                .ThrowsExactly<InvalidOperationException>()
+                .WithMessageContaining("home");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_HomeCollectionUnknown_Throws()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            collections:
+              posts:
+                directory: content/posts
+            home:
+              collection: pages
+            """);
+
+        try
+        {
+            await Assert.That(() => _loader.Load(dir))
+                .ThrowsExactly<InvalidOperationException>()
+                .WithMessageContaining("home.collection");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_HomePage_MapsToConfiguration()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            home:
+              page: content/index.md
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Home).IsNotNull();
+            await Assert.That(config.Home!.Page).IsEqualTo("content/index.md");
+            await Assert.That(config.Home.Collection).IsNull();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_HomeCollection_MapsToConfiguration()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            collections:
+              posts:
+                directory: content/posts
+            home:
+              collection: posts
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Home).IsNotNull();
+            await Assert.That(config.Home!.Collection).IsEqualTo("posts");
+            await Assert.That(config.Home.Page).IsNull();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     private static string CreateTempSite(string yamlContent)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");

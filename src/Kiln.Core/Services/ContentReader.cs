@@ -56,6 +56,23 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         return ApplySort(items, collection.Sort);
     }
 
+    public ContentItem ReadSingleFile(string absoluteFilePath, ContentGroup owningCollection)
+    {
+        ArgumentNullException.ThrowIfNull(absoluteFilePath);
+        ArgumentNullException.ThrowIfNull(owningCollection);
+
+        if (!File.Exists(absoluteFilePath))
+            throw new FileNotFoundException($"Content file not found: {absoluteFilePath}", absoluteFilePath);
+
+        var contentDirectory = Path.GetDirectoryName(absoluteFilePath)
+            ?? throw new InvalidOperationException($"Could not resolve content directory for: {absoluteFilePath}");
+
+        var item = ReadFile(absoluteFilePath, contentDirectory, owningCollection, assetDirectory: null)
+            ?? throw new InvalidOperationException($"Content file '{absoluteFilePath}' is missing valid front matter.");
+
+        return item;
+    }
+
     private ContentItem? ReadFile(string filePath, string contentDirectory, ContentGroup collection, string? assetDirectory)
     {
         var content = File.ReadAllText(filePath);

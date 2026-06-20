@@ -8,9 +8,10 @@ using Scriban.Runtime;
 
 public sealed class TemplateRenderer : ITemplateRenderer
 {
-    public string Render(ContentItem item, SiteConfiguration site, string themePath, IReadOnlyList<PluginDefinition> plugins)
+    public string Render(ContentItem item, SharedRenderContext sharedContext, SiteConfiguration site, string themePath, IReadOnlyList<PluginDefinition> plugins)
     {
         ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(sharedContext);
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(plugins);
 
@@ -20,20 +21,20 @@ public sealed class TemplateRenderer : ITemplateRenderer
             "default.html");
 
         return RenderTemplate(layoutPath, ctx =>
-            BuildItemScriptObject(item, site, themePath, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>(), ctx, plugins));
+            BuildItemScriptObject(item, sharedContext, site, themePath, ctx, plugins));
     }
 
     public string RenderCollectionIndex(
         ContentGroup collection,
         Paginator paginator,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
+        SharedRenderContext sharedContext,
         SiteConfiguration site,
         string themePath,
         IReadOnlyList<PluginDefinition> plugins)
     {
         ArgumentNullException.ThrowIfNull(collection);
         ArgumentNullException.ThrowIfNull(paginator);
-        ArgumentNullException.ThrowIfNull(allTaxonomies);
+        ArgumentNullException.ThrowIfNull(sharedContext);
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(plugins);
 
@@ -47,8 +48,8 @@ public sealed class TemplateRenderer : ITemplateRenderer
             var indexUrl = paginator.Page == 1
                 ? collection.IndexUrl.OriginalString
                 : $"{collection.IndexUrl.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, indexUrl, plugins, collection.Plugins);
-            so.Add("collection", BuildCollectionObject(collection));
+            var so = BuildCommonScriptObject(sharedContext, site, themePath, ctx, indexUrl, plugins, collection.Plugins);
+            so.Add("collection", SharedRenderContext.BuildCollectionObject(collection));
             so.Add("paginator", BuildPaginatorObject(paginator));
             return so;
         });
@@ -57,14 +58,14 @@ public sealed class TemplateRenderer : ITemplateRenderer
     public string RenderTaxonomyTerm(
         TaxonomyTerm term,
         Paginator paginator,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
+        SharedRenderContext sharedContext,
         SiteConfiguration site,
         string themePath,
         IReadOnlyList<PluginDefinition> plugins)
     {
         ArgumentNullException.ThrowIfNull(term);
         ArgumentNullException.ThrowIfNull(paginator);
-        ArgumentNullException.ThrowIfNull(allTaxonomies);
+        ArgumentNullException.ThrowIfNull(sharedContext);
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(plugins);
 
@@ -78,13 +79,13 @@ public sealed class TemplateRenderer : ITemplateRenderer
             var termPageUrl = paginator.Page == 1
                 ? term.Url.OriginalString
                 : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, termPageUrl, plugins, null);
+            var so = BuildCommonScriptObject(sharedContext, site, themePath, ctx, termPageUrl, plugins, null);
             so.Add("taxonomy", new
             {
                 name = term.Taxonomy.Name,
                 term = term.Name,
                 url = term.Url.OriginalString,
-                items = term.Items.Select(BuildItemSummary).ToList()
+                items = term.Items.Select(SharedRenderContext.BuildItemSummary).ToList()
             });
             so.Add("paginator", BuildPaginatorObject(paginator));
             return so;
@@ -94,14 +95,14 @@ public sealed class TemplateRenderer : ITemplateRenderer
     public string RenderTaxonomyOverview(
         TaxonomyDefinition taxonomy,
         IReadOnlyList<TaxonomyTerm> terms,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
+        SharedRenderContext sharedContext,
         SiteConfiguration site,
         string themePath,
         IReadOnlyList<PluginDefinition> plugins)
     {
         ArgumentNullException.ThrowIfNull(taxonomy);
         ArgumentNullException.ThrowIfNull(terms);
-        ArgumentNullException.ThrowIfNull(allTaxonomies);
+        ArgumentNullException.ThrowIfNull(sharedContext);
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(plugins);
 
@@ -114,7 +115,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         return RenderTemplate(layoutPath, ctx =>
         {
-            var so = BuildCommonScriptObject(site, allTaxonomies, themePath, ctx, overviewUrl.OriginalString, plugins, null);
+            var so = BuildCommonScriptObject(sharedContext, site, themePath, ctx, overviewUrl.OriginalString, plugins, null);
             so.Add("taxonomy", new
             {
                 name = taxonomy.Name,
@@ -129,6 +130,18 @@ public sealed class TemplateRenderer : ITemplateRenderer
             });
             return so;
         });
+    }
+
+    public string RenderNotFound(SharedRenderContext sharedContext, SiteConfiguration site, string themePath, IReadOnlyList<PluginDefinition> plugins)
+    {
+        ArgumentNullException.ThrowIfNull(sharedContext);
+        ArgumentNullException.ThrowIfNull(site);
+        ArgumentNullException.ThrowIfNull(plugins);
+
+        var layoutPath = ResolveLayoutPath(themePath, "404.html");
+
+        return RenderTemplate(layoutPath, ctx =>
+            BuildCommonScriptObject(sharedContext, site, themePath, ctx, "/404.html", plugins, null));
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────
@@ -152,13 +165,13 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
     private static ScriptObject BuildItemScriptObject(
         ContentItem item,
+        SharedRenderContext shared,
         SiteConfiguration site,
         string themePath,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         TemplateContext context,
         IReadOnlyList<PluginDefinition> plugins)
     {
-        var so = BuildCommonScriptObject(site, allTaxonomies, themePath, context, item.Url.OriginalString, plugins, item.Collection.Plugins);
+        var so = BuildCommonScriptObject(shared, site, themePath, context, item.Url.OriginalString, plugins, item.Collection.Plugins);
 
         var pageObj = new ScriptObject();
         pageObj.Add("id", item.Id);
@@ -207,8 +220,8 @@ public sealed class TemplateRenderer : ITemplateRenderer
     }
 
     private static ScriptObject BuildCommonScriptObject(
+        SharedRenderContext shared,
         SiteConfiguration site,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
         string themePath,
         TemplateContext context,
         string? currentUrl,
@@ -217,37 +230,11 @@ public sealed class TemplateRenderer : ITemplateRenderer
     {
         var so = new ScriptObject();
 
-        so.Add("site", new
-        {
-            title = site.Title,
-            description = site.Description,
-            base_url = site.BaseUrl.ToString().TrimEnd('/'),
-            language = site.Language,
-            asset_prefix = site.AssetPrefix
-        });
-
-        var collectionsDict = site.Collections.ToDictionary(
-            kvp => kvp.Key,
-            kvp => BuildCollectionObject(kvp.Value));
-        so.Add("collections", collectionsDict);
-        so.Add("plugins", site.Plugins);
-        so.Add("theme", site.ThemeConfig);
-
-        // taxonomies global object available in all templates
-        var taxonomiesObj = new ScriptObject();
-        foreach (var (name, termList) in allTaxonomies)
-        {
-            var taxTerms = termList.Select(t => (object)new
-            {
-                name = t.Name,
-                slug = t.Slug,
-                url = t.Url.OriginalString,
-                count = t.Count,
-                items = t.Items.Select(BuildItemSummary).ToList()
-            }).ToList();
-            taxonomiesObj.Add(name, new { terms = taxTerms });
-        }
-        so.Add("taxonomies", taxonomiesObj);
+        so.Add("site", shared.Site);
+        so.Add("collections", shared.Collections);
+        so.Add("plugins", shared.Plugins);
+        so.Add("theme", shared.Theme);
+        so.Add("taxonomies", shared.Taxonomies);
 
         // menus — active flag computed from currentUrl
         var menusObj = new ScriptObject();
@@ -274,6 +261,25 @@ public sealed class TemplateRenderer : ITemplateRenderer
         // plugin_asset_url
         so.Import("plugin_asset_url", new Func<string, string, string>(
             (pluginName, path) => $"{assetPrefix}/plugins/{pluginName}/{path.TrimStart('/')}"));
+
+        // limit helper for concise list widgets: collections.posts.items | limit 5
+        so.Import("limit", new Func<object?, int, object>((source, n) =>
+        {
+            if (n <= 0 || source is null || source is string || source is not System.Collections.IEnumerable sequence)
+                return new List<object>();
+
+            var result = new List<object>(n);
+            foreach (var value in sequence)
+            {
+                if (result.Count >= n)
+                    break;
+
+                if (value is not null)
+                    result.Add(value);
+            }
+
+            return result;
+        }));
 
         // slot — renders all plugin partials for the given slot name
         so.Import("slot", new Func<string, string>(slotName =>
@@ -342,18 +348,6 @@ public sealed class TemplateRenderer : ITemplateRenderer
         return int.TryParse(priorityVal?.ToString(), out var p) ? p : int.MaxValue;
     }
 
-    private static object BuildCollectionObject(ContentGroup collection)
-    {
-        return new
-        {
-            name = collection.Name,
-            items = collection.Items.Where(static i => !i.Draft).Select(BuildItemSummary).ToList(),
-            url = collection.IndexUrl.OriginalString,
-            feed = collection.Feed,
-            plugins = collection.Plugins
-        };
-    }
-
     private static object BuildMenuItemObject(MenuItem item, string? currentUrl)
     {
         var children = item.Children.Select(c => BuildMenuItemObject(c, currentUrl)).ToList();
@@ -385,28 +379,12 @@ public sealed class TemplateRenderer : ITemplateRenderer
     {
         return new
         {
-            items = paginator.Items.Select(BuildItemSummary).ToList(),
+            items = paginator.Items.Select(SharedRenderContext.BuildItemSummary).ToList(),
             page = paginator.Page,
             total_pages = paginator.TotalPages,
             total_items = paginator.TotalItems,
             next_url = paginator.NextUrl?.OriginalString,
             prev_url = paginator.PrevUrl?.OriginalString
-        };
-    }
-
-    private static object BuildItemSummary(ContentItem item)
-    {
-        return new
-        {
-            title = item.Title,
-            url = item.Url.OriginalString,
-            slug = item.Slug,
-            date = item.Date,
-            description = item.Description,
-            draft = item.Draft,
-            extra = item.Extra,
-            tags = item.Taxonomies.GetValueOrDefault("tags"),
-            categories = item.Taxonomies.GetValueOrDefault("categories")
         };
     }
 

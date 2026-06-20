@@ -174,6 +174,51 @@ public class ContentReaderTests
         }
     }
 
+    [Test]
+    public async Task ReadSingleFile_ParsesStandaloneFile()
+    {
+        var tempDir = CreateTempContent(
+            "index.md",
+            """
+            ---
+            title: Home
+            ---
+            Welcome home.
+            """);
+
+        try
+        {
+            var collection = MakeCollection("home", tempDir);
+            var item = _reader.ReadSingleFile(Path.Combine(tempDir, "index.md"), collection);
+
+            await Assert.That(item.Title).IsEqualTo("Home");
+            await Assert.That(item.Slug).IsEqualTo("index");
+            await Assert.That(item.Collection.Name).IsEqualTo("home");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadSingleFile_MissingFile_ThrowsFileNotFound()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var collection = MakeCollection("home", tempDir);
+            await Assert.That(() => _reader.ReadSingleFile(Path.Combine(tempDir, "missing.md"), collection))
+                .ThrowsExactly<FileNotFoundException>();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
     private static string CreateTempContent(string fileName, string content)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");

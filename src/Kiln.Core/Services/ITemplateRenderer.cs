@@ -4,12 +4,12 @@ using Kiln.Models;
 
 public interface ITemplateRenderer
 {
-    string Render(ContentItem item, SiteConfiguration site, string themePath, IReadOnlyList<PluginDefinition> plugins);
+    string Render(ContentItem item, SharedRenderContext sharedContext, SiteConfiguration site, string themePath, IReadOnlyList<PluginDefinition> plugins);
 
     string RenderCollectionIndex(
         ContentGroup collection,
         Paginator paginator,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
+        SharedRenderContext sharedContext,
         SiteConfiguration site,
         string themePath,
         IReadOnlyList<PluginDefinition> plugins);
@@ -17,7 +17,7 @@ public interface ITemplateRenderer
     string RenderTaxonomyTerm(
         TaxonomyTerm term,
         Paginator paginator,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
+        SharedRenderContext sharedContext,
         SiteConfiguration site,
         string themePath,
         IReadOnlyList<PluginDefinition> plugins);
@@ -25,8 +25,10 @@ public interface ITemplateRenderer
     string RenderTaxonomyOverview(
         TaxonomyDefinition taxonomy,
         IReadOnlyList<TaxonomyTerm> terms,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
+        SharedRenderContext sharedContext,
         SiteConfiguration site,
         string themePath,
         IReadOnlyList<PluginDefinition> plugins);
+
+    string RenderNotFound(SharedRenderContext sharedContext, SiteConfiguration site, string themePath, IReadOnlyList<PluginDefinition> plugins);
 }

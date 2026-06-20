@@ -26,8 +26,9 @@ public class SlotRenderingTests
             var item = CreateTestItem(collection);
             var site = CreateTestSite(collection);
             var plugins = new PluginLoader().LoadPlugins(projectDir);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, site, themePath, plugins);
+            var result = _renderer.Render(item, shared, site, themePath, plugins);
 
             await Assert.That(result).Contains("<div>PLUGIN CONTENT</div>");
         }
@@ -56,8 +57,9 @@ public class SlotRenderingTests
             var item = CreateTestItem(collection);
             var site = CreateTestSite(collection);
             var plugins = new PluginLoader().LoadPlugins(projectDir);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, site, themePath, plugins);
+            var result = _renderer.Render(item, shared, site, themePath, plugins);
 
             await Assert.That(result).DoesNotContain("<div>SHOULD NOT APPEAR</div>");
         }
@@ -86,8 +88,9 @@ public class SlotRenderingTests
             var item = CreateTestItem(collection);
             var site = CreateTestSite(collection);
             var plugins = new PluginLoader().LoadPlugins(projectDir);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, site, themePath, plugins);
+            var result = _renderer.Render(item, shared, site, themePath, plugins);
 
             await Assert.That(result).DoesNotContain("<div>NO CONFIG</div>");
         }
@@ -147,8 +150,9 @@ public class SlotRenderingTests
             var collection = config.Collections["posts"];
             var item = CreateTestItem(collection);
             item.Url = new Uri("/posts/test/", UriKind.Relative);
+            var shared = SharedRenderContext.Build(config, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, config, themeDir, plugins);
+            var result = _renderer.Render(item, shared, config, themeDir, plugins);
 
             var firstIdx = result.IndexOf("FIRST", StringComparison.Ordinal);
             var secondIdx = result.IndexOf("SECOND", StringComparison.Ordinal);
@@ -180,8 +184,9 @@ public class SlotRenderingTests
             var collection = config.Collections["posts"];
             var item = CreateTestItem(collection);
             item.Url = new Uri("/posts/test/", UriKind.Relative);
+            var shared = SharedRenderContext.Build(config, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, config, themeDir, []);
+            var result = _renderer.Render(item, shared, config, themeDir, []);
 
             await Assert.That(result).IsEqualTo("<body><p>Hello</p></body>");
         }

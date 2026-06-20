@@ -54,8 +54,9 @@ public class ThemeOverrideTests
             var config = new SiteConfigLoader().Load(dir);
             var collection = config.Collections["posts"];
             var item = CreateTestItem(collection);
+            var shared = SharedRenderContext.Build(config, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, config, themeDir, plugins);
+            var result = _renderer.Render(item, shared, config, themeDir, plugins);
 
             await Assert.That(result).Contains("<div>THEME OVERRIDE</div>");
             await Assert.That(result).DoesNotContain("<div>PLUGIN DEFAULT</div>");
@@ -106,8 +107,9 @@ public class ThemeOverrideTests
             var config = new SiteConfigLoader().Load(dir);
             var collection = config.Collections["posts"];
             var item = CreateTestItem(collection);
+            var shared = SharedRenderContext.Build(config, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, config, themeDir, plugins);
+            var result = _renderer.Render(item, shared, config, themeDir, plugins);
 
             await Assert.That(result).Contains("<script>ANALYTICS</script>");
         }

@@ -19,8 +19,9 @@ public class TemplateRendererTests
             var collection = CreateTestCollection();
             var item = CreateTestItem("<p>Hello</p>", collection);
             var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, site, tempTheme, []);
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
 
             await Assert.That(result).Contains("<title>Test Post — Test Site</title>");
             await Assert.That(result).Contains("<p>Hello</p>");
@@ -43,9 +44,10 @@ public class TemplateRendererTests
             var collection = CreateTestCollection(layout: "nonexistent");
             var item = CreateTestItem("<p>Hello</p>", collection);
             var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
             // Should fall back to default layout since "nonexistent.html" doesn't exist
-            var result = _renderer.Render(item, site, tempTheme, []);
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
 
             await Assert.That(result).Contains("<title>Test Post — Test Site</title>");
         }
@@ -63,8 +65,10 @@ public class TemplateRendererTests
             layoutName: "other");
         var collection = CreateTestCollection(layout: "nonexistent");
         var item = CreateTestItem("<p>Hello</p>", collection);
+        var site = CreateTestSite(collection);
+        var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-        await Assert.That(() => _renderer.Render(item, CreateTestSite(collection), tempTheme, []))
+        await Assert.That(() => _renderer.Render(item, shared, site, tempTheme, []))
             .ThrowsExactly<FileNotFoundException>();
     }
 
@@ -80,8 +84,9 @@ public class TemplateRendererTests
             var collection = CreateTestCollection();
             var item = CreateTestItem("<p>Hello</p>", collection);
             var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, site, tempTheme, []);
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
 
             await Assert.That(result).Contains("/assets/css/style.css");
         }
@@ -103,8 +108,9 @@ public class TemplateRendererTests
             var collection = CreateTestCollection();
             var item = CreateTestItem("<p>Hello</p>", collection);
             var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
 
-            var result = _renderer.Render(item, site, tempTheme, []);
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
 
             await Assert.That(result).Contains("/assets/content/posts/test-post/hero.jpg");
         }

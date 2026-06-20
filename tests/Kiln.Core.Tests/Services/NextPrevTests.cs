@@ -110,6 +110,8 @@ public class NextPrevTests
         // Template exposes prev/next title inline for easy assertion
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
             "{{ if page.prev }}prev:{{ page.prev.title }}{{ end }}{{ if page.next }}next:{{ page.next.title }}{{ end }}");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
 
         return dir;
     }

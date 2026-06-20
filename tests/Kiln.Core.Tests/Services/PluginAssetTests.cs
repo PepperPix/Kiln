@@ -68,6 +68,8 @@ public class PluginAssetTests
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
             "<html><body>{{ page.content }}</body></html>");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
 
         return dir;
     }
@@ -97,6 +99,8 @@ public class PluginAssetTests
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
             "<html><body>{{ page.content }}</body></html>");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
 
         return dir;
     }

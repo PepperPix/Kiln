@@ -191,6 +191,8 @@ public class MenuResolutionTests
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
             "<html>{{ page.content }}</html>");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
 
         return dir;
     }

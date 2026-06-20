@@ -16,4 +16,5 @@ public sealed class SiteConfiguration
     public Dictionary<string, object> Plugins { get; init; } = [];
     public Dictionary<string, object> ThemeConfig { get; init; } = [];
     public Dictionary<string, object> Extra { get; init; } = [];
+    public HomeConfiguration? Home { get; init; }
 }

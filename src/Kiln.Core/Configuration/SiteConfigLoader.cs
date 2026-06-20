@@ -48,6 +48,25 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             }
         }
 
+        HomeConfiguration? home = null;
+        if (dto.Home is not null)
+        {
+            var hasPage = !string.IsNullOrWhiteSpace(dto.Home.Page);
+            var hasCollection = !string.IsNullOrWhiteSpace(dto.Home.Collection);
+            if (hasPage && hasCollection)
+                throw new InvalidOperationException("site.yaml 'home': set either 'page' or 'collection', not both.");
+            if (!hasPage && !hasCollection)
+                throw new InvalidOperationException("site.yaml 'home': must set either 'page' or 'collection'.");
+            if (hasCollection && !collections.ContainsKey(dto.Home.Collection!))
+                throw new InvalidOperationException($"site.yaml 'home.collection': unknown collection '{dto.Home.Collection}'.");
+
+            home = new HomeConfiguration
+            {
+                Page = dto.Home.Page,
+                Collection = dto.Home.Collection
+            };
+        }
+
         var taxonomies = new Dictionary<string, TaxonomyDefinition>();
         if (dto.Taxonomies is not null)
         {
@@ -90,7 +109,8 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             Menus = menus,
             Plugins = dto.Plugins ?? [],
             ThemeConfig = dto.ThemeConfig ?? [],
-            Extra = dto.Extra ?? []
+            Extra = dto.Extra ?? [],
+            Home = home
         };
     }
 
@@ -141,11 +161,18 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public string? OutputDir { get; set; }
         public string? ThemesDir { get; set; }
         public Dictionary<string, CollectionDto>? Collections { get; set; }
+        public HomeDto? Home { get; set; }
         public Dictionary<string, TaxonomyDto>? Taxonomies { get; set; }
         public Dictionary<string, List<MenuItemDto>>? Menus { get; set; }
         public Dictionary<string, object>? Plugins { get; set; }
         public Dictionary<string, object>? ThemeConfig { get; set; }
         public Dictionary<string, object>? Extra { get; set; }
+    }
+
+    private sealed class HomeDto
+    {
+        public string? Page { get; set; }
+        public string? Collection { get; set; }
     }
 
     private sealed class MenuItemDto

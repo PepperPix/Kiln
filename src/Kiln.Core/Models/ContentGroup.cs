@@ -18,6 +18,8 @@ public sealed class ContentGroup
 
     // Populated during build
     public Collection<ContentItem> Items { get; } = [];
+    public Uri? IndexUrlOverride { get; set; }
+
     public Uri Url
     {
         get
@@ -35,6 +37,9 @@ public sealed class ContentGroup
     {
         get
         {
+            if (IndexUrlOverride is not null)
+                return IndexUrlOverride;
+
             var slugPos = Permalink.IndexOf(":slug", StringComparison.OrdinalIgnoreCase);
             var path = slugPos < 0 ? $"/{Name}/" : Permalink[..slugPos];
             return new Uri(path, UriKind.Relative);

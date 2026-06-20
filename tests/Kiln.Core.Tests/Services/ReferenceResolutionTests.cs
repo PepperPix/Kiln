@@ -90,6 +90,8 @@ public class ReferenceResolutionTests
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
             "{{ if page.author }}{{ page.author.title }}{{ end }}");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
 
         return dir;
     }
@@ -128,6 +130,8 @@ public class ReferenceResolutionTests
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
             "{{ page.content }}");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
 
         return dir;
     }

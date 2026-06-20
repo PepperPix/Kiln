@@ -123,6 +123,8 @@ public class PaginatorTests
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
             "{{ page.content }}");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "posts-index.html"),
             """
