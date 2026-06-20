@@ -9,12 +9,31 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-# ReSharper/Rider: Redundant qualifiers as suggestion (not warning)
+# ── ReSharper / InspectCode suppressions (see ADR-008) ──
+# Deliberate namespace convention: Kiln.X (not Kiln.Core.X)
+resharper_check_namespace_highlighting = none
+# Cosmetic only — kept as IDE hint, below the WARNING gate threshold
+resharper_redundant_name_qualifier_highlighting = suggestion
 resharper_redundant_using_directive_highlighting = suggestion
 
 # Configuration DTOs use reflection-based deserialization (YamlDotNet).
-# Suppress "property accessor never used" for the Configuration folder.
-[src/Kiln.Core/Configuration/**.cs]
+[src/Kiln.Core/Configuration/*.cs]
 resharper_unused_auto_property_accessor_global_highlighting = none
+resharper_unused_auto_property_accessor_local_highlighting = none
 resharper_class_never_instantiated_global_highlighting = none
+resharper_class_never_instantiated_local_highlighting = none
 resharper_collection_never_updated_global_highlighting = none
+resharper_collection_never_updated_local_highlighting = none
+
+# Public model records are populated/consumed via serialization (YamlDotNet) and templates (Scriban).
+[src/Kiln.Core/Models/*.cs]
+resharper_unused_auto_property_accessor_global_highlighting = none
+
+# PluginLoader holds a private manifest DTO deserialized from JSON/YAML.
+[src/Kiln.Core/Services/PluginLoader.cs]
+resharper_unused_auto_property_accessor_local_highlighting = none
+resharper_collection_never_updated_local_highlighting = none
+
+# Spectre.Console.Cli Settings properties are bound via reflection from CLI args.
+[src/Kiln.Cli/Commands/*.cs]
+resharper_unused_auto_property_accessor_global_highlighting = none
