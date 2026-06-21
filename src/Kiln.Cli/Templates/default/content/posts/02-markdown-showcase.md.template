@@ -56,7 +56,7 @@ You can create ~~strikethrough~~ text and `inline code`.
 
 Images are embedded the same way as Markdown links, with an exclamation mark prefix:
 
-![Kiln Logo](/themes/default/static/favicon.svg)
+![Kiln Logo](/assets/favicon.svg)
 
 ## Code Blocks
 
