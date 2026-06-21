@@ -39,3 +39,26 @@ jobs:
 
       - name: Test
         run: dotnet test --no-build --configuration Release
+
+  inspectcode:
+    name: InspectCode (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Restore
+        run: dotnet restore --locked-mode
+
+      - name: InspectCode
+        run: |
+          dotnet tool install -g JetBrains.ReSharper.GlobalTools
+          jb inspectcode Kiln.slnx -e=WARNING -f=Text -o=inspect.txt
+          cat inspect.txt

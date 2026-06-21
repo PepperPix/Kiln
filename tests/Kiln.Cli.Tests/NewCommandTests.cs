@@ -22,7 +22,6 @@ public class NewCommandTests
             };
 
             using var process = Process.Start(psi)!;
-            var output = await process.StandardOutput.ReadToEndAsync();
             await process.WaitForExitAsync();
 
             await Assert.That(Directory.Exists(dir)).IsTrue();
