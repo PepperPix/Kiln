@@ -73,10 +73,15 @@
         "resolved": "16.3.0",
         "contentHash": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA=="
       },
+      "kiln.abstractions": {
+        "type": "Project"
+      },
       "kiln.core": {
         "type": "Project",
         "dependencies": {
+          "Kiln.Abstractions": "[0.1.0, )",
           "Markdig": "[0.*, )",
+          "Microsoft.Extensions.DependencyInjection": "[10.*, )",
           "Scriban": "[7.*, )",
           "YamlDotNet": "[16.*, )"
         }

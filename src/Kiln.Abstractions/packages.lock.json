@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Microsoft.Extensions.StaticAnalysis": {
+        "type": "Direct",
+        "requested": "[10.*, )",
+        "resolved": "10.7.0",
+        "contentHash": "rA7qa/5zGeuepU76QAfkaW6MmoDRDn7Rz5eH5d+KscjEe+gnW4FCudRXOPLLD9Hn+Mfi0/D/FD15jP3jcho/uQ==",
+        "dependencies": {
+          "Microsoft.VisualStudio.Threading.Analyzers": "17.14.15",
+          "SonarAnalyzer.CSharp": "10.16.0.128591"
+        }
+      },
+      "Microsoft.VisualStudio.Threading.Analyzers": {
+        "type": "Transitive",
+        "resolved": "17.14.15",
+        "contentHash": "mXQPJsbuUD2ydq4/ffd8h8tSOFCXec+2xJOVNCvXjuMOq/+5EKHq3D2m2MC2+nUaXeFMSt66VS/J4HdKBixgcw=="
+      },
+      "SonarAnalyzer.CSharp": {
+        "type": "Transitive",
+        "resolved": "10.16.0.128591",
+        "contentHash": "W/jZGbsMFvnTY112Ab2WZArzWtkGQuMrQdromFpDak+GO/DKcgn4O2tTun/fQgDBpnQJOyyTdzQrQPzPJ544jg=="
+      }
+    }
+  }
+}

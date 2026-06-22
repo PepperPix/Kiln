@@ -1,18 +1,11 @@
 ﻿using Kiln.Cli.Commands;
 using Kiln.Cli.Infrastructure;
-using Kiln.Services;
+using Kiln.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 
 var services = new ServiceCollection();
-services.AddSingleton<IMarkdownProcessor, MarkdownProcessor>();
-services.AddSingleton<IContentReader, ContentReader>();
-services.AddSingleton<ITemplateRenderer, TemplateRenderer>();
-services.AddSingleton<IPermalinkGenerator, PermalinkGenerator>();
-services.AddSingleton<ISiteConfigLoader, SiteConfigLoader>();
-services.AddSingleton<IPluginLoader, PluginLoader>();
-services.AddSingleton<ISiteBuilder, SiteBuilder>();
-services.AddSingleton<IDevServer, DevServer>();
+services.AddKiln();
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);

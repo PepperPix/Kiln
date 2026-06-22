@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Kiln.Abstractions/Kiln.Abstractions.csproj" />
     <Project Path="src/Kiln.Cli/Kiln.Cli.csproj" />
     <Project Path="src/Kiln.Core/Kiln.Core.csproj" />
   </Folder>

@@ -192,10 +192,15 @@
           "Spectre.Console.Cli": "[0.55.*, )"
         }
       },
+      "kiln.abstractions": {
+        "type": "Project"
+      },
       "kiln.core": {
         "type": "Project",
         "dependencies": {
+          "Kiln.Abstractions": "[0.1.0, )",
           "Markdig": "[0.*, )",
+          "Microsoft.Extensions.DependencyInjection": "[10.*, )",
           "Scriban": "[7.*, )",
           "YamlDotNet": "[16.*, )"
         }
