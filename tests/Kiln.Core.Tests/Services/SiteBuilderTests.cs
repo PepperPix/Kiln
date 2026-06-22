@@ -1,5 +1,6 @@
 namespace Kiln.Core.Tests.Services;
 
+using Kiln.Abstractions;
 using Kiln.Models;
 using Kiln.Services;
 
@@ -57,6 +58,37 @@ public class SiteBuilderTests
 
             await Assert.That(result.Success).IsTrue();
             await Assert.That(File.Exists(Path.Combine(tempDir, "_site", "assets", "content", "posts", "with-image", "hero.txt"))).IsTrue();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task BuildAsync_Development_PrunesDeletedOutputFiles()
+    {
+        var tempDir = CreateSiteWithTwoPosts();
+
+        try
+        {
+            var builder = CreateBuilder();
+
+            var firstBuild = await builder.BuildAsync(tempDir, false, BuildEnvironment.Development, CancellationToken.None);
+            await Assert.That(firstBuild.Success).IsTrue();
+
+            var firstPostOutput = Path.Combine(tempDir, "_site", "blog", "first", "index.html");
+            var secondPostOutput = Path.Combine(tempDir, "_site", "blog", "second", "index.html");
+            await Assert.That(File.Exists(firstPostOutput)).IsTrue();
+            await Assert.That(File.Exists(secondPostOutput)).IsTrue();
+
+            File.Delete(Path.Combine(tempDir, "content", "posts", "first.md"));
+
+            var secondBuild = await builder.BuildAsync(tempDir, false, BuildEnvironment.Development, CancellationToken.None);
+            await Assert.That(secondBuild.Success).IsTrue();
+
+            await Assert.That(File.Exists(firstPostOutput)).IsFalse();
+            await Assert.That(File.Exists(secondPostOutput)).IsTrue();
         }
         finally
         {
@@ -133,6 +165,47 @@ public class SiteBuilderTests
             "<html>{{ page.content }}</html>");
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
             "<html>Not Found</html>");
+
+        return dir;
+    }
+
+    private static string CreateSiteWithTwoPosts()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"kiln-prune-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(dir, "content", "posts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "layouts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "partials"));
+
+        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+            """
+            title: Test Site
+            baseUrl: http://localhost:5555
+            collections:
+              posts:
+                directory: content/posts
+                permalink: /blog/:slug/
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "posts", "first.md"),
+            """
+            ---
+            title: First
+            ---
+            first
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "posts", "second.md"),
+            """
+            ---
+            title: Second
+            ---
+            second
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
+            "<html><body>{{ page.content }}</body></html>");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html><body>Not Found</body></html>");
 
         return dir;
     }

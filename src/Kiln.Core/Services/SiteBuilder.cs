@@ -2,6 +2,7 @@ namespace Kiln.Services;
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Text;
 using Kiln.Abstractions;
 using Kiln.Models;
 
@@ -168,8 +169,13 @@ public sealed class SiteBuilder(
         if (errors.Count > 0)
             return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
 
-        // Clean and create output directory
-        if (Directory.Exists(outputDir))
+        var useWriteThenPrune = environment == BuildEnvironment.Development;
+        var generatedFiles = useWriteThenPrune
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        // For development builds, write-then-prune avoids transient 404 windows during serve.
+        if (!useWriteThenPrune && Directory.Exists(outputDir))
             Directory.Delete(outputDir, recursive: true);
         Directory.CreateDirectory(outputDir);
 
@@ -191,8 +197,7 @@ public sealed class SiteBuilder(
             {
                 var html = templateRenderer.Render(item, sharedRenderContext, config, themePath, plugins);
                 var outputPath = Path.Combine(outputDir, item.OutputPath);
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-                await File.WriteAllTextAsync(outputPath, html, ct).ConfigureAwait(false);
+                await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                 rendered++;
             }
 #pragma warning disable CA1031 // Intentional: one file error should not abort the entire build
@@ -225,8 +230,7 @@ public sealed class SiteBuilder(
                         ? indexBase
                         : $"{indexBase.TrimEnd('/')}/page/{paginator.Page}/";
                     var outputPath = Path.Combine(outputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative)));
-                    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-                    await File.WriteAllTextAsync(outputPath, html, ct).ConfigureAwait(false);
+                    await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                     rendered++;
                 }
 #pragma warning disable CA1031
@@ -250,8 +254,7 @@ public sealed class SiteBuilder(
                 var overviewUrl = TemplateRenderer.GetTaxonomyOverviewUrl(taxDef);
                 var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, sharedRenderContext, config, themePath, plugins);
                 var outputPath = Path.Combine(outputDir, ToOutputPath(overviewUrl));
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-                await File.WriteAllTextAsync(outputPath, html, ct).ConfigureAwait(false);
+                await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                 rendered++;
             }
 #pragma warning disable CA1031
@@ -278,8 +281,7 @@ public sealed class SiteBuilder(
                             ? term.Url.OriginalString
                             : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
                         var outputPath = Path.Combine(outputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative)));
-                        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-                        await File.WriteAllTextAsync(outputPath, html, ct).ConfigureAwait(false);
+                        await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                         rendered++;
                     }
 #pragma warning disable CA1031
@@ -303,7 +305,8 @@ public sealed class SiteBuilder(
             try
             {
                 var notFoundHtml = templateRenderer.RenderNotFound(sharedRenderContext, config, themePath, plugins);
-                await File.WriteAllTextAsync(Path.Combine(outputDir, "404.html"), notFoundHtml, ct).ConfigureAwait(false);
+                var notFoundPath = Path.Combine(outputDir, "404.html");
+                await WriteOutputTextAsync(notFoundPath, notFoundHtml, generatedFiles, ct).ConfigureAwait(false);
             }
 #pragma warning disable CA1031
             catch (Exception ex)
@@ -317,18 +320,18 @@ public sealed class SiteBuilder(
         var assetsOutputDir = Path.Combine(outputDir, "assets");
         var themeStaticDir = Path.Combine(themePath, "static");
         if (Directory.Exists(themeStaticDir))
-            CopyDirectory(themeStaticDir, assetsOutputDir);
+            CopyDirectory(themeStaticDir, assetsOutputDir, generatedFiles);
 
         // Copy static assets from site → _site/assets/ (overrides theme, warns on collision)
         var siteStaticDir = Path.Combine(projectPath, "static");
         if (Directory.Exists(siteStaticDir))
-            CopyDirectoryWithCollisionWarning(siteStaticDir, assetsOutputDir, config.Theme, warnings);
+            CopyDirectoryWithCollisionWarning(siteStaticDir, assetsOutputDir, config.Theme, warnings, generatedFiles);
 
         // Copy co-located assets from Page Bundles → _site/assets/content/<collection>/<slug>/
         foreach (var item in allItems.Where(static i => i.AssetDirectory is not null))
         {
             var destDir = Path.Combine(assetsOutputDir, "content", item.Collection.Name, item.Slug);
-            CopyNonMarkdownFiles(item.AssetDirectory!, destDir);
+            CopyNonMarkdownFiles(item.AssetDirectory!, destDir, generatedFiles);
         }
 
         // Copy plugin assets: plugins/<name>/static/ → _site/assets/plugins/<name>/
@@ -338,12 +341,12 @@ public sealed class SiteBuilder(
             if (!Directory.Exists(pluginStaticDir)) continue;
             var pluginKey = Path.GetFileName(plugin.Directory);
             var pluginAssetsDir = Path.Combine(assetsOutputDir, "plugins", pluginKey);
-            CopyDirectory(pluginStaticDir, pluginAssetsDir);
+            CopyDirectory(pluginStaticDir, pluginAssetsDir, generatedFiles);
         }
 
         // Generate sitemap.xml
         var sitemapContent = SitemapGenerator.Generate(config, allItems, allTaxonomyTerms, includeDrafts);
-        await File.WriteAllTextAsync(Path.Combine(outputDir, "sitemap.xml"), sitemapContent, System.Text.Encoding.UTF8, ct).ConfigureAwait(false);
+        await WriteOutputTextAsync(Path.Combine(outputDir, "sitemap.xml"), sitemapContent, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
 
         // Generate Atom feeds for collections with feed: true
         foreach (var collection in config.Collections.Values)
@@ -355,12 +358,12 @@ public sealed class SiteBuilder(
                 ? outputDir
                 : Path.Combine(outputDir, indexRelPath);
             Directory.CreateDirectory(feedDir);
-            await File.WriteAllTextAsync(Path.Combine(feedDir, "feed.xml"), feedContent, System.Text.Encoding.UTF8, ct).ConfigureAwait(false);
+            await WriteOutputTextAsync(Path.Combine(feedDir, "feed.xml"), feedContent, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
         }
 
         // Generate robots.txt
         var robotsTxt = $"User-agent: *\nAllow: /\n\nSitemap: {config.BaseUrl.ToString().TrimEnd('/')}/sitemap.xml\n";
-        await File.WriteAllTextAsync(Path.Combine(outputDir, "robots.txt"), robotsTxt, System.Text.Encoding.UTF8, ct).ConfigureAwait(false);
+        await WriteOutputTextAsync(Path.Combine(outputDir, "robots.txt"), robotsTxt, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
 
         // Production asset pipeline: minify → fingerprint → link-check
         if (environment == BuildEnvironment.Production)
@@ -376,6 +379,9 @@ public sealed class SiteBuilder(
 
             await AssetPipeline.RunAsync(outputDir, config.AssetPrefix, config.Build, selectedMinifier, warnings, errors, ct).ConfigureAwait(false);
         }
+
+        if (generatedFiles is not null)
+            PruneStaleOutputs(outputDir, generatedFiles);
 
         stopwatch.Stop();
         return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);
@@ -645,7 +651,23 @@ public sealed class SiteBuilder(
         };
     }
 
-    private static void CopyDirectory(string sourceDir, string destDir)
+    private static async Task WriteOutputTextAsync(
+        string outputPath,
+        string content,
+        HashSet<string>? generatedFiles,
+        CancellationToken ct,
+        Encoding? encoding = null)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+        if (encoding is null)
+            await File.WriteAllTextAsync(outputPath, content, ct).ConfigureAwait(false);
+        else
+            await File.WriteAllTextAsync(outputPath, content, encoding, ct).ConfigureAwait(false);
+
+        generatedFiles?.Add(Path.GetFullPath(outputPath));
+    }
+
+    private static void CopyDirectory(string sourceDir, string destDir, HashSet<string>? generatedFiles)
     {
         foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
         {
@@ -653,11 +675,16 @@ public sealed class SiteBuilder(
             var destPath = Path.Combine(destDir, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
             File.Copy(file, destPath, overwrite: true);
+            generatedFiles?.Add(Path.GetFullPath(destPath));
         }
     }
 
     private static void CopyDirectoryWithCollisionWarning(
-        string sourceDir, string destDir, string themeName, Collection<string> warnings)
+        string sourceDir,
+        string destDir,
+        string themeName,
+        Collection<string> warnings,
+        HashSet<string>? generatedFiles)
     {
         foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
         {
@@ -669,10 +696,11 @@ public sealed class SiteBuilder(
 
             Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
             File.Copy(file, destPath, overwrite: true);
+            generatedFiles?.Add(Path.GetFullPath(destPath));
         }
     }
 
-    private static void CopyNonMarkdownFiles(string sourceDir, string destDir)
+    private static void CopyNonMarkdownFiles(string sourceDir, string destDir, HashSet<string>? generatedFiles)
     {
         foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.TopDirectoryOnly))
         {
@@ -680,7 +708,30 @@ public sealed class SiteBuilder(
                 continue;
 
             Directory.CreateDirectory(destDir);
-            File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)), overwrite: true);
+            var outputPath = Path.Combine(destDir, Path.GetFileName(file));
+            File.Copy(file, outputPath, overwrite: true);
+            generatedFiles?.Add(Path.GetFullPath(outputPath));
+        }
+    }
+
+    private static void PruneStaleOutputs(string outputDir, HashSet<string> generatedFiles)
+    {
+        if (!Directory.Exists(outputDir))
+            return;
+
+        foreach (var file in Directory.GetFiles(outputDir, "*", SearchOption.AllDirectories))
+        {
+            var fullPath = Path.GetFullPath(file);
+            if (!generatedFiles.Contains(fullPath))
+                File.Delete(fullPath);
+        }
+
+        foreach (var directory in Directory.GetDirectories(outputDir, "*", SearchOption.AllDirectories)
+                     .OrderByDescending(static path => path.Length))
+        {
+            if (Directory.EnumerateFileSystemEntries(directory).Any())
+                continue;
+            Directory.Delete(directory);
         }
     }
 }
