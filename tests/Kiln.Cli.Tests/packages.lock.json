@@ -34,6 +34,11 @@
           "TUnit.Core": "1.56.0"
         }
       },
+      "AngleSharp": {
+        "type": "Transitive",
+        "resolved": "1.5.1",
+        "contentHash": "jFG0tKwFMNzIdv0rX3qvyiKyxAzUIvDyTLTJo2ORKtv/hiJC8juZTknc4b9DQmBFbrky+0twr58QQWt6DR48Og=="
+      },
       "EnumerableAsyncProcessor": {
         "type": "Transitive",
         "resolved": "3.8.4",
@@ -126,6 +131,11 @@
         "resolved": "17.14.15",
         "contentHash": "mXQPJsbuUD2ydq4/ffd8h8tSOFCXec+2xJOVNCvXjuMOq/+5EKHq3D2m2MC2+nUaXeFMSt66VS/J4HdKBixgcw=="
       },
+      "NUglify": {
+        "type": "Transitive",
+        "resolved": "1.21.17",
+        "contentHash": "K2ywYpoPEvU3+Ooq6wxz+FJOkmbDeoE41q/sJZWv9tI7qbTmH2A5R0E4hWzruvl/9pnUhqwbu1mxT06C45D0ZQ=="
+      },
       "Scriban": {
         "type": "Transitive",
         "resolved": "7.2.4",
@@ -198,9 +208,11 @@
       "kiln.core": {
         "type": "Project",
         "dependencies": {
+          "AngleSharp": "[1.*, )",
           "Kiln.Abstractions": "[0.1.0, )",
           "Markdig": "[0.*, )",
           "Microsoft.Extensions.DependencyInjection": "[10.*, )",
+          "NUglify": "[1.*, )",
           "Scriban": "[7.*, )",
           "YamlDotNet": "[16.*, )"
         }

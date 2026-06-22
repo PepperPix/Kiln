@@ -12,3 +12,17 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+-------------------------------------------------------------------------------
+
+This product includes third-party software with the following licenses:
+
+AngleSharp (https://anglesharp.github.io/)
+  License: MIT
+  Copyright (c) 2013–2024 AngleSharp Contributors
+
+NUglify (https://github.com/trullock/NUglify)
+  License: BSD 2-Clause "Simplified" License
+  Copyright (c) 2015–2023, Trullock
+  Originally based on Microsoft Ajax Minifier,
+  Copyright (c) Microsoft Corporation.

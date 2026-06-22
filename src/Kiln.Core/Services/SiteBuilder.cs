@@ -2,6 +2,7 @@ namespace Kiln.Services;
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Kiln.Abstractions;
 using Kiln.Models;
 
 public sealed class SiteBuilder(
@@ -9,9 +10,15 @@ public sealed class SiteBuilder(
     ITemplateRenderer templateRenderer,
     IPermalinkGenerator permalinkGenerator,
     ISiteConfigLoader configLoader,
-    IPluginLoader pluginLoader) : ISiteBuilder
+    IPluginLoader pluginLoader,
+    IEnumerable<IAssetMinifier> assetMinifiers) : ISiteBuilder
 {
-    public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default)
+    private readonly IReadOnlyList<IAssetMinifier> _assetMinifiers = [.. assetMinifiers];
+
+    public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default)
+        => BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, ct);
+
+    public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
     {
         var stopwatch = Stopwatch.StartNew();
         var warnings = new Collection<string>();
@@ -354,6 +361,21 @@ public sealed class SiteBuilder(
         // Generate robots.txt
         var robotsTxt = $"User-agent: *\nAllow: /\n\nSitemap: {config.BaseUrl.ToString().TrimEnd('/')}/sitemap.xml\n";
         await File.WriteAllTextAsync(Path.Combine(outputDir, "robots.txt"), robotsTxt, System.Text.Encoding.UTF8, ct).ConfigureAwait(false);
+
+        // Production asset pipeline: minify → fingerprint → link-check
+        if (environment == BuildEnvironment.Production)
+        {
+            var minifierId = config.Assets.Minifier;
+            var selectedMinifier = _assetMinifiers.FirstOrDefault(m => string.Equals(m.Id, minifierId, StringComparison.OrdinalIgnoreCase));
+            if (selectedMinifier is null)
+            {
+                var available = string.Join(", ", _assetMinifiers.Select(static m => $"'{m.Id}'"));
+                errors.Add($"Unknown asset minifier id '{minifierId}'. Available: {available}");
+                return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);
+            }
+
+            await AssetPipeline.RunAsync(outputDir, config.AssetPrefix, config.Build, selectedMinifier, warnings, errors, ct).ConfigureAwait(false);
+        }
 
         stopwatch.Stop();
         return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);

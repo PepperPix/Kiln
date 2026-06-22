@@ -1,13 +1,14 @@
 namespace Kiln.Services;
 
 using System.Net;
+using Kiln.Abstractions;
 
 public sealed class DevServer(ISiteBuilder siteBuilder) : IDevServer
 {
     public async Task RunAsync(string projectPath, int port = 5555, bool includeDrafts = false, CancellationToken ct = default)
     {
         // Initial build
-        await siteBuilder.BuildAsync(projectPath, includeDrafts, ct).ConfigureAwait(false);
+        await siteBuilder.BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, ct).ConfigureAwait(false);
 
         var config = new SiteConfigLoader().Load(projectPath);
         var outputDir = Path.Combine(projectPath, config.OutputDir);
@@ -58,7 +59,7 @@ public sealed class DevServer(ISiteBuilder siteBuilder) : IDevServer
             {
                 try
                 {
-                    await siteBuilder.BuildAsync(projectPath, includeDrafts, ct).ConfigureAwait(false);
+                    await siteBuilder.BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, ct).ConfigureAwait(false);
                 }
 #pragma warning disable CA1031 // Intentional: background rebuild errors must not crash the server
                 catch (Exception)

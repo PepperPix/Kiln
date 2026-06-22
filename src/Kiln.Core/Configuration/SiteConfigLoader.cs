@@ -110,7 +110,9 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             Plugins = dto.Plugins ?? [],
             ThemeConfig = dto.ThemeConfig ?? [],
             Extra = dto.Extra ?? [],
-            Home = home
+            Home = home,
+            Build = MapBuildOptions(dto.Build),
+            Assets = new AssetsOptions { Minifier = dto.Assets?.Minifier ?? "nuglify" },
         };
     }
 
@@ -145,6 +147,21 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         };
     }
 
+    private static BuildOptions MapBuildOptions(BuildDto? dto)
+    {
+        if (dto is null) return new BuildOptions();
+        return new BuildOptions
+        {
+            MinifyCss = dto.Minify?.Css ?? true,
+            MinifyJs = dto.Minify?.Js ?? true,
+            MinifyHtml = dto.Minify?.Html ?? true,
+            MinifySvg = dto.Minify?.Svg ?? true,
+            HtmlAggressive = dto.Minify?.HtmlAggressive ?? false,
+            Fingerprint = dto.Fingerprint ?? true,
+            LinkCheck = dto.LinkCheck ?? true,
+        };
+    }
+
     // DTOs for YAML deserialization — properties are assigned by YamlDotNet via reflection
 
 #pragma warning disable S3459, S1144, S3996 // Properties are assigned/read by YamlDotNet via reflection
@@ -167,6 +184,29 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public Dictionary<string, object>? Plugins { get; set; }
         public Dictionary<string, object>? ThemeConfig { get; set; }
         public Dictionary<string, object>? Extra { get; set; }
+        public BuildDto? Build { get; set; }
+        public AssetsDto? Assets { get; set; }
+    }
+
+    private sealed class BuildDto
+    {
+        public MinifyDto? Minify { get; set; }
+        public bool? Fingerprint { get; set; }
+        public bool? LinkCheck { get; set; }
+    }
+
+    private sealed class MinifyDto
+    {
+        public bool? Css { get; set; }
+        public bool? Js { get; set; }
+        public bool? Html { get; set; }
+        public bool? Svg { get; set; }
+        public bool? HtmlAggressive { get; set; }
+    }
+
+    private sealed class AssetsDto
+    {
+        public string? Minifier { get; set; }
     }
 
     private sealed class HomeDto

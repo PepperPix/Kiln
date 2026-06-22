@@ -17,4 +17,6 @@ public sealed class SiteConfiguration
     public Dictionary<string, object> ThemeConfig { get; init; } = [];
     public Dictionary<string, object> Extra { get; init; } = [];
     public HomeConfiguration? Home { get; init; }
+    public BuildOptions Build { get; init; } = new BuildOptions();
+    public AssetsOptions Assets { get; init; } = new AssetsOptions();
 }
