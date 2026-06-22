@@ -18,6 +18,8 @@ public static class KilnServiceCollectionExtensions
         services.AddSingleton<IPluginLoader, PluginLoader>();
         services.AddSingleton<ISiteBuilder, SiteBuilder>();
         services.AddSingleton<IDevServer, DevServer>();
+        services.AddSingleton<IScaffolder, Scaffolder>();
+        services.AddSingleton<IDeploymentInitializer, DeploymentInitializer>();
         services.AddSingleton<IAssetMinifier, NuglifyAssetMinifier>();
         services.AddSingleton<IAssetMinifier, NoOpAssetMinifier>();
 

@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Templates/**/*" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.*" />
     <PackageReference Include="Markdig" Version="0.*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
