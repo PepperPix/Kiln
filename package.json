@@ -70,6 +70,8 @@
 		],
 		"includeSymbols": true,
 		"projectPath": [
+			"src/Kiln.Abstractions/Kiln.Abstractions.csproj",
+			"src/Kiln.Core/Kiln.Core.csproj",
 			"src/Kiln.Cli/Kiln.Cli.csproj"
 		],
 		"npmPublish": false,
