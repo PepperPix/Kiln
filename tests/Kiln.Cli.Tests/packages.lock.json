@@ -138,8 +138,8 @@
       },
       "Scriban": {
         "type": "Transitive",
-        "resolved": "7.2.4",
-        "contentHash": "hx7WeBo0aObZ3v9ZzicZYQtu7fH+I1pRRnzQbv8r0blUhiH9Ay+60/GwkAJZJ7133dr3ZWkzqUqnSloczOf+jw=="
+        "resolved": "7.2.5",
+        "contentHash": "6HDyv0P6PVdx/prWM3Aw0QHAT/DCpkBxOovZ2iPIH4L4ZvJ13JNYJgyUI+xJ5K2agXreYTBe23AL5ZQNTqJQvA=="
       },
       "SonarAnalyzer.CSharp": {
         "type": "Transitive",
@@ -191,8 +191,8 @@
       },
       "YamlDotNet": {
         "type": "Transitive",
-        "resolved": "16.3.0",
-        "contentHash": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA=="
+        "resolved": "18.1.0",
+        "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
       },
       "Kiln": {
         "type": "Project",
@@ -214,7 +214,7 @@
           "Microsoft.Extensions.DependencyInjection": "[10.*, )",
           "NUglify": "[1.*, )",
           "Scriban": "[7.*, )",
-          "YamlDotNet": "[16.*, )"
+          "YamlDotNet": "[18.*, )"
         }
       }
     }

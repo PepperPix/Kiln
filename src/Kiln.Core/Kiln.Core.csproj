@@ -32,7 +32,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
     <PackageReference Include="NUglify" Version="1.*" />
     <PackageReference Include="Scriban" Version="7.*" />
-    <PackageReference Include="YamlDotNet" Version="16.*" />
+    <PackageReference Include="YamlDotNet" Version="18.*" />
   </ItemGroup>
 
 </Project>
