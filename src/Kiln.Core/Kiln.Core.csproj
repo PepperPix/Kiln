@@ -28,7 +28,7 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.*" />
-    <PackageReference Include="Markdig" Version="0.*" />
+    <PackageReference Include="Markdig" Version="1.*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
     <PackageReference Include="NUglify" Version="1.*" />
     <PackageReference Include="Scriban" Version="7.*" />
