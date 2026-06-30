@@ -66,6 +66,32 @@ public class SiteBuilderTests
     }
 
     [Test]
+    public async Task BuildAsync_NestedContent_ProducesDifferentPaths()
+    {
+        var tempDir = CreateSiteWithNestedContent();
+
+        try
+        {
+            var builder = CreateBuilder();
+            var result = await builder.BuildAsync(tempDir);
+
+            await Assert.That(result.Success).IsTrue();
+
+            var guideOutput = Path.Combine(tempDir, "_site", "guides", "getting-started", "index.html");
+            var deepOutput = Path.Combine(tempDir, "_site", "guides", "advanced", "config", "index.html");
+            var topOutput = Path.Combine(tempDir, "_site", "top", "index.html");
+
+            await Assert.That(File.Exists(guideOutput)).IsTrue();
+            await Assert.That(File.Exists(deepOutput)).IsTrue();
+            await Assert.That(File.Exists(topOutput)).IsTrue();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
     public async Task BuildAsync_Development_PrunesDeletedOutputFiles()
     {
         var tempDir = CreateSiteWithTwoPosts();
@@ -219,6 +245,55 @@ public class SiteBuilderTests
         var configLoader = new SiteConfigLoader();
         var pluginLoader = new PluginLoader();
         return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, []);
+    }
+
+    private static string CreateSiteWithNestedContent()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"kiln-nested-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(dir, "content", "guides", "advanced"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "layouts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "partials"));
+
+        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+            """
+            title: Test Site
+            baseUrl: http://localhost:5555
+            collections:
+              docs:
+                directory: content
+                permalink: /:slug/
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "top.md"),
+            """
+            ---
+            title: Top Level
+            ---
+            top
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "guides", "getting-started.md"),
+            """
+            ---
+            title: Getting Started
+            ---
+            guide content
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "guides", "advanced", "config.md"),
+            """
+            ---
+            title: Config
+            ---
+            deep content
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
+            "<html><body>{{ page.content }}</body></html>");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html><body>Not Found</body></html>");
+
+        return dir;
     }
 
     private static string CreateSiteWithCollision()

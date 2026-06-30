@@ -327,10 +327,11 @@ public sealed class SiteBuilder(
         if (Directory.Exists(siteStaticDir))
             CopyDirectoryWithCollisionWarning(siteStaticDir, assetsOutputDir, config.Theme, warnings, generatedFiles);
 
-        // Copy co-located assets from Page Bundles → _site/assets/content/<collection>/<slug>/
+        // Copy co-located assets from Page Bundles → _site/assets/content/<collection>/<sectionPath>/<slug>/
         foreach (var item in allItems.Where(static i => i.AssetDirectory is not null))
         {
-            var destDir = Path.Combine(assetsOutputDir, "content", item.Collection.Name, item.Slug);
+            var slugPath = string.IsNullOrEmpty(item.SectionPath) ? item.Slug : $"{item.SectionPath}/{item.Slug}";
+            var destDir = Path.Combine(assetsOutputDir, "content", item.Collection.Name, slugPath);
             CopyNonMarkdownFiles(item.AssetDirectory!, destDir, generatedFiles);
         }
 

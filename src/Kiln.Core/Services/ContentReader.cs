@@ -32,28 +32,43 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             return [];
 
         var items = new List<ContentItem>();
+        ReadSection(contentDirectory, contentDirectory, collection, items);
+        return ApplySort(items, collection.Sort);
+    }
 
-        // Plain .md files at the top level of the collection directory
-        foreach (var file in Directory.GetFiles(contentDirectory, "*.md", SearchOption.TopDirectoryOnly))
+    private void ReadSection(string dir, string contentDirectory, ContentGroup collection, List<ContentItem> items)
+    {
+        var sectionPath = ToSectionPath(contentDirectory, dir);
+
+        foreach (var file in Directory.GetFiles(dir, "*.md", SearchOption.TopDirectoryOnly))
         {
-            var item = ReadFile(file, contentDirectory, collection, assetDirectory: null);
+            var item = ReadFile(file, contentDirectory, collection, assetDirectory: null, sectionPath);
             if (item is not null)
                 items.Add(item);
         }
 
-        // Page Bundles: subdirectories that contain index.md
-        foreach (var subDir in Directory.GetDirectories(contentDirectory))
+        foreach (var subDir in Directory.GetDirectories(dir))
         {
             var indexFile = Path.Combine(subDir, "index.md");
-            if (!File.Exists(indexFile))
-                continue;
-
-            var item = ReadFile(indexFile, contentDirectory, collection, assetDirectory: subDir);
-            if (item is not null)
-                items.Add(item);
+            if (File.Exists(indexFile))
+            {
+                var item = ReadFile(indexFile, contentDirectory, collection, assetDirectory: subDir, sectionPath);
+                if (item is not null)
+                    items.Add(item);
+            }
+            else
+            {
+                ReadSection(subDir, contentDirectory, collection, items);
+            }
         }
+    }
 
-        return ApplySort(items, collection.Sort);
+    private static string ToSectionPath(string contentDirectory, string dir)
+    {
+        var rel = Path.GetRelativePath(contentDirectory, dir);
+        if (rel == ".")
+            return "";
+        return rel.Replace(Path.DirectorySeparatorChar, '/');
     }
 
     public ContentItem ReadSingleFile(string absoluteFilePath, ContentGroup owningCollection)
@@ -67,13 +82,13 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         var contentDirectory = Path.GetDirectoryName(absoluteFilePath)
             ?? throw new InvalidOperationException($"Could not resolve content directory for: {absoluteFilePath}");
 
-        var item = ReadFile(absoluteFilePath, contentDirectory, owningCollection, assetDirectory: null)
+        var item = ReadFile(absoluteFilePath, contentDirectory, owningCollection, assetDirectory: null, sectionPath: "")
             ?? throw new InvalidOperationException($"Content file '{absoluteFilePath}' is missing valid front matter.");
 
         return item;
     }
 
-    private ContentItem? ReadFile(string filePath, string contentDirectory, ContentGroup collection, string? assetDirectory)
+    private ContentItem? ReadFile(string filePath, string contentDirectory, ContentGroup collection, string? assetDirectory, string sectionPath)
     {
         var content = File.ReadAllText(filePath);
         var (frontMatter, body, extraFromFrontMatter) = ParseFrontMatter(content);
@@ -83,7 +98,6 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
 
         var relativePath = Path.GetRelativePath(contentDirectory, filePath);
 
-        // For Page Bundles the default slug is the directory name, not "index"
         var slug = frontMatter.Slug
             ?? (assetDirectory is not null
                 ? Path.GetFileName(assetDirectory)
@@ -104,8 +118,9 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
                 taxonomies[taxName] = frontMatter.Categories;
         }
 
+        var effectiveSlugForAssets = string.IsNullOrEmpty(sectionPath) ? slug : $"{sectionPath}/{slug}";
         var assetBasePath = assetDirectory is not null
-            ? $"/assets/content/{collection.Name}/{slug}/"
+            ? $"/assets/content/{collection.Name}/{effectiveSlugForAssets}/"
             : null;
 
         return new ContentItem
@@ -115,6 +130,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             Date = frontMatter.Date,
             Draft = frontMatter.Draft,
             Slug = slug,
+            SectionPath = sectionPath,
             Description = frontMatter.Description,
             Layout = frontMatter.Layout,
             Weight = frontMatter.Weight,
@@ -165,4 +181,3 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         return (frontMatter, body, extraFromFrontMatter);
     }
 }
-

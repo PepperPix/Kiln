@@ -19,10 +19,14 @@ public sealed class PermalinkGenerator : IPermalinkGenerator
             return BuildRelativeUri(urlOverride);
         }
 
+        var effectiveSlug = string.IsNullOrEmpty(item.SectionPath)
+            ? item.Slug
+            : $"{item.SectionPath}/{item.Slug}";
+
         var pattern = collection.Permalink;
 
         var result = pattern
-            .Replace(":slug", item.Slug, StringComparison.Ordinal)
+            .Replace(":slug", effectiveSlug, StringComparison.Ordinal)
             .Replace(":collection", collection.Name, StringComparison.Ordinal);
 
         if (item.Date.HasValue)

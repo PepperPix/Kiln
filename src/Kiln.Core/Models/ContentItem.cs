@@ -21,6 +21,12 @@ public sealed class ContentItem
     public Dictionary<string, object> Taxonomies { get; init; } = [];
 
     /// <summary>
+    /// Relative path of the section (directory) this item resides in, relative to
+    /// the collection root, using '/' separators. Empty string for flat/root items.
+    /// </summary>
+    public string SectionPath { get; init; } = "";
+
+    /// <summary>
     /// Path to the directory containing co-located assets (Page Bundle).
     /// Null when the item is a plain .md file.
     /// </summary>

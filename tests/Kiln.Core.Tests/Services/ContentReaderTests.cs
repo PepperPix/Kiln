@@ -146,7 +146,7 @@ public class ContentReaderTests
     }
 
     [Test]
-    public async Task ReadCollection_IgnoresSubdirWithoutIndexMd()
+    public async Task ReadCollection_SubdirWithoutIndexMd_RecursedAsSection()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
         var subDir = Path.Combine(tempDir, "not-a-bundle");
@@ -165,8 +165,10 @@ public class ContentReaderTests
             var collection = MakeCollection("posts", tempDir);
             var result = _reader.ReadCollection(collection, tempDir);
 
-            // post.md is inside a subdir without index.md — should be ignored
-            await Assert.That(result).IsEmpty();
+            // Subdir without index.md is recursed as a section
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Title).IsEqualTo("Not a bundle");
+            await Assert.That(result[0].SectionPath).IsEqualTo("not-a-bundle");
         }
         finally
         {
@@ -212,6 +214,231 @@ public class ContentReaderTests
             var collection = MakeCollection("home", tempDir);
             await Assert.That(() => _reader.ReadSingleFile(Path.Combine(tempDir, "missing.md"), collection))
                 .ThrowsExactly<FileNotFoundException>();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_FlatItem_RegressionSectionPathEmpty()
+    {
+        var tempDir = CreateTempContent(
+            "hello.md",
+            """
+            ---
+            title: Hello
+            ---
+            content
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Slug).IsEqualTo("hello");
+            await Assert.That(result[0].SectionPath).IsEqualTo("");
+            await Assert.That(result[0].RelativePath).IsEqualTo("hello.md");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_FlatBundle_RegressionSectionPathEmpty()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        var bundleDir = Path.Combine(tempDir, "my-post");
+        Directory.CreateDirectory(bundleDir);
+
+        await File.WriteAllTextAsync(Path.Combine(bundleDir, "index.md"),
+            """
+            ---
+            title: Bundle Post
+            ---
+            content
+            """).ConfigureAwait(false);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Slug).IsEqualTo("my-post");
+            await Assert.That(result[0].SectionPath).IsEqualTo("");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_NestedFile_HasSectionPath()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        var guidesDir = Path.Combine(tempDir, "guides");
+        Directory.CreateDirectory(guidesDir);
+
+        await File.WriteAllTextAsync(Path.Combine(guidesDir, "install.md"),
+            """
+            ---
+            title: Install Guide
+            ---
+            content
+            """).ConfigureAwait(false);
+
+        try
+        {
+            var collection = MakeCollection("docs", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Slug).IsEqualTo("install");
+            await Assert.That(result[0].SectionPath).IsEqualTo("guides");
+            await Assert.That(result[0].RelativePath).EndsWith("guides/install.md");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_NestedBundle_HasSectionPath()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        var bundleDir = Path.Combine(tempDir, "guides", "install");
+        Directory.CreateDirectory(bundleDir);
+
+        await File.WriteAllTextAsync(Path.Combine(bundleDir, "index.md"),
+            """
+            ---
+            title: Install Guide
+            ---
+            content
+            """).ConfigureAwait(false);
+
+        try
+        {
+            var collection = MakeCollection("docs", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Slug).IsEqualTo("install");
+            await Assert.That(result[0].SectionPath).IsEqualTo("guides");
+            await Assert.That(result[0].RelativePath).EndsWith("guides/install/index.md");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_DeepSection_HasFullSectionPath()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        var deepDir = Path.Combine(tempDir, "guides", "advanced");
+        Directory.CreateDirectory(deepDir);
+
+        await File.WriteAllTextAsync(Path.Combine(deepDir, "config.md"),
+            """
+            ---
+            title: Config Guide
+            ---
+            content
+            """).ConfigureAwait(false);
+
+        try
+        {
+            var collection = MakeCollection("docs", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Slug).IsEqualTo("config");
+            await Assert.That(result[0].SectionPath).IsEqualTo("guides/advanced");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_LeafBundle_NotRecursed()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        var bundleDir = Path.Combine(tempDir, "post");
+        Directory.CreateDirectory(bundleDir);
+
+        await File.WriteAllTextAsync(Path.Combine(bundleDir, "index.md"),
+            """
+            ---
+            title: Post
+            ---
+            content
+            """).ConfigureAwait(false);
+
+        await File.WriteAllTextAsync(Path.Combine(bundleDir, "extra.md"),
+            """
+            ---
+            title: Extra
+            ---
+            not an item
+            """).ConfigureAwait(false);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Slug).IsEqualTo("post");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_SectionWithoutIndexMd_IsRecursed()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        var guidesDir = Path.Combine(tempDir, "guides");
+        Directory.CreateDirectory(guidesDir);
+
+        await File.WriteAllTextAsync(Path.Combine(guidesDir, "getting-started.md"),
+            """
+            ---
+            title: Getting Started
+            ---
+            content
+            """).ConfigureAwait(false);
+
+        await File.WriteAllTextAsync(Path.Combine(guidesDir, "faq.md"),
+            """
+            ---
+            title: FAQ
+            ---
+            content
+            """).ConfigureAwait(false);
+
+        try
+        {
+            var collection = MakeCollection("docs", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            const int expectedCount = 2;
+            await Assert.That(result).Count().IsEqualTo(expectedCount);
+            await Assert.That(result.All(i => i.SectionPath == "guides")).IsTrue();
         }
         finally
         {

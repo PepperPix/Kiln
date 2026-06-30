@@ -62,16 +62,62 @@ public class PermalinkGeneratorTests
         await Assert.That(result.OriginalString).IsEqualTo("/custom/path/");
     }
 
+    [Test]
+    public async Task Generate_FlatItem_UnchangedSlug()
+    {
+        var collection = MakeCollection(permalink: "/:slug/");
+        var item = MakeItem(slug: "install");
+
+        var result = _generator.Generate(item, collection);
+
+        await Assert.That(result.OriginalString).IsEqualTo("/install/");
+    }
+
+    [Test]
+    public async Task Generate_NestedItem_PathBasedSlug()
+    {
+        var collection = MakeCollection(permalink: "/:slug/");
+        var item = MakeItem(slug: "install", sectionPath: "guides/advanced");
+
+        var result = _generator.Generate(item, collection);
+
+        await Assert.That(result.OriginalString).IsEqualTo("/guides/advanced/install/");
+    }
+
+    [Test]
+    public async Task Generate_NestedItemWithPrefix()
+    {
+        var collection = MakeCollection(permalink: "/docs/:slug/");
+        var item = MakeItem(slug: "install", sectionPath: "guides");
+
+        var result = _generator.Generate(item, collection);
+
+        await Assert.That(result.OriginalString).IsEqualTo("/docs/guides/install/");
+    }
+
+    [Test]
+    public async Task Generate_NestedItemWithPermalinkOverride_OverrideWins()
+    {
+        var collection = MakeCollection(permalink: "/:slug/");
+        var item = MakeItem(slug: "install", sectionPath: "guides",
+            extra: new Dictionary<string, object> { ["permalink_override"] = "/custom/path/" });
+
+        var result = _generator.Generate(item, collection);
+
+        await Assert.That(result.OriginalString).IsEqualTo("/custom/path/");
+    }
+
     private static ContentGroup MakeCollection(string permalink, string name = "posts") =>
         new() { Name = name, Permalink = permalink };
 
-    private static ContentItem MakeItem(string slug, DateTime? date = null, Dictionary<string, object>? extra = null)
+    private static ContentItem MakeItem(string slug, DateTime? date = null, string sectionPath = "", Dictionary<string, object>? extra = null)
     {
         var collection = new ContentGroup { Name = "posts", Permalink = "/:slug/" };
         return new ContentItem
         {
             Title = "Test",
             Slug = slug,
+            SectionPath = sectionPath,
             Date = date,
             SourcePath = "/test.md",
             RelativePath = "test.md",
