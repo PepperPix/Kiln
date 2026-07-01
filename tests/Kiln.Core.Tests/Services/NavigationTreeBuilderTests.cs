@@ -75,24 +75,20 @@ public class NavigationTreeBuilderTests
     }
 
     [Test]
-    public async Task Humanize_ConvertsKebabCase()
+    public async Task Build_SectionTitles_AreHumanized()
     {
-        var result = NavigationTreeBuilder.Humanize("getting-started");
-        await Assert.That(result).IsEqualTo("Getting Started");
-    }
+        var col = MakeCollection();
+        var items = new List<ContentItem>
+        {
+            MakeItem("A", "/getting-started/a/", 0, sectionPath: "getting-started", collection: col),
+            MakeItem("B", "/hello_world/b/", 1, sectionPath: "hello_world", collection: col)
+        };
 
-    [Test]
-    public async Task Humanize_ConvertsSnakeCase()
-    {
-        var result = NavigationTreeBuilder.Humanize("hello_world");
-        await Assert.That(result).IsEqualTo("Hello World");
-    }
+        var result = NavigationTreeBuilder.Build(items);
+        var titles = result["posts"].Select(n => n.Title).ToList();
 
-    [Test]
-    public async Task Humanize_LeavesPlainWord()
-    {
-        var result = NavigationTreeBuilder.Humanize("Guides");
-        await Assert.That(result).IsEqualTo("Guides");
+        await Assert.That(titles).Contains("Getting Started");
+        await Assert.That(titles).Contains("Hello World");
     }
 
     [Test]

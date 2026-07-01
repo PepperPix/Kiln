@@ -120,6 +120,30 @@ public class TemplateRendererTests
         }
     }
 
+    [Test]
+    public async Task Render_PageAssetUrl_IncludesSectionPathForNestedBundle()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html>{{ page_asset_url 'hero.jpg' }}</html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection, sectionPath: "guides/advanced");
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("/assets/content/posts/guides/advanced/test-post/hero.jpg");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
     private static string CreateTempTheme(string layout, string layoutName)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-theme-{Guid.NewGuid():N}");
@@ -213,13 +237,14 @@ public class TemplateRendererTests
         }
     }
 
-    private static ContentItem CreateTestItem(string htmlContent, ContentGroup collection, string? layout = null) => new()
+    private static ContentItem CreateTestItem(string htmlContent, ContentGroup collection, string? layout = null, string sectionPath = "") => new()
     {
         SourcePath = "/test/content/test.md",
         RelativePath = "test.md",
         Title = "Test Post",
         Date = new DateTime(2026, 6, 17),
         Slug = "test-post",
+        SectionPath = sectionPath,
         Layout = layout,
         RawContent = "# Test",
         HtmlContent = htmlContent,
