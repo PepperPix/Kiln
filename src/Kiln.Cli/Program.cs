@@ -26,6 +26,12 @@ app.Configure(config =>
 
     config.AddCommand<DeployCommand>("deploy")
         .WithDescription("Initialize CI/CD deployment for various targets.");
+
+    config.AddBranch("gen", g =>
+    {
+        g.AddCommand<GenDocsCommand>("docs")
+            .WithDescription("Generate reference docs from an OpenAPI spec.");
+    });
 });
 
 return await app.RunAsync(args).ConfigureAwait(false);

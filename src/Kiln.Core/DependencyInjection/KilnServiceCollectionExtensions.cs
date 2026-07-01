@@ -22,6 +22,8 @@ public static class KilnServiceCollectionExtensions
         services.AddSingleton<IDeploymentInitializer, DeploymentInitializer>();
         services.AddSingleton<IAssetMinifier, NuglifyAssetMinifier>();
         services.AddSingleton<IAssetMinifier, NoOpAssetMinifier>();
+        services.AddSingleton<IGeneratedContentWriter, GeneratedContentWriter>();
+        services.AddSingleton<IOpenApiDocGenerator, OpenApiDocGenerator>();
 
         return new KilnBuilder(services);
     }
