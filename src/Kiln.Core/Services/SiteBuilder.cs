@@ -134,7 +134,11 @@ public sealed class SiteBuilder(
 
         // Extract taxonomy terms (aggregate across all collections)
         var allTaxonomyTerms = ExtractTaxonomyTerms(config, includeDrafts);
-        var sharedRenderContext = SharedRenderContext.Build(config, allTaxonomyTerms);
+
+        // Build navigation tree once per build
+        var publishedItems = allItems.Where(i => !i.Draft || includeDrafts).ToList();
+        var navTree = NavigationTreeBuilder.Build(publishedItems);
+        var sharedRenderContext = SharedRenderContext.Build(config, allTaxonomyTerms, navTree);
 
         // Collect all virtual page URLs for collision checking
         var virtualUrls = CollectVirtualUrls(config, allTaxonomyTerms, includeDrafts);

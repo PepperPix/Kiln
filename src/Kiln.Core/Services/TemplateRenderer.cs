@@ -198,6 +198,9 @@ public sealed class TemplateRenderer : ITemplateRenderer
             url = item.Prev.Url.OriginalString
         });
 
+        // Breadcrumb ancestors
+        pageObj.Add("ancestors", BuildAncestors(item));
+
         foreach (var (refKey, refItem) in item.ResolvedReferences)
         {
             pageObj.Add(refKey, new
@@ -213,10 +216,40 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         // Co-located asset_url for page bundles
         var assetPrefix = site.AssetPrefix.TrimEnd('/');
+        var effectiveSlug = string.IsNullOrEmpty(item.SectionPath) ? item.Slug : $"{item.SectionPath}/{item.Slug}";
         so.Import("page_asset_url", new Func<string, string>(
-            filename => $"{assetPrefix}/content/{item.Collection.Name}/{item.Slug}/{filename.TrimStart('/')}"));
+            filename => $"{assetPrefix}/content/{item.Collection.Name}/{effectiveSlug}/{filename.TrimStart('/')}"));
 
         return so;
+    }
+
+    private static List<object> BuildAncestors(ContentItem item)
+    {
+        var sep = Path.AltDirectorySeparatorChar;
+        var urlSegs = item.Url.OriginalString.Split(sep, StringSplitOptions.RemoveEmptyEntries);
+        var sectionSegs = string.IsNullOrEmpty(item.SectionPath)
+            ? []
+            : item.SectionPath.Split(sep, StringSplitOptions.RemoveEmptyEntries);
+        var prefixCount = urlSegs.Length - sectionSegs.Length - 1;
+        var prefixSegs = prefixCount > 0 ? urlSegs[..prefixCount] : [];
+
+        var ancestors = new List<object>();
+
+        // Collection root
+        var collectionUrl = prefixSegs.Length > 0
+            ? $"{sep}{string.Join(sep, prefixSegs)}{sep}"
+            : $"{sep}";
+        ancestors.Add(new { title = NavigationTreeBuilder.Humanize(item.Collection.Name), url = collectionUrl });
+
+        // Section ancestors
+        var cumulative = new List<string>(prefixSegs);
+        foreach (var seg in sectionSegs)
+        {
+            cumulative.Add(seg);
+            ancestors.Add(new { title = NavigationTreeBuilder.Humanize(seg), url = $"{sep}{string.Join(sep, cumulative)}{sep}" });
+        }
+
+        return ancestors;
     }
 
     private static ScriptObject BuildCommonScriptObject(
@@ -241,6 +274,12 @@ public sealed class TemplateRenderer : ITemplateRenderer
         foreach (var (name, menu) in site.Menus)
             menusObj.Add(name, menu.Items.Select(i => BuildMenuItemObject(i, currentUrl)).ToList());
         so.Add("menus", menusObj);
+
+        // navtree — per-collection navigation tree with is_active/is_ancestor per currentUrl
+        var navObj = new ScriptObject();
+        foreach (var (name, roots) in shared.NavTree)
+            navObj.Add(name, roots.Select(n => ProjectNavNode(n, currentUrl)).ToList());
+        so.Add("navtree", navObj);
 
         // include partial
         var partialsDir = Path.Combine(themePath, "partials");
@@ -314,6 +353,25 @@ public sealed class TemplateRenderer : ITemplateRenderer
         }));
 
         return so;
+    }
+
+    private static object ProjectNavNode(NavigationNode node, string? currentUrl)
+    {
+        var nodeUrl = node.Url.OriginalString;
+        var isActive = currentUrl is not null &&
+            string.Equals(nodeUrl, currentUrl, StringComparison.OrdinalIgnoreCase);
+        var isAncestor = !isActive && currentUrl is not null &&
+            currentUrl.StartsWith(nodeUrl, StringComparison.OrdinalIgnoreCase);
+
+        return new
+        {
+            title = node.Title,
+            url = nodeUrl,
+            weight = node.Weight,
+            is_active = isActive,
+            is_ancestor = isAncestor,
+            children = node.Children.Select(c => ProjectNavNode(c, currentUrl)).ToList()
+        };
     }
 
     private static bool IsPluginEnabledForCollection(Dictionary<string, object>? collectionPlugins, string pluginKey)
@@ -416,4 +474,3 @@ public sealed class TemplateRenderer : ITemplateRenderer
         return string.IsNullOrEmpty(result) ? "unnamed" : result;
     }
 }
-

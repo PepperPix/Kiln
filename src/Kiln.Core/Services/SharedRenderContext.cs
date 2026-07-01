@@ -11,9 +11,16 @@ public sealed class SharedRenderContext
     public required IReadOnlyDictionary<string, object> Plugins { get; init; }
     public required IReadOnlyDictionary<string, object> Theme { get; init; }
 
+    /// <summary>
+    /// Pre-built navigation tree per collection (raw, without is_active/is_ancestor flags).
+    /// Flags are added per render in the template renderer.
+    /// </summary>
+    public required IReadOnlyDictionary<string, IReadOnlyList<NavigationNode>> NavTree { get; init; }
+
     public static SharedRenderContext Build(
         SiteConfiguration site,
-        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies)
+        IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,
+        IReadOnlyDictionary<string, IReadOnlyList<NavigationNode>>? navTree = null)
     {
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(allTaxonomies);
@@ -50,7 +57,8 @@ public sealed class SharedRenderContext
             Collections = collections,
             Taxonomies = taxonomies,
             Plugins = new Dictionary<string, object>(site.Plugins),
-            Theme = new Dictionary<string, object>(site.ThemeConfig)
+            Theme = new Dictionary<string, object>(site.ThemeConfig),
+            NavTree = navTree ?? new Dictionary<string, IReadOnlyList<NavigationNode>>()
         };
     }
 

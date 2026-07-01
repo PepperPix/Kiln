@@ -132,6 +132,87 @@ public class TemplateRendererTests
     private static ContentGroup CreateTestCollection(string layout = "default") =>
         new() { Name = "posts", Permalink = "/blog/:slug/", Layout = layout };
 
+    [Test]
+    public async Task Render_BreadcrumbAncestors_RendersForFlatItem()
+    {
+        const string layout = """
+            <html>
+            {{ for a in page.ancestors }}{{ a.title }}|{{ a.url }},{{ end }}
+            </html>
+            """;
+        var tempTheme = CreateTempTheme(layout, "default");
+
+        try
+        {
+            var collection = new ContentGroup { Name = "posts", Permalink = "/blog/:slug/", Layout = "default" };
+            var item = new ContentItem
+            {
+                SourcePath = "/test/post.md",
+                RelativePath = "post.md",
+                Title = "Hello",
+                Slug = "hello",
+                RawContent = "",
+                HtmlContent = "<p>Hi</p>",
+                SectionPath = "",
+                Url = new Uri("/blog/hello/", UriKind.Relative),
+                OutputPath = "blog/hello/index.html",
+                Collection = collection
+            };
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("Posts|/");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
+    public async Task Render_BreadcrumbAncestors_RendersNestedSections()
+    {
+        const string layout = """
+            <html>
+            {{ for a in page.ancestors }}{{ a.title }}|{{ a.url }} {{ end }}
+            </html>
+            """;
+        var tempTheme = CreateTempTheme(layout, "default");
+
+        try
+        {
+            var collection = new ContentGroup { Name = "docs", Permalink = "/:slug/", Layout = "default" };
+            var item = new ContentItem
+            {
+                SourcePath = "/test/guides/advanced/config.md",
+                RelativePath = "guides/advanced/config.md",
+                Title = "Config",
+                Slug = "config",
+                RawContent = "",
+                HtmlContent = "<p>Config</p>",
+                SectionPath = "guides/advanced",
+                Url = new Uri("/guides/advanced/config/", UriKind.Relative),
+                OutputPath = "guides/advanced/config/index.html",
+                Collection = collection
+            };
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("Docs|/");
+            await Assert.That(result).Contains("Guides|/guides/");
+            await Assert.That(result).Contains("Advanced|/guides/advanced/");
+            await Assert.That(result).DoesNotContain("Config|");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
     private static ContentItem CreateTestItem(string htmlContent, ContentGroup collection, string? layout = null) => new()
     {
         SourcePath = "/test/content/test.md",
