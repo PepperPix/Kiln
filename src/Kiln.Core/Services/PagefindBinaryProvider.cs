@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 
 public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
 {
-    internal const string Version = "1.5.2";
+    public const string Version = "1.5.2";
     private const string DownloadBase = "https://github.com/Pagefind/pagefind/releases/download";
 
     private readonly string _cacheBasePath;
@@ -15,7 +15,7 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
     public PagefindBinaryProvider()
         : this(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) { }
 
-    internal PagefindBinaryProvider(string cacheBasePath)
+    public PagefindBinaryProvider(string cacheBasePath)
     {
         _cacheBasePath = cacheBasePath;
     }
@@ -52,13 +52,13 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
         return cacheBinaryPath;
     }
 
-    internal string GetCacheBinaryPath(bool extended)
+    public string GetCacheBinaryPath(bool extended)
     {
         var binaryFileName = GetBinaryFileName(extended);
         return Path.Combine(_cacheBasePath, ".kiln", "tools", "pagefind", Version, binaryFileName);
     }
 
-    internal static string GetBinaryFileName(bool extended)
+    private static string GetBinaryFileName(bool extended)
     {
         var baseName = extended ? "pagefind_extended" : "pagefind";
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
