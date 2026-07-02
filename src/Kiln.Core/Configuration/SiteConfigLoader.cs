@@ -113,6 +113,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             Home = home,
             Build = MapBuildOptions(dto.Build),
             Assets = new AssetsOptions { Minifier = dto.Assets?.Minifier ?? "nuglify" },
+            Search = MapSearchOptions(dto.Search),
         };
     }
 
@@ -162,6 +163,17 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         };
     }
 
+    private static SearchOptions MapSearchOptions(SearchDto? dto)
+    {
+        if (dto is null) return new SearchOptions();
+        return new SearchOptions
+        {
+            Enabled = dto.Enabled ?? false,
+            Extended = dto.Extended ?? false,
+            BinaryPath = dto.BinaryPath,
+        };
+    }
+
     // DTOs for YAML deserialization — properties are assigned by YamlDotNet via reflection
 
 #pragma warning disable S3459, S1144, S3996 // Properties are assigned/read by YamlDotNet via reflection
@@ -186,6 +198,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public Dictionary<string, object>? Extra { get; set; }
         public BuildDto? Build { get; set; }
         public AssetsDto? Assets { get; set; }
+        public SearchDto? Search { get; set; }
     }
 
     private sealed class BuildDto
@@ -242,6 +255,13 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
     {
         public string? Permalink { get; set; }
         public int? Paginate { get; set; }
+    }
+
+    private sealed class SearchDto
+    {
+        public bool? Enabled { get; set; }
+        public bool? Extended { get; set; }
+        public string? BinaryPath { get; set; }
     }
 
 #pragma warning restore S3459, S1144, S3996

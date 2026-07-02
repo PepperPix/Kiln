@@ -305,6 +305,78 @@ public class SiteConfigLoaderTests
         }
     }
 
+    [Test]
+    public async Task Load_SearchSection_ParsesAllFields()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            search:
+              enabled: true
+              extended: true
+              binaryPath: /usr/local/bin/pagefind
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Search.Enabled).IsTrue();
+            await Assert.That(config.Search.Extended).IsTrue();
+            await Assert.That(config.Search.BinaryPath).IsEqualTo("/usr/local/bin/pagefind");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_SearchSectionAbsent_UsesDefaults()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Search.Enabled).IsFalse();
+            await Assert.That(config.Search.Extended).IsFalse();
+            await Assert.That(config.Search.BinaryPath).IsNull();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_SearchEnabledOnly_OtherFieldsDefault()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            search:
+              enabled: true
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Search.Enabled).IsTrue();
+            await Assert.That(config.Search.Extended).IsFalse();
+            await Assert.That(config.Search.BinaryPath).IsNull();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     private static string CreateTempSite(string yamlContent)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");

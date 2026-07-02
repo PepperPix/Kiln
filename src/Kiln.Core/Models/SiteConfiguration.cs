@@ -19,4 +19,5 @@ public sealed class SiteConfiguration
     public HomeConfiguration? Home { get; init; }
     public BuildOptions Build { get; init; } = new BuildOptions();
     public AssetsOptions Assets { get; init; } = new AssetsOptions();
+    public SearchOptions Search { get; init; } = new SearchOptions();
 }

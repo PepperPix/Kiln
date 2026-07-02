@@ -6,7 +6,10 @@ using Kiln.Services;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-public sealed class BuildCommand(ISiteBuilder siteBuilder) : AsyncCommand<BuildCommand.Settings>
+public sealed class BuildCommand(
+    ISiteBuilder siteBuilder,
+    ISiteConfigLoader configLoader,
+    ISearchIndexer searchIndexer) : AsyncCommand<BuildCommand.Settings>
 {
     public sealed class Settings : CommandSettings
     {
@@ -29,6 +32,10 @@ public sealed class BuildCommand(ISiteBuilder siteBuilder) : AsyncCommand<BuildC
         [CommandOption("--release")]
         [Description("Alias for --production.")]
         public bool Release { get; init; }
+
+        [CommandOption("--no-search")]
+        [Description("Skip building the search index even if search is enabled in site config.")]
+        public bool NoSearch { get; init; }
     }
 
     protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -58,6 +65,31 @@ public sealed class BuildCommand(ISiteBuilder siteBuilder) : AsyncCommand<BuildC
 
         if (result.SkippedDrafts > 0)
             AnsiConsole.MarkupLine($"[dim]({result.SkippedDrafts} drafts skipped)[/]");
+
+        if (!settings.NoSearch)
+        {
+            var config = configLoader.Load(projectPath);
+            if (config.Search.Enabled)
+            {
+                AnsiConsole.MarkupLine("[dim]Building search index...[/]");
+                var searchResult = await searchIndexer
+                    .IndexAsync(result.OutputDirectory, config.Search, allowDownload: true, cancellationToken)
+                    .ConfigureAwait(false);
+
+                foreach (var warning in searchResult.Warnings)
+                    AnsiConsole.MarkupLine($"[yellow]WARN (search):[/] {warning}");
+
+                if (!searchResult.Success)
+                {
+                    foreach (var error in searchResult.Errors)
+                        AnsiConsole.MarkupLine($"[yellow]WARN:[/] Search index failed: {error}");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[green]Search index built.[/]");
+                }
+            }
+        }
 
         return 0;
     }

@@ -32,6 +32,12 @@ app.Configure(config =>
         g.AddCommand<GenDocsCommand>("docs")
             .WithDescription("Generate reference docs from an OpenAPI spec.");
     });
+
+    config.AddBranch("search", s =>
+    {
+        s.AddCommand<SearchIndexCommand>("index")
+            .WithDescription("Build the Pagefind search index over the built site.");
+    });
 });
 
 return await app.RunAsync(args).ConfigureAwait(false);
