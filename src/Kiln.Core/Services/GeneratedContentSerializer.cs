@@ -3,6 +3,8 @@ namespace Kiln.Services;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using YamlDotNet.Core;
+using YamlDotNet.RepresentationModel;
 
 public static class GeneratedContentSerializer
 {
@@ -11,15 +13,15 @@ public static class GeneratedContentSerializer
         ArgumentNullException.ThrowIfNull(frontMatter);
         ArgumentNullException.ThrowIfNull(body);
 
-        var sb = new StringBuilder();
-        sb.Append("---\n");
-
+        var root = new YamlMappingNode();
         foreach (var (key, value) in frontMatter)
-            AppendYamlEntry(sb, key, value);
+            root.Add(new YamlScalarNode(key), BuildValueNode(value));
 
-        sb.Append("---\n\n");
-        sb.Append(body);
-        return sb.ToString();
+        using var sw = new StringWriter();
+        new YamlStream(new YamlDocument(root)).Save(sw, assignAnchors: false);
+        var yaml = NormalizeEmitted(sw.ToString());
+
+        return "---\n" + yaml + "---\n\n" + body;
     }
 
     public static string ComputeBodyHash(string body)
@@ -29,60 +31,37 @@ public static class GeneratedContentSerializer
         return Convert.ToHexStringLower(hash);
     }
 
-    private static void AppendYamlEntry(StringBuilder sb, string key, object value)
+    private static YamlNode BuildValueNode(object value)
     {
         switch (value)
         {
             case IDictionary<string, string> dict:
-                sb.Append(key).Append(":\n");
+                var node = new YamlMappingNode();
                 foreach (var kvp in dict)
-                    sb.Append("  ").Append(kvp.Key).Append(": ").Append(QuoteYamlString(kvp.Value)).Append('\n');
-                break;
+                    node.Add(new YamlScalarNode(kvp.Key), new YamlScalarNode(kvp.Value));
+                return node;
 
             case bool b:
-                sb.Append(key).Append(": ").Append(b ? "true" : "false").Append('\n');
-                break;
+                return new YamlScalarNode(b ? "true" : "false") { Style = ScalarStyle.Plain };
 
             case int i:
-                sb.Append(key).Append(": ").Append(i.ToString(CultureInfo.InvariantCulture)).Append('\n');
-                break;
+                return new YamlScalarNode(i.ToString(CultureInfo.InvariantCulture)) { Style = ScalarStyle.Plain };
 
             default:
-                sb.Append(key).Append(": ").Append(QuoteYamlString(value.ToString() ?? string.Empty)).Append('\n');
-                break;
+                return new YamlScalarNode(value?.ToString() ?? string.Empty);
         }
     }
 
-    private static string QuoteYamlString(string s)
+    private static string NormalizeEmitted(string yaml)
     {
-        if (string.IsNullOrEmpty(s))
-            return "\"\"";
+        const string DocEndSuffix = "...\n";
+        const string DocEndMarker = "...";
 
-        if (NeedsQuoting(s))
-        {
-            var escaped = s
-                .Replace("\\", "\\\\", StringComparison.Ordinal)
-                .Replace("\"", "\\\"", StringComparison.Ordinal);
-            return $"\"{escaped}\"";
-        }
+        if (yaml.EndsWith(DocEndSuffix, StringComparison.Ordinal))
+            yaml = yaml[..^DocEndSuffix.Length];
+        else if (yaml.EndsWith(DocEndMarker, StringComparison.Ordinal))
+            yaml = yaml[..^DocEndMarker.Length];
 
-        return s;
+        return yaml.TrimEnd('\n') + "\n";
     }
-
-    private static bool NeedsQuoting(string s)
-    {
-        if (string.IsNullOrEmpty(s))
-            return true;
-        if (ContainsSpecialYamlChar(s))
-            return true;
-        if (s[0] == ' ' || s[^1] == ' ')
-            return true;
-        return IsReservedWord(s) || char.IsDigit(s[0]);
-    }
-
-    private static bool ContainsSpecialYamlChar(string s)
-        => s.IndexOfAny([':', '#', '{', '}', '[', ']', '|', '>', '!', '%', '@', '`', '\'', '"']) >= 0;
-
-    private static bool IsReservedWord(string s)
-        => s is "true" or "false" or "null" or "~";
 }
