@@ -31,6 +31,8 @@ app.Configure(config =>
     {
         g.AddCommand<GenDocsCommand>("docs")
             .WithDescription("Generate reference docs from an OpenAPI spec.");
+        g.AddCommand<GenDotNetXmlCommand>("dotnet-xml")
+            .WithDescription("Generate reference docs from a .NET XML documentation file.");
     });
 
     config.AddBranch("search", s =>
