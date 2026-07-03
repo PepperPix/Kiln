@@ -35,6 +35,7 @@ public sealed class Scaffolder : IScaffolder
         ("themes/default/partials/head.html", "themes/default/partials/head.html"),
         ("themes/default/partials/header.html", "themes/default/partials/header.html"),
         ("themes/default/partials/footer.html", "themes/default/partials/footer.html"),
+        ("themes/default/partials/search.html", "themes/default/partials/search.html"),
         ("content/index.md.template", "content/index.md"),
         ("themes/default/layouts/home.html", "themes/default/layouts/home.html"),
         ("themes/default/layouts/404.html", "themes/default/layouts/404.html"),

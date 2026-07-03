@@ -24,6 +24,7 @@ public class ScaffolderTests
             await Assert.That(result.CreatedFiles).Contains("themes/default/layouts/home.html");
             await Assert.That(result.CreatedFiles).Contains("themes/default/layouts/404.html");
             await Assert.That(result.CreatedFiles).Contains("themes/default/partials/recent-posts.html");
+            await Assert.That(result.CreatedFiles).Contains("themes/default/partials/search.html");
 
             var siteYamlPath = Path.Combine(result.ProjectPath, "site.yaml");
             var contentIndexPath = Path.Combine(result.ProjectPath, "content", "index.md");
