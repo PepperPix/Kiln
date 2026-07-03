@@ -1,0 +1,10 @@
+{{ if site.search.enabled }}
+<link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+<div id="search" class="kiln-search"></div>
+<script src="/pagefind/pagefind-ui.js"></script>
+<script>
+  window.addEventListener("DOMContentLoaded", function () {
+    new PagefindUI({ element: "#search", showSubResults: true });
+  });
+</script>
+{{ end }}

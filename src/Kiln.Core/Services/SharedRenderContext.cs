@@ -52,7 +52,8 @@ public sealed class SharedRenderContext
                 description = site.Description,
                 base_url = site.BaseUrl.ToString().TrimEnd('/'),
                 language = site.Language,
-                asset_prefix = site.AssetPrefix
+                asset_prefix = site.AssetPrefix,
+                search = new { enabled = site.Search.Enabled }
             },
             Collections = collections,
             Taxonomies = taxonomies,
