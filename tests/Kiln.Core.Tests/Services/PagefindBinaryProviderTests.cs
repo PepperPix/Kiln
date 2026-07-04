@@ -1,5 +1,10 @@
 namespace Kiln.Core.Tests.Services;
 
+using System.Formats.Tar;
+using System.IO.Compression;
+using System.Net;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using Kiln.Services;
 
 public class PagefindBinaryProviderTests
@@ -136,5 +141,153 @@ public class PagefindBinaryProviderTests
         await Assert.That(cachePath).Contains(".kiln");
         await Assert.That(cachePath).Contains("pagefind");
     }
+
+    [Test]
+    public async Task GetBinaryPath_Download_Success_ExtractsVerifiedBinary()
+    {
+        var fakeHome = Path.Combine(Path.GetTempPath(), $"kiln-test-home-{Guid.NewGuid():N}");
+        var savedOverride = Environment.GetEnvironmentVariable("KILN_PAGEFIND_PATH");
+        Environment.SetEnvironmentVariable("KILN_PAGEFIND_PATH", null);
+        try
+        {
+            var binaryFileName = ExpectedBinaryFileName(extended: false);
+            var binaryContent = "#!/bin/sh\necho fake-pagefind\n"u8.ToArray();
+            var tarGzBytes = BuildTarGz(binaryFileName, binaryContent);
+            var expectedHash = Convert.ToHexString(SHA256.HashData(tarGzBytes));
+
+            using var handler = new FakeHttpMessageHandler($"{expectedHash} *pagefind.tar.gz", tarGzBytes);
+            var provider = new PagefindBinaryProvider(fakeHome, handler);
+
+            var path = await provider.GetBinaryPathAsync(extended: false, allowDownload: true, CancellationToken.None);
+
+            await Assert.That(File.Exists(path)).IsTrue();
+            var extractedContent = await File.ReadAllBytesAsync(path);
+            await Assert.That(extractedContent.SequenceEqual(binaryContent)).IsTrue();
+
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                var mode = File.GetUnixFileMode(path);
+                await Assert.That(mode.HasFlag(UnixFileMode.UserExecute)).IsTrue();
+            }
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("KILN_PAGEFIND_PATH", savedOverride);
+            if (Directory.Exists(fakeHome))
+                Directory.Delete(fakeHome, true);
+        }
+    }
+
+    [Test]
+    public async Task GetBinaryPath_Download_Sha256Mismatch_ThrowsAndLeavesNoCacheFile()
+    {
+        var fakeHome = Path.Combine(Path.GetTempPath(), $"kiln-test-home-{Guid.NewGuid():N}");
+        var savedOverride = Environment.GetEnvironmentVariable("KILN_PAGEFIND_PATH");
+        Environment.SetEnvironmentVariable("KILN_PAGEFIND_PATH", null);
+        try
+        {
+            var binaryFileName = ExpectedBinaryFileName(extended: false);
+            var tarGzBytes = BuildTarGz(binaryFileName, "fake-pagefind"u8.ToArray());
+            var wrongHash = new string('0', 64);
+
+            using var handler = new FakeHttpMessageHandler(wrongHash, tarGzBytes);
+            var provider = new PagefindBinaryProvider(fakeHome, handler);
+
+            InvalidOperationException? caughtEx = null;
+            try
+            {
+                await provider.GetBinaryPathAsync(extended: false, allowDownload: true, CancellationToken.None);
+            }
+            catch (InvalidOperationException ex)
+            {
+                caughtEx = ex;
+            }
+
+            await Assert.That(caughtEx).IsNotNull();
+            await Assert.That(caughtEx!.Message).Contains("SHA256 mismatch");
+
+            var cachePath = provider.GetCacheBinaryPath(extended: false);
+            await Assert.That(File.Exists(cachePath)).IsFalse();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("KILN_PAGEFIND_PATH", savedOverride);
+            if (Directory.Exists(fakeHome))
+                Directory.Delete(fakeHome, true);
+        }
+    }
+
+    [Test]
+    public async Task GetBinaryPath_Download_BinaryMissingFromArchive_Throws()
+    {
+        var fakeHome = Path.Combine(Path.GetTempPath(), $"kiln-test-home-{Guid.NewGuid():N}");
+        var savedOverride = Environment.GetEnvironmentVariable("KILN_PAGEFIND_PATH");
+        Environment.SetEnvironmentVariable("KILN_PAGEFIND_PATH", null);
+        try
+        {
+            var tarGzBytes = BuildTarGz("not-the-expected-binary", "irrelevant"u8.ToArray());
+            var expectedHash = Convert.ToHexString(SHA256.HashData(tarGzBytes));
+
+            using var handler = new FakeHttpMessageHandler(expectedHash, tarGzBytes);
+            var provider = new PagefindBinaryProvider(fakeHome, handler);
+
+            InvalidOperationException? caughtEx = null;
+            try
+            {
+                await provider.GetBinaryPathAsync(extended: false, allowDownload: true, CancellationToken.None);
+            }
+            catch (InvalidOperationException ex)
+            {
+                caughtEx = ex;
+            }
+
+            await Assert.That(caughtEx).IsNotNull();
+            await Assert.That(caughtEx!.Message).Contains("not found in archive");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("KILN_PAGEFIND_PATH", savedOverride);
+            if (Directory.Exists(fakeHome))
+                Directory.Delete(fakeHome, true);
+        }
+    }
+
+    private static string ExpectedBinaryFileName(bool extended)
+    {
+        var baseName = extended ? "pagefind_extended" : "pagefind";
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"{baseName}.exe" : baseName;
+    }
+
+    private static byte[] BuildTarGz(string entryName, byte[] content)
+    {
+        using var ms = new MemoryStream();
+        using (var gzip = new GZipStream(ms, CompressionMode.Compress, leaveOpen: true))
+        {
+            using var tarWriter = new TarWriter(gzip, leaveOpen: true);
+            var entry = new PaxTarEntry(TarEntryType.RegularFile, entryName)
+            {
+                DataStream = new MemoryStream(content),
+            };
+            tarWriter.WriteEntry(entry);
+        }
+
+        return ms.ToArray();
+    }
+
+    private sealed class FakeHttpMessageHandler(string sha256ResponseBody, byte[] tarballBytes) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var isChecksumRequest = request.RequestUri!.AbsoluteUri.EndsWith(".sha256", StringComparison.Ordinal);
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = isChecksumRequest
+                    ? new StringContent(sha256ResponseBody)
+                    : new ByteArrayContent(tarballBytes),
+            };
+            return Task.FromResult(response);
+        }
+    }
 }
+
 

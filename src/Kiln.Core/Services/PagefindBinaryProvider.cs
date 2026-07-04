@@ -11,6 +11,7 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
     private const string DownloadBase = "https://github.com/Pagefind/pagefind/releases/download";
 
     private readonly string _cacheBasePath;
+    private readonly HttpMessageHandler? _httpMessageHandler;
 
     public PagefindBinaryProvider()
         : this(
@@ -20,8 +21,14 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
     }
 
     public PagefindBinaryProvider(string cacheBasePath)
+        : this(cacheBasePath, httpMessageHandler: null)
+    {
+    }
+
+    public PagefindBinaryProvider(string cacheBasePath, HttpMessageHandler? httpMessageHandler)
     {
         _cacheBasePath = cacheBasePath;
+        _httpMessageHandler = httpMessageHandler;
     }
 
     public async Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, CancellationToken ct)
@@ -108,7 +115,7 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
             $"Unsupported OS platform: {RuntimeInformation.OSDescription}");
     }
 
-    private static async Task DownloadToCacheAsync(string cacheBinaryPath, bool extended, CancellationToken ct)
+    private async Task DownloadToCacheAsync(string cacheBinaryPath, bool extended, CancellationToken ct)
     {
         var triple = GetTargetTriple();
         var baseName = extended ? "pagefind_extended" : "pagefind";
@@ -116,7 +123,9 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
         var downloadUrl = $"{DownloadBase}/v{Version}/{assetName}";
         var sha256Url = $"{downloadUrl}.sha256";
 
-        using var http = new HttpClient();
+        using var http = _httpMessageHandler is null
+            ? new HttpClient()
+            : new HttpClient(_httpMessageHandler, disposeHandler: false);
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Kiln-SSG/1.0");
 
         // Fetch checksum first
