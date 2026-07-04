@@ -24,13 +24,15 @@ kiln serve
 
 ## Features
 
-- Collection-based content model
+- Collection-based content model with nested (recursive) content sections
 - Taxonomies (tags, categories)
 - Pagination helpers
 - Plugin slots and extensible templates
 - CDN-friendly `/assets/` namespacing
 - Atom/RSS feeds and sitemap generation
 - Local dev server with auto-rebuild (dev server)
+- Reference documentation generation from OpenAPI specs and .NET XML docs
+- Built-in search indexing (Pagefind)
 
 ## Project Layout
 
@@ -51,6 +53,9 @@ Common commands (exact names):
 - `kiln build` — build the static site (output directory: `_site`)
 - `kiln serve` — start local dev server with live-reload
 - `kiln deploy <target>` — initialize deployment workflows; supported targets: `github-pages`, `azure-swa`
+- `kiln gen docs --openapi <spec> --output <dir>` — generate reference documentation from an OpenAPI spec
+- `kiln gen dotnet-xml --xml <path> --output <dir>` — generate reference documentation from a .NET XML documentation file
+- `kiln search index [path] [--no-download] [--extended] [--output <dir>]` — build a Pagefind search index over the build output
 
 Examples:
 
@@ -64,6 +69,15 @@ kiln deploy github-pages
 
 # Initialize Azure Static Web Apps workflow and staticwebapp.config.json
 kiln deploy azure-swa
+
+# Generate API reference docs from an OpenAPI spec into content/api
+kiln gen docs --openapi openapi.json --output content/api
+
+# Generate API reference docs from a .NET XML documentation file
+kiln gen dotnet-xml --xml bin/Release/net10.0/MyLib.xml --output content/api-dotnet
+
+# Build a search index over the default output directory
+kiln search index
 ```
 
 Important: the `deploy` command expects a target argument, e.g. `github-pages` or `azure-swa`.
@@ -77,6 +91,84 @@ Kiln uses Scriban templates for layouts, partials and helpers. Basic concepts:
 - Slots: named insertion points for plugins and themes
 
 Refer to `templates/default` in the project for a minimal theme layout and examples.
+
+Template data available to layouts and partials includes:
+
+- `page.ancestors` — the breadcrumb chain for the current page, ordered root → … → parent (the
+  current page itself is not included). Each entry is `{title, url}`.
+- `navtree.<collection-name>` — the hierarchical navigation tree for a given collection. Each node
+  is `{title, url, weight, is_active, is_ancestor, children}`, where `is_active`/`is_ancestor` are
+  computed relative to the page currently being rendered.
+
+## Reference Documentation Generation
+
+Kiln can generate reference documentation content from two sources:
+
+- **OpenAPI specs** (`kiln gen docs --openapi <spec> --output <dir>`) — generates one content file
+  per endpoint/operation.
+- **.NET XML documentation** (`kiln gen dotnet-xml --xml <path> --output <dir>`) — generates one
+  content file per documented type/member from a project built with
+  `<GenerateDocumentationFile>true</GenerateDocumentationFile>`.
+
+Both adapters share a three-tier ownership model for generated content files:
+
+1. Generated files are written with `generated: true` and a `source_hash` in their frontmatter.
+2. A file with `generated: false` is treated as **adopted** — it is never touched again by
+   subsequent generation runs, even if the source spec/XML changes.
+3. If a generated file was edited outside of Kiln (its content no longer matches `source_hash`) and
+   the source changed again, Kiln does not overwrite it — it writes `<file>.md.regenerated` next to
+   it instead, so no manual edits are lost.
+
+```bash
+kiln gen docs --openapi openapi.json --output content/api
+kiln gen dotnet-xml --xml bin/Release/net10.0/MyLib.xml --output content/api-dotnet
+```
+
+The output directory must be registered as a collection in `site.yaml` to be included in the build;
+both commands print a warning if it is not.
+
+## Search
+
+Kiln integrates [Pagefind](https://pagefind.app) for static full-text search.
+
+Enable it in `site.yaml`:
+
+```yaml
+search:
+  enabled: true      # default: false
+  extended: false    # use the Pagefind extended binary (multilingual support)
+  binaryPath: null   # optional explicit path to a pagefind binary
+```
+
+Build the index after `kiln build`:
+
+```bash
+kiln build
+kiln search index
+```
+
+The Pagefind binary is resolved in this order:
+
+1. `KILN_PAGEFIND_PATH` environment variable, if set and the file exists.
+2. The system `PATH`.
+3. The local cache at `~/.kiln/tools/pagefind/<version>/` (override the cache root with
+   `KILN_PAGEFIND_CACHE_DIR`).
+4. Automatic download from the Pagefind GitHub releases, with SHA256 verification (use
+   `--no-download` to disable this and fail instead).
+
+Search is disabled by default and `kiln serve` never triggers indexing or a download. The default
+theme ships with an opt-in search UI that is self-guarded and requires no extra setup once search is
+enabled and indexed.
+
+## Nested Content Sections
+
+Content collections are read recursively. For a given directory:
+
+- A directory containing an `index.md` is a **leaf bundle** and is not recursed into further.
+- Any other directory is a **section** and is read recursively.
+
+URLs of nested content mirror the directory path, e.g. `guides/advanced/install.md` becomes
+`/guides/advanced/install/`. Flat sites (no subdirectories) behave exactly as before.
 
 ## CI / CD Deployment Recipes
 
@@ -240,7 +332,7 @@ Kiln — A fast, extensible static site generator for .NET. Collection-based con
 
 ## Contributing
 
-See CONTRIBUTING.md for developer guidelines and tests. Keep commits focused and descriptive.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for developer guidelines and tests. Keep commits focused and descriptive.
 
 ## License
 
