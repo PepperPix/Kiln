@@ -80,7 +80,7 @@ public sealed class SiteBuilder(
                     homeCollection.Items.Add(homeItem);
                     allItems.Add(homeItem);
                 }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // Intentional: an unreadable home page should not abort the entire build
                 catch (Exception ex)
 #pragma warning restore CA1031
                 {
@@ -237,7 +237,7 @@ public sealed class SiteBuilder(
                     await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                     rendered++;
                 }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // Intentional: one collection index page error should not abort the entire build
                 catch (Exception ex)
 #pragma warning restore CA1031
                 {
@@ -261,7 +261,7 @@ public sealed class SiteBuilder(
                 await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                 rendered++;
             }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // Intentional: one taxonomy overview error should not abort the entire build
             catch (Exception ex)
 #pragma warning restore CA1031
             {
@@ -288,7 +288,7 @@ public sealed class SiteBuilder(
                         await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                         rendered++;
                     }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // Intentional: one taxonomy term page error should not abort the entire build
                     catch (Exception ex)
 #pragma warning restore CA1031
                     {
@@ -312,7 +312,7 @@ public sealed class SiteBuilder(
                 var notFoundPath = Path.Combine(outputDir, "404.html");
                 await WriteOutputTextAsync(notFoundPath, notFoundHtml, generatedFiles, ct).ConfigureAwait(false);
             }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // Intentional: a 404 page rendering error should not abort the entire build
             catch (Exception ex)
 #pragma warning restore CA1031
             {
