@@ -1,6 +1,6 @@
 # Kiln
 
-[![CI](https://github.com/CScharf/Kiln/actions/workflows/ci.yml/badge.svg)](https://github.com/CScharf/Kiln/actions/workflows/ci.yml)
+[![CI](https://github.com/PepperPix/Kiln/actions/workflows/ci.yml/badge.svg)](https://github.com/PepperPix/Kiln/actions/workflows/ci.yml)
 
 Kiln is a fast, extensible static site generator for .NET. It is distributed as a .NET global tool and focuses on a collection-based content model, Scriban templates, and CDN-friendly asset namespaces.
 
