@@ -62,6 +62,10 @@ public class SearchIndexCommandSmokeTests
         var siteDir = Path.Combine(tempDir, "_site");
         Directory.CreateDirectory(siteDir);
 
+        // Isolate from any pagefind binary the developer/CI machine may already have
+        // cached under ~/.kiln/tools/pagefind from a previous real download.
+        var isolatedCacheDir = Path.Combine(tempDir, "kiln-cache-isolated");
+
         try
         {
             var psi = new ProcessStartInfo(
@@ -72,6 +76,7 @@ public class SearchIndexCommandSmokeTests
                 RedirectStandardError = true,
                 UseShellExecute = false,
             };
+            psi.Environment["KILN_PAGEFIND_CACHE_DIR"] = isolatedCacheDir;
 
             using var process = Process.Start(psi)!;
             var output = await process.StandardOutput.ReadToEndAsync();

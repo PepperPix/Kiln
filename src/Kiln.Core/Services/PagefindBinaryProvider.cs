@@ -13,7 +13,11 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
     private readonly string _cacheBasePath;
 
     public PagefindBinaryProvider()
-        : this(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) { }
+        : this(
+            Environment.GetEnvironmentVariable("KILN_PAGEFIND_CACHE_DIR")
+            ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+    {
+    }
 
     public PagefindBinaryProvider(string cacheBasePath)
     {

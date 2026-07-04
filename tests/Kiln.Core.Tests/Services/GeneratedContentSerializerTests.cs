@@ -37,7 +37,7 @@ public class GeneratedContentSerializerTests
 
         var extra = deserialized["extra"] as Dictionary<object, object>;
         await Assert.That(extra).IsNotNull();
-        await Assert.That(extra["method"].ToString()).IsEqualTo("GET");
+        await Assert.That(extra!["method"].ToString()).IsEqualTo("GET");
         await Assert.That(extra["path"].ToString()).IsEqualTo("/pets/{id}");
     }
 }

@@ -48,19 +48,19 @@ public static class GeneratedContentSerializer
                 return new YamlScalarNode(i.ToString(CultureInfo.InvariantCulture)) { Style = ScalarStyle.Plain };
 
             default:
-                return new YamlScalarNode(value?.ToString() ?? string.Empty);
+                return new YamlScalarNode(value.ToString() ?? string.Empty);
         }
     }
 
     private static string NormalizeEmitted(string yaml)
     {
-        const string DocEndSuffix = "...\n";
-        const string DocEndMarker = "...";
+        const string docEndSuffix = "...\n";
+        const string docEndMarker = "...";
 
-        if (yaml.EndsWith(DocEndSuffix, StringComparison.Ordinal))
-            yaml = yaml[..^DocEndSuffix.Length];
-        else if (yaml.EndsWith(DocEndMarker, StringComparison.Ordinal))
-            yaml = yaml[..^DocEndMarker.Length];
+        if (yaml.EndsWith(docEndSuffix, StringComparison.Ordinal))
+            yaml = yaml[..^docEndSuffix.Length];
+        else if (yaml.EndsWith(docEndMarker, StringComparison.Ordinal))
+            yaml = yaml[..^docEndMarker.Length];
 
         return yaml.TrimEnd('\n') + "\n";
     }
