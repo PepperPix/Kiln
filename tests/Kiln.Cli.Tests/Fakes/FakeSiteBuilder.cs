@@ -6,8 +6,6 @@ using Kiln.Services;
 
 public sealed class FakeSiteBuilder : ISiteBuilder
 {
-    public string? CapturedProjectPath { get; private set; }
-
     public bool? CapturedIncludeDrafts { get; private set; }
 
     public BuildEnvironment? CapturedEnvironment { get; private set; }
@@ -19,7 +17,6 @@ public sealed class FakeSiteBuilder : ISiteBuilder
 
     public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
     {
-        CapturedProjectPath = projectPath;
         CapturedIncludeDrafts = includeDrafts;
         CapturedEnvironment = environment;
 

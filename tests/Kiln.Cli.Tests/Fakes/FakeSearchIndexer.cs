@@ -7,8 +7,6 @@ public sealed class FakeSearchIndexer : ISearchIndexer
 {
     public bool WasCalled { get; private set; }
 
-    public string? CapturedOutputDir { get; private set; }
-
     public SearchOptions? CapturedOptions { get; private set; }
 
     public bool? CapturedAllowDownload { get; private set; }
@@ -22,7 +20,6 @@ public sealed class FakeSearchIndexer : ISearchIndexer
         CancellationToken ct)
     {
         WasCalled = true;
-        CapturedOutputDir = outputDir;
         CapturedOptions = options;
         CapturedAllowDownload = allowDownload;
 

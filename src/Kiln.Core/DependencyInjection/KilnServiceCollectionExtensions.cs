@@ -11,7 +11,7 @@ public static class KilnServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
+        services.AddSingleton(AnsiConsole.Console);
         services.AddSingleton<IMarkdownProcessor, MarkdownProcessor>();
         services.AddSingleton<IContentReader, ContentReader>();
         services.AddSingleton<ITemplateRenderer, TemplateRenderer>();
