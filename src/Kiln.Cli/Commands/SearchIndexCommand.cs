@@ -8,7 +8,8 @@ using Spectre.Console.Cli;
 
 public sealed class SearchIndexCommand(
     ISearchIndexer searchIndexer,
-    ISiteConfigLoader configLoader) : AsyncCommand<SearchIndexCommand.Settings>
+    ISiteConfigLoader configLoader,
+    IAnsiConsole console) : AsyncCommand<SearchIndexCommand.Settings>
 {
     public sealed class Settings : CommandSettings
     {
@@ -47,23 +48,23 @@ public sealed class SearchIndexCommand(
 
         var allowDownload = !settings.NoDownload;
 
-        AnsiConsole.MarkupLine($"[dim]Indexing [blue]{Markup.Escape(outputDir)}[/] with Pagefind...[/]");
+        console.MarkupLine($"[dim]Indexing [blue]{Markup.Escape(outputDir)}[/] with Pagefind...[/]");
 
         var result = await searchIndexer
             .IndexAsync(outputDir, options, allowDownload, cancellationToken)
             .ConfigureAwait(false);
 
         foreach (var warning in result.Warnings)
-            AnsiConsole.MarkupLine($"[yellow]WARN:[/] {Markup.Escape(warning)}");
+            console.MarkupLine($"[yellow]WARN:[/] {Markup.Escape(warning)}");
 
         foreach (var error in result.Errors)
-            AnsiConsole.MarkupLine($"[red]ERROR:[/] {Markup.Escape(error)}");
+            console.MarkupLine($"[red]ERROR:[/] {Markup.Escape(error)}");
 
         if (!result.Success)
             return 1;
 
         var indexDir = System.IO.Path.Combine(outputDir, "pagefind");
-        AnsiConsole.MarkupLine($"[green]Search index built.[/] Index at [blue]{Markup.Escape(indexDir)}[/]");
+        console.MarkupLine($"[green]Search index built.[/] Index at [blue]{Markup.Escape(indexDir)}[/]");
         return 0;
     }
 }

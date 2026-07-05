@@ -5,7 +5,7 @@ using Kiln.Services;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-public sealed class ServeCommand(IDevServer devServer) : AsyncCommand<ServeCommand.Settings>
+public sealed class ServeCommand(IDevServer devServer, IAnsiConsole console) : AsyncCommand<ServeCommand.Settings>
 {
     public sealed class Settings : CommandSettings
     {
@@ -27,8 +27,8 @@ public sealed class ServeCommand(IDevServer devServer) : AsyncCommand<ServeComma
     {
         var projectPath = System.IO.Path.GetFullPath(settings.Path);
 
-        AnsiConsole.MarkupLine($"[green]Serving[/] at [blue]http://localhost:{settings.Port}/[/]");
-        AnsiConsole.MarkupLine("[dim]Press Ctrl+C to stop.[/]");
+        console.MarkupLine($"[green]Serving[/] at [blue]http://localhost:{settings.Port}/[/]");
+        console.MarkupLine("[dim]Press Ctrl+C to stop.[/]");
 
         try
         {
@@ -36,7 +36,7 @@ public sealed class ServeCommand(IDevServer devServer) : AsyncCommand<ServeComma
         }
         catch (OperationCanceledException)
         {
-            AnsiConsole.MarkupLine("\n[dim]Server stopped.[/]");
+            console.MarkupLine("\n[dim]Server stopped.[/]");
         }
 
         return 0;

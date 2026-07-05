@@ -5,9 +5,10 @@ using Kiln.Services;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-public sealed class GenDocsCommand(IOpenApiDocGenerator generator) : AsyncCommand<GenDocsCommand.Settings>
+public sealed class GenDocsCommand(IOpenApiDocGenerator generator, IAnsiConsole console) : AsyncCommand<GenDocsCommand.Settings>
 {
     private readonly IOpenApiDocGenerator _generator = generator;
+    private readonly IAnsiConsole _console = console;
 
     public sealed class Settings : CommandSettings
     {
@@ -28,14 +29,14 @@ public sealed class GenDocsCommand(IOpenApiDocGenerator generator) : AsyncComman
     {
         if (string.IsNullOrWhiteSpace(settings.OpenApiSpec))
         {
-            AnsiConsole.MarkupLine("[red]Error:[/] --openapi is required.");
+            _console.MarkupLine("[red]Error:[/] --openapi is required.");
             return 1;
         }
 
         var specPath = Path.GetFullPath(settings.OpenApiSpec);
         if (!File.Exists(specPath))
         {
-            AnsiConsole.MarkupLine($"[red]Error:[/] OpenAPI spec not found: {specPath}");
+            _console.MarkupLine($"[red]Error:[/] OpenAPI spec not found: {specPath}");
             return 1;
         }
 
@@ -49,18 +50,18 @@ public sealed class GenDocsCommand(IOpenApiDocGenerator generator) : AsyncComman
             cancellationToken).ConfigureAwait(false);
 
         foreach (var warning in report.Warnings)
-            AnsiConsole.MarkupLine($"[yellow]WARN:[/] {warning}");
+            _console.MarkupLine($"[yellow]WARN:[/] {warning}");
 
         foreach (var file in report.Written)
-            AnsiConsole.MarkupLine($"[green]written[/] {file}");
+            _console.MarkupLine($"[green]written[/] {file}");
 
         foreach (var file in report.Skipped)
-            AnsiConsole.MarkupLine($"[dim]skipped (adopted)[/] {file}");
+            _console.MarkupLine($"[dim]skipped (adopted)[/] {file}");
 
         foreach (var file in report.Conflicts)
-            AnsiConsole.MarkupLine($"[yellow]conflict[/] wrote .regenerated for {file}");
+            _console.MarkupLine($"[yellow]conflict[/] wrote .regenerated for {file}");
 
-        AnsiConsole.MarkupLine(
+        _console.MarkupLine(
             $"Done. {report.Written.Count} written, {report.Skipped.Count} skipped, {report.Conflicts.Count} conflicts.");
 
         var siteYaml = Path.Combine(projectPath, "site.yaml");
@@ -69,7 +70,7 @@ public sealed class GenDocsCommand(IOpenApiDocGenerator generator) : AsyncComman
             var siteContent = await File.ReadAllTextAsync(siteYaml, cancellationToken).ConfigureAwait(false);
             var relOutput = Path.GetRelativePath(projectPath, outputDir).Replace(Path.DirectorySeparatorChar, '/');
             if (!siteContent.Contains(relOutput, StringComparison.Ordinal))
-                AnsiConsole.MarkupLine(
+                _console.MarkupLine(
                     $"[yellow]WARN:[/] Add a collection for '{relOutput}' to site.yaml to include it in the build.");
         }
 

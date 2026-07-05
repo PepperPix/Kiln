@@ -6,7 +6,7 @@ using Kiln.Services;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-public sealed class DeployCommand(IDeploymentInitializer deploymentInitializer) : Command<DeployCommand.Settings>
+public sealed class DeployCommand(IDeploymentInitializer deploymentInitializer, IAnsiConsole console) : Command<DeployCommand.Settings>
 {
     public sealed class Settings : CommandSettings
     {
@@ -24,7 +24,7 @@ public sealed class DeployCommand(IDeploymentInitializer deploymentInitializer) 
         var projectPath = System.IO.Path.GetFullPath(settings.Path);
         if (!TryParseTarget(settings.Target, out var target))
         {
-            AnsiConsole.MarkupLine($"[red]Error:[/] Unknown deployment target: {settings.Target}. Supported: github-pages, azure-swa.");
+            console.MarkupLine($"[red]Error:[/] Unknown deployment target: {settings.Target}. Supported: github-pages, azure-swa.");
             return 1;
         }
 
@@ -34,7 +34,7 @@ public sealed class DeployCommand(IDeploymentInitializer deploymentInitializer) 
             foreach (var createdFile in result.CreatedFiles)
             {
                 var fullPath = Path.Combine(projectPath, Path.Combine(createdFile.Split('/')));
-                AnsiConsole.MarkupLine($"[green]Created[/] [blue]{fullPath}[/]");
+                console.MarkupLine($"[green]Created[/] [blue]{fullPath}[/]");
             }
 
             return 0;
@@ -77,9 +77,9 @@ public sealed class DeployCommand(IDeploymentInitializer deploymentInitializer) 
         }
     }
 
-    private static int WriteError(string message)
+    private int WriteError(string message)
     {
-        AnsiConsole.MarkupLine($"[red]Error:[/] {message}");
+        console.MarkupLine($"[red]Error:[/] {message}");
         return 1;
     }
 }

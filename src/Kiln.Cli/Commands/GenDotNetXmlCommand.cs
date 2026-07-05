@@ -5,9 +5,10 @@ using Kiln.Services;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator) : AsyncCommand<GenDotNetXmlCommand.Settings>
+public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator, IAnsiConsole console) : AsyncCommand<GenDotNetXmlCommand.Settings>
 {
     private readonly IXmlDocGenerator _generator = generator;
+    private readonly IAnsiConsole _console = console;
 
     public sealed class Settings : CommandSettings
     {
@@ -28,14 +29,14 @@ public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator) : AsyncComma
     {
         if (string.IsNullOrWhiteSpace(settings.Xml))
         {
-            AnsiConsole.MarkupLine("[red]Error:[/] --xml is required.");
+            _console.MarkupLine("[red]Error:[/] --xml is required.");
             return 1;
         }
 
         var xmlPath = Path.GetFullPath(settings.Xml);
         if (!File.Exists(xmlPath))
         {
-            AnsiConsole.MarkupLine($"[red]Error:[/] XML documentation file not found: {xmlPath}");
+            _console.MarkupLine($"[red]Error:[/] XML documentation file not found: {xmlPath}");
             return 1;
         }
 
@@ -49,18 +50,18 @@ public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator) : AsyncComma
             cancellationToken).ConfigureAwait(false);
 
         foreach (var warning in report.Warnings)
-            AnsiConsole.MarkupLine($"[yellow]WARN:[/] {warning}");
+            _console.MarkupLine($"[yellow]WARN:[/] {warning}");
 
         foreach (var file in report.Written)
-            AnsiConsole.MarkupLine($"[green]written[/] {file}");
+            _console.MarkupLine($"[green]written[/] {file}");
 
         foreach (var file in report.Skipped)
-            AnsiConsole.MarkupLine($"[dim]skipped (adopted)[/] {file}");
+            _console.MarkupLine($"[dim]skipped (adopted)[/] {file}");
 
         foreach (var file in report.Conflicts)
-            AnsiConsole.MarkupLine($"[yellow]conflict[/] wrote .regenerated for {file}");
+            _console.MarkupLine($"[yellow]conflict[/] wrote .regenerated for {file}");
 
-        AnsiConsole.MarkupLine(
+        _console.MarkupLine(
             $"Done. {report.Written.Count} written, {report.Skipped.Count} skipped, {report.Conflicts.Count} conflicts.");
 
         var siteYaml = Path.Combine(projectPath, "site.yaml");
@@ -69,7 +70,7 @@ public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator) : AsyncComma
             var siteContent = await File.ReadAllTextAsync(siteYaml, cancellationToken).ConfigureAwait(false);
             var relOutput = Path.GetRelativePath(projectPath, outputDir).Replace(Path.DirectorySeparatorChar, '/');
             if (!siteContent.Contains(relOutput, StringComparison.Ordinal))
-                AnsiConsole.MarkupLine(
+                _console.MarkupLine(
                     $"[yellow]WARN:[/] Add a collection for '{relOutput}' to site.yaml to include it in the build.");
         }
 

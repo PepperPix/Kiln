@@ -33,6 +33,7 @@
     <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.*" />
     <PackageReference Include="NUglify" Version="1.*" />
     <PackageReference Include="Scriban" Version="7.*" />
+    <PackageReference Include="Spectre.Console" Version="0.55.*" />
     <PackageReference Include="YamlDotNet" Version="18.*" />
   </ItemGroup>
 

@@ -9,7 +9,8 @@ using Spectre.Console.Cli;
 public sealed class BuildCommand(
     ISiteBuilder siteBuilder,
     ISiteConfigLoader configLoader,
-    ISearchIndexer searchIndexer) : AsyncCommand<BuildCommand.Settings>
+    ISearchIndexer searchIndexer,
+    IAnsiConsole console) : AsyncCommand<BuildCommand.Settings>
 {
     public sealed class Settings : CommandSettings
     {
@@ -44,7 +45,7 @@ public sealed class BuildCommand(
 
         var environment = ResolveEnvironment(settings);
 
-        var result = await AnsiConsole.Status()
+        var result = await console.Status()
             .Spinner(Spinner.Known.Dots)
             .StartAsync("Building site...", async _ =>
                 await siteBuilder.BuildAsync(projectPath, settings.IncludeDrafts, environment, cancellationToken).ConfigureAwait(false))
@@ -53,40 +54,40 @@ public sealed class BuildCommand(
         if (!result.Success)
         {
             foreach (var error in result.Errors)
-                AnsiConsole.MarkupLine($"[red]ERROR:[/] {error}");
+                console.MarkupLine($"[red]ERROR:[/] {error}");
             return 1;
         }
 
         foreach (var warning in result.Warnings)
-            AnsiConsole.MarkupLine($"[yellow]WARN:[/] {warning}");
+            console.MarkupLine($"[yellow]WARN:[/] {warning}");
 
-        AnsiConsole.MarkupLine(
+        console.MarkupLine(
             $"[green]Done![/] {result.RenderedFiles} files rendered in {result.Duration.TotalMilliseconds:F0}ms → [blue]{result.OutputDirectory}[/]");
 
         if (result.SkippedDrafts > 0)
-            AnsiConsole.MarkupLine($"[dim]({result.SkippedDrafts} drafts skipped)[/]");
+            console.MarkupLine($"[dim]({result.SkippedDrafts} drafts skipped)[/]");
 
         if (!settings.NoSearch)
         {
             var config = configLoader.Load(projectPath);
             if (config.Search.Enabled)
             {
-                AnsiConsole.MarkupLine("[dim]Building search index...[/]");
+                console.MarkupLine("[dim]Building search index...[/]");
                 var searchResult = await searchIndexer
                     .IndexAsync(result.OutputDirectory, config.Search, allowDownload: true, cancellationToken)
                     .ConfigureAwait(false);
 
                 foreach (var warning in searchResult.Warnings)
-                    AnsiConsole.MarkupLine($"[yellow]WARN (search):[/] {warning}");
+                    console.MarkupLine($"[yellow]WARN (search):[/] {warning}");
 
                 if (!searchResult.Success)
                 {
                     foreach (var error in searchResult.Errors)
-                        AnsiConsole.MarkupLine($"[yellow]WARN:[/] Search index failed: {error}");
+                        console.MarkupLine($"[yellow]WARN:[/] Search index failed: {error}");
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[green]Search index built.[/]");
+                    console.MarkupLine($"[green]Search index built.[/]");
                 }
             }
         }

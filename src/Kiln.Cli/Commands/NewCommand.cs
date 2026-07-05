@@ -5,7 +5,7 @@ using Kiln.Services;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-public sealed class NewCommand(IScaffolder scaffolder) : Command<NewCommand.Settings>
+public sealed class NewCommand(IScaffolder scaffolder, IAnsiConsole console) : Command<NewCommand.Settings>
 {
     public sealed class Settings : CommandSettings
     {
@@ -21,11 +21,11 @@ public sealed class NewCommand(IScaffolder scaffolder) : Command<NewCommand.Sett
             var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(settings.Name))!;
             var result = scaffolder.CreateSite(settings.Name, outputDirectory, cancellationToken);
 
-            AnsiConsole.MarkupLine($"[green]Created[/] new site at [blue]{result.ProjectPath}[/]");
-            AnsiConsole.MarkupLine("");
-            AnsiConsole.MarkupLine("Next steps:");
-            AnsiConsole.MarkupLine($"  cd {settings.Name}");
-            AnsiConsole.MarkupLine("  kiln serve");
+            console.MarkupLine($"[green]Created[/] new site at [blue]{result.ProjectPath}[/]");
+            console.MarkupLine("");
+            console.MarkupLine("Next steps:");
+            console.MarkupLine($"  cd {settings.Name}");
+            console.MarkupLine("  kiln serve");
 
             return 0;
         }
@@ -51,9 +51,9 @@ public sealed class NewCommand(IScaffolder scaffolder) : Command<NewCommand.Sett
         }
     }
 
-    private static int WriteError(string message)
+    private int WriteError(string message)
     {
-        AnsiConsole.MarkupLine($"[red]Error:[/] {message}");
+        console.MarkupLine($"[red]Error:[/] {message}");
         return 1;
     }
 }
