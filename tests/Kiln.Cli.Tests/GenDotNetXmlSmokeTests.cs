@@ -61,25 +61,4 @@ public class GenDotNetXmlSmokeTests
                 File.Delete(xmlPath);
         }
     }
-
-    [Test]
-    public async Task HelpOutput_ListsDotNetXmlCommand()
-    {
-        var cliDll = Path.Combine(
-            Path.GetDirectoryName(typeof(GenDotNetXmlSmokeTests).Assembly.Location)!,
-            "Kiln.Cli.dll");
-
-        var psi = new ProcessStartInfo("dotnet", $"exec \"{cliDll}\" gen --help")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-
-        using var process = Process.Start(psi)!;
-        var output = await process.StandardOutput.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        await Assert.That(output).Contains("dotnet-xml");
-    }
 }

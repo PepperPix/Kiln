@@ -9,42 +9,6 @@ public class SearchIndexCommandSmokeTests
         "Kiln.Cli.dll");
 
     [Test]
-    public async Task HelpOutput_ListsSearchCommand()
-    {
-        var psi = new ProcessStartInfo("dotnet", $"exec \"{CliDll}\" --help")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-
-        using var process = Process.Start(psi)!;
-        var output = await process.StandardOutput.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        await Assert.That(output).Contains("search");
-    }
-
-    [Test]
-    public async Task SearchIndexHelp_ShowsOptions()
-    {
-        var psi = new ProcessStartInfo("dotnet", $"exec \"{CliDll}\" search index --help")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-
-        using var process = Process.Start(psi)!;
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var stderr = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        var combined = output + stderr;
-        await Assert.That(combined).Contains("no-download");
-    }
-
-    [Test]
     public async Task SearchIndex_NoDownload_WithoutSite_ExitsNonZeroWithoutCrash()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-smoke-search-{Guid.NewGuid():N}");

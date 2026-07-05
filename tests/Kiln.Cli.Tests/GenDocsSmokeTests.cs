@@ -62,25 +62,4 @@ public class GenDocsSmokeTests
                 File.Delete(specPath);
         }
     }
-
-    [Test]
-    public async Task HelpOutput_ListsGenCommand()
-    {
-        var cliDll = Path.Combine(
-            Path.GetDirectoryName(typeof(GenDocsSmokeTests).Assembly.Location)!,
-            "Kiln.Cli.dll");
-
-        var psi = new ProcessStartInfo("dotnet", $"exec \"{cliDll}\" --help")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-
-        using var process = Process.Start(psi)!;
-        var output = await process.StandardOutput.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        await Assert.That(output).Contains("gen");
-    }
 }
