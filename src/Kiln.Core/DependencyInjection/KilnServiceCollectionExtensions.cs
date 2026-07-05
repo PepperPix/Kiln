@@ -3,7 +3,6 @@ namespace Kiln.DependencyInjection;
 using Kiln.Abstractions;
 using Kiln.Services;
 using Microsoft.Extensions.DependencyInjection;
-using Spectre.Console;
 
 public static class KilnServiceCollectionExtensions
 {
@@ -11,7 +10,6 @@ public static class KilnServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton(AnsiConsole.Console);
         services.AddSingleton<IMarkdownProcessor, MarkdownProcessor>();
         services.AddSingleton<IContentReader, ContentReader>();
         services.AddSingleton<ITemplateRenderer, TemplateRenderer>();

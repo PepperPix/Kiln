@@ -2,10 +2,12 @@
 using Kiln.Cli.Infrastructure;
 using Kiln.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 var services = new ServiceCollection();
 services.AddKiln();
+services.AddSingleton(AnsiConsole.Console);
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
