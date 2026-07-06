@@ -1,8 +1,8 @@
 <Project>
   <PropertyGroup>
-    <Version>0.1.0</Version>
-    <InformationalVersion>0.1.0</InformationalVersion>
-    <RepositoryCommit></RepositoryCommit>
+    <Version>1.0.0</Version>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <RepositoryCommit>0ed450e0ba9d904ed97cc24f51a769d77406d02d</RepositoryCommit>
     <Authors>Marcel Kummerow</Authors>
     <Company>CScharf</Company>
     <Product>Kiln</Product>
