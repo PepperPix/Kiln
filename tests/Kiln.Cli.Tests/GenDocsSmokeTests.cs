@@ -51,7 +51,7 @@ public class GenDocsSmokeTests
             await process.WaitForExitAsync();
 
             await Assert.That(process.ExitCode).IsEqualTo(0);
-            await Assert.That(File.Exists(Path.Combine(outputDir, "items", "listItems.md"))).IsTrue();
+            await Assert.That(File.Exists(Path.Combine(outputDir, "items", "listitems.md"))).IsTrue();
             await Assert.That(output).Contains("written");
         }
         finally

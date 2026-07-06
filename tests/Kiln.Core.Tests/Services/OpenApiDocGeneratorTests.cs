@@ -84,7 +84,7 @@ public class OpenApiDocGeneratorTests
             await Assert.That(report.Written.Count).IsEqualTo(expectedOperationCount);
 
             // Check listPets file
-            var listPetsPath = Path.Combine(tempDir, "pets", "listPets.md");
+            var listPetsPath = Path.Combine(tempDir, "pets", "listpets.md");
             await Assert.That(File.Exists(listPetsPath)).IsTrue();
             var listPetsContent = await File.ReadAllTextAsync(listPetsPath);
             await Assert.That(listPetsContent).Contains("title: List all pets");
@@ -120,25 +120,14 @@ public class OpenApiDocGeneratorTests
             var generator = new OpenApiDocGenerator(writer);
 
             var report = generator.Generate(specPath, tempDir);
-
-            // TEMP DIAGNOSTIC (2026-07-06): dump actual on-disk state to root-cause a
-            // CI-only (ubuntu) failure that does not reproduce locally on macOS.
-            Console.WriteLine($"[DIAG] tempDir={tempDir}");
-            Console.WriteLine($"[DIAG] report.Written=[{string.Join(", ", report.Written)}]");
-            Console.WriteLine($"[DIAG] report.Warnings=[{string.Join(", ", report.Warnings)}]");
-            Console.WriteLine($"[DIAG] Directory.Exists(tempDir)={Directory.Exists(tempDir)}");
-            if (Directory.Exists(tempDir))
-            {
-                foreach (var entry in Directory.GetFileSystemEntries(tempDir, "*", SearchOption.AllDirectories))
-                    Console.WriteLine($"[DIAG] entry: {entry}");
-            }
+            await Assert.That(report.Warnings).IsEmpty();
 
             await Assert.That(Directory.Exists(Path.Combine(tempDir, "pets"))).IsTrue();
             await Assert.That(Directory.Exists(Path.Combine(tempDir, "owners"))).IsTrue();
 
-            await Assert.That(File.Exists(Path.Combine(tempDir, "pets", "listPets.md"))).IsTrue();
-            await Assert.That(File.Exists(Path.Combine(tempDir, "pets", "getPet.md"))).IsTrue();
-            await Assert.That(File.Exists(Path.Combine(tempDir, "owners", "createOwner.md"))).IsTrue();
+            await Assert.That(File.Exists(Path.Combine(tempDir, "pets", "listpets.md"))).IsTrue();
+            await Assert.That(File.Exists(Path.Combine(tempDir, "pets", "getpet.md"))).IsTrue();
+            await Assert.That(File.Exists(Path.Combine(tempDir, "owners", "createowner.md"))).IsTrue();
         }
         finally
         {
@@ -165,7 +154,7 @@ public class OpenApiDocGeneratorTests
 
             generator.Generate(specPath, tempDir);
 
-            var createOwnerPath = Path.Combine(tempDir, "owners", "createOwner.md");
+            var createOwnerPath = Path.Combine(tempDir, "owners", "createowner.md");
             var content = await File.ReadAllTextAsync(createOwnerPath);
             await Assert.That(content).Contains("## Request Body");
             await Assert.That(content).Contains("application/json");
