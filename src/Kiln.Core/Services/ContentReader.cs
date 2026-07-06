@@ -96,7 +96,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         if (frontMatter is null)
             return null;
 
-        var relativePath = Path.GetRelativePath(contentDirectory, filePath);
+        var relativePath = Path.GetRelativePath(contentDirectory, filePath).Replace(Path.DirectorySeparatorChar, '/');
 
         var slug = frontMatter.Slug
             ?? (assetDirectory is not null

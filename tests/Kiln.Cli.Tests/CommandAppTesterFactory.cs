@@ -13,9 +13,16 @@ using Spectre.Console.Testing;
 /// </summary>
 internal static class CommandAppTesterFactory
 {
+    // CI runners use much longer absolute paths (e.g. /home/runner/work/Kiln/Kiln/...) than
+    // local dev machines. Spectre.Console wraps markup output to the console width (default 80),
+    // which can split a path substring mid-word across a line break and break `.Contains(...)`
+    // assertions. A very wide width disables wrapping in tests.
+    private const int UnwrappedConsoleWidth = 4096;
+
     public static (CommandAppTester App, TestConsole Console) Create(Action<IServiceCollection> configureServices)
     {
         var console = new TestConsole();
+        console.Profile.Width = UnwrappedConsoleWidth;
 
         var services = new ServiceCollection();
         services.AddSingleton<IAnsiConsole>(console);
