@@ -119,7 +119,19 @@ public class OpenApiDocGeneratorTests
             var writer = new GeneratedContentWriter();
             var generator = new OpenApiDocGenerator(writer);
 
-            generator.Generate(specPath, tempDir);
+            var report = generator.Generate(specPath, tempDir);
+
+            // TEMP DIAGNOSTIC (2026-07-06): dump actual on-disk state to root-cause a
+            // CI-only (ubuntu) failure that does not reproduce locally on macOS.
+            Console.WriteLine($"[DIAG] tempDir={tempDir}");
+            Console.WriteLine($"[DIAG] report.Written=[{string.Join(", ", report.Written)}]");
+            Console.WriteLine($"[DIAG] report.Warnings=[{string.Join(", ", report.Warnings)}]");
+            Console.WriteLine($"[DIAG] Directory.Exists(tempDir)={Directory.Exists(tempDir)}");
+            if (Directory.Exists(tempDir))
+            {
+                foreach (var entry in Directory.GetFileSystemEntries(tempDir, "*", SearchOption.AllDirectories))
+                    Console.WriteLine($"[DIAG] entry: {entry}");
+            }
 
             await Assert.That(Directory.Exists(Path.Combine(tempDir, "pets"))).IsTrue();
             await Assert.That(Directory.Exists(Path.Combine(tempDir, "owners"))).IsTrue();
