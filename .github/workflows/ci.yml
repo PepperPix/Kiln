@@ -38,9 +38,7 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test
-        run: |
-          dotnet test tests/Kiln.Core.Tests/Kiln.Core.Tests.csproj --no-build --configuration Release
-          dotnet test tests/Kiln.Cli.Tests/Kiln.Cli.Tests.csproj --no-build --configuration Release
+        run: dotnet test --no-build --configuration Release -- --maximum-parallel-tests 4
 
   inspectcode:
     name: InspectCode (advisory)
