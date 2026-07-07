@@ -87,7 +87,8 @@ public sealed class SharedRenderContext
             draft = item.Draft,
             extra = item.Extra,
             tags = item.Taxonomies.GetValueOrDefault("tags"),
-            categories = item.Taxonomies.GetValueOrDefault("categories")
+            categories = item.Taxonomies.GetValueOrDefault("categories"),
+            taxonomies = item.Taxonomies
         };
     }
 }
