@@ -71,4 +71,20 @@ public class MarkdownProcessorTests
 
         await Assert.That(html).Contains("src=\"hero.jpg\"");
     }
+
+    [Test]
+    public async Task ToPlainText_StripsMarkdownFormatting()
+    {
+        var text = _processor.ToPlainText("Hello **world**, this is *markdown* with a [link](http://example.com).");
+
+        await Assert.That(text).IsEqualTo("Hello world, this is markdown with a link.");
+    }
+
+    [Test]
+    public async Task ToPlainText_EmptyInput_ReturnsEmpty()
+    {
+        var text = _processor.ToPlainText("");
+
+        await Assert.That(text).IsEqualTo("");
+    }
 }

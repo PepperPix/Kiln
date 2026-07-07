@@ -122,6 +122,19 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             ? $"/assets/content/{collection.Name}/{effectiveSlugForAssets}/"
             : null;
 
+        var moreMarkerIndex = body.IndexOf(MoreMarker, StringComparison.Ordinal);
+        var htmlBody = moreMarkerIndex >= 0
+            ? body.Replace(MoreMarker, "", StringComparison.Ordinal)
+            : body;
+
+        string? teaser = frontMatter.Description;
+        if (string.IsNullOrEmpty(teaser))
+        {
+            teaser = moreMarkerIndex >= 0
+                ? markdownProcessor.ToPlainText(body[..moreMarkerIndex])
+                : TruncateToWords(markdownProcessor.ToPlainText(body), collection.TeaserWords);
+        }
+
         return new ContentItem
         {
             Id = frontMatter.Id,
@@ -131,12 +144,13 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             Slug = slug,
             SectionPath = sectionPath,
             Description = frontMatter.Description,
+            Teaser = teaser,
             Layout = frontMatter.Layout,
             Weight = frontMatter.Weight,
             SourcePath = filePath,
             RelativePath = relativePath,
             RawContent = body,
-            HtmlContent = markdownProcessor.ToHtml(body, assetBasePath),
+            HtmlContent = markdownProcessor.ToHtml(htmlBody, assetBasePath),
             Url = collection.Url,
             OutputPath = "",
             Collection = collection,
@@ -144,6 +158,21 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             Taxonomies = taxonomies,
             AssetDirectory = assetDirectory
         };
+    }
+
+    private const string MoreMarker = "<!--more-->";
+
+    /// <summary>
+    /// Truncates plain text to the first <paramref name="wordCount"/> words, cut at a word
+    /// boundary, appending "…" only when the text was actually longer than the limit.
+    /// </summary>
+    private static string TruncateToWords(string text, int wordCount)
+    {
+        var normalized = text.Replace('\n', ' ').Replace('\r', ' ');
+        var words = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length <= wordCount)
+            return string.Join(' ', words);
+        return string.Join(' ', words[..wordCount]) + "…";
     }
 
     private static List<ContentItem> ApplySort(List<ContentItem> items, string sort)

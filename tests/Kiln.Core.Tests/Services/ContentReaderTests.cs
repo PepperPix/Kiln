@@ -484,7 +484,154 @@ public class ContentReaderTests
         }
     }
 
+    [Test]
+    public async Task ReadCollection_Teaser_UsesDescriptionWhenSet()
+    {
+        var tempDir = CreateTempContent(
+            "test.md",
+            """
+            ---
+            title: Test Post
+            description: A hand-written teaser.
+            ---
+
+            Body content that would otherwise become the teaser.
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Teaser).IsEqualTo("A hand-written teaser.");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_Teaser_UsesContentBeforeMoreMarkerWhenNoDescription()
+    {
+        var tempDir = CreateTempContent(
+            "test.md",
+            """
+            ---
+            title: Test Post
+            ---
+
+            Intro **paragraph** before the marker.
+            <!--more-->
+            Rest of the post that should not be part of the teaser.
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Teaser).IsEqualTo("Intro paragraph before the marker.");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_Teaser_MoreMarkerNeverLeaksIntoHtmlContent()
+    {
+        var tempDir = CreateTempContent(
+            "test.md",
+            """
+            ---
+            title: Test Post
+            ---
+
+            Intro before the marker.
+            <!--more-->
+            Rest of the post.
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].HtmlContent).DoesNotContain("<!--more-->");
+            await Assert.That(result[0].HtmlContent).Contains("Rest of the post.");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_Teaser_AutoTruncatesToWordLimitWhenNoDescriptionOrMarker()
+    {
+        var words = Enumerable.Range(1, 60).Select(i => $"word{i}").ToArray();
+        var body = string.Join(' ', words);
+        var tempDir = CreateTempContent(
+            "test.md",
+            $"""
+            ---
+            title: Test Post
+            ---
+
+            {body}
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            var expected = string.Join(' ', words.Take(55)) + "…";
+            await Assert.That(result[0].Teaser).IsEqualTo(expected);
+            await Assert.That(result[0].Teaser).EndsWith("…");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_Teaser_ShortAutoBodyIsNotTruncatedAndHasNoEllipsis()
+    {
+        var tempDir = CreateTempContent(
+            "test.md",
+            """
+            ---
+            title: Test Post
+            ---
+
+            Just a short body with **few** words.
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].Teaser).IsEqualTo("Just a short body with few words.");
+            await Assert.That(result[0].Teaser).DoesNotEndWith("…");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
     private static string CreateTempContent(string fileName, string content)
+
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dir);
@@ -492,7 +639,7 @@ public class ContentReaderTests
         return dir;
     }
 
-    private static ContentGroup MakeCollection(string name, string directory, string sort = "none", string[]? taxonomies = null) =>
-        new() { Name = name, Directory = directory, Sort = sort, Taxonomies = [.. taxonomies ?? ["tags", "categories"]] };
+    private static ContentGroup MakeCollection(string name, string directory, string sort = "none", string[]? taxonomies = null, int teaserWords = 55) =>
+        new() { Name = name, Directory = directory, Sort = sort, Taxonomies = [.. taxonomies ?? ["tags", "categories"]], TeaserWords = teaserWords };
 }
 

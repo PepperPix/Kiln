@@ -4,6 +4,11 @@ using System.Collections.ObjectModel;
 
 public sealed class ContentGroup
 {
+    /// <summary>
+    /// Default number of words used for the automatic teaser truncation fallback (WordPress convention).
+    /// </summary>
+    public const int DefaultTeaserWords = 55;
+
     public required string Name { get; init; }
     public string Directory { get; init; } = "";
     public string Permalink { get; init; } = "/:slug/";
@@ -11,6 +16,7 @@ public sealed class ContentGroup
     public bool Feed { get; init; }
     public int? Paginate { get; init; }
     public string Layout { get; init; } = "default";
+    public int TeaserWords { get; init; } = DefaultTeaserWords;
     public Collection<string> Taxonomies { get; init; } = [];
     public Dictionary<string, string> References { get; init; } = [];
     public Dictionary<string, object> Plugins { get; init; } = [];
