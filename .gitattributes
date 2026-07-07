@@ -1,0 +1,4 @@
+# Normalize line endings on checkout regardless of OS/git config, to avoid the classic
+# cross-platform "\r\n vs \n in a checked-out source file" bug class (added 2026-07-07 after
+# finding this exact issue in Kiln-Studio's first real Windows CI run).
+* text=auto eol=lf
