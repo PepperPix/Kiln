@@ -8,6 +8,14 @@ public sealed class ContentItem
     public bool Draft { get; init; }
     public required string Slug { get; init; }
     public string? Description { get; init; }
+
+    /// <summary>
+    /// Plain-text teaser/excerpt for listings, derived from a fallback chain:
+    /// <see cref="Description"/> if set, otherwise content before a <c>&lt;!--more--&gt;</c>
+    /// marker, otherwise an automatic word-count truncation of the body.
+    /// </summary>
+    public string? Teaser { get; init; }
+
     public string? Layout { get; init; }
     public int Weight { get; init; }
     public required string SourcePath { get; init; }

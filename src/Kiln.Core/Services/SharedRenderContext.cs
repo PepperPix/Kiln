@@ -84,6 +84,7 @@ public sealed class SharedRenderContext
             slug = item.Slug,
             date = item.Date,
             description = item.Description,
+            teaser = item.Teaser,
             draft = item.Draft,
             extra = item.Extra,
             tags = item.Taxonomies.GetValueOrDefault("tags"),

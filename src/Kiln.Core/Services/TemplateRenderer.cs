@@ -181,6 +181,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
         pageObj.Add("url", item.Url.OriginalString);
         pageObj.Add("slug", item.Slug);
         pageObj.Add("description", item.Description);
+        pageObj.Add("teaser", item.Teaser);
         pageObj.Add("draft", item.Draft);
         pageObj.Add("weight", item.Weight);
         pageObj.Add("extra", item.Extra);
