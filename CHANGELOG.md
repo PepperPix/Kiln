@@ -1,3 +1,10 @@
+# [1.1.0-beta.1](https://github.com/PepperPix/Kiln/compare/v1.0.1-beta.1...v1.1.0-beta.1) (2026-07-07)
+
+
+### Features
+
+* **core:** content teaser fallback chain (description -> more-marker -> auto-truncate) ([#5](https://github.com/PepperPix/Kiln/issues/5)) ([3f86394](https://github.com/PepperPix/Kiln/commit/3f863944083f0a942c04a5be6e206a1595de6963))
+
 ## [1.0.1-beta.1](https://github.com/PepperPix/Kiln/compare/v1.0.0...v1.0.1-beta.1) (2026-07-07)
 
 
