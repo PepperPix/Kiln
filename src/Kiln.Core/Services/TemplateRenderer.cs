@@ -181,11 +181,13 @@ public sealed class TemplateRenderer : ITemplateRenderer
         pageObj.Add("url", item.Url.OriginalString);
         pageObj.Add("slug", item.Slug);
         pageObj.Add("description", item.Description);
+        pageObj.Add("teaser", item.Teaser);
         pageObj.Add("draft", item.Draft);
         pageObj.Add("weight", item.Weight);
         pageObj.Add("extra", item.Extra);
         pageObj.Add("tags", item.Taxonomies.GetValueOrDefault("tags"));
         pageObj.Add("categories", item.Taxonomies.GetValueOrDefault("categories"));
+        pageObj.Add("taxonomies", item.Taxonomies);
         pageObj.Add("collection", new { name = item.Collection.Name, url = item.Collection.IndexUrl.OriginalString, feed = item.Collection.Feed, plugins = item.Collection.Plugins });
         pageObj.Add("next", item.Next is null ? null : (object)new
         {

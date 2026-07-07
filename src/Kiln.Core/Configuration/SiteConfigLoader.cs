@@ -141,6 +141,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             Feed = dto.Feed,
             Paginate = dto.Paginate,
             Layout = dto.Layout ?? "default",
+            TeaserWords = dto.TeaserWords ?? ContentGroup.DefaultTeaserWords,
             Taxonomies = taxonomies,
             References = dto.References ?? [],
             Plugins = dto.Plugins ?? [],
@@ -245,6 +246,8 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public bool Feed { get; set; }
         public int? Paginate { get; set; }
         public string? Layout { get; set; }
+        [YamlMember(Alias = "teaser_words")]
+        public int? TeaserWords { get; set; }
         public List<string>? Taxonomies { get; set; }
         public Dictionary<string, string>? References { get; set; }
         public Dictionary<string, object>? Plugins { get; set; }

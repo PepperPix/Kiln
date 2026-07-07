@@ -84,10 +84,12 @@ public sealed class SharedRenderContext
             slug = item.Slug,
             date = item.Date,
             description = item.Description,
+            teaser = item.Teaser,
             draft = item.Draft,
             extra = item.Extra,
             tags = item.Taxonomies.GetValueOrDefault("tags"),
-            categories = item.Taxonomies.GetValueOrDefault("categories")
+            categories = item.Taxonomies.GetValueOrDefault("categories"),
+            taxonomies = item.Taxonomies
         };
     }
 }

@@ -64,6 +64,16 @@ feature/* → beta → main
 - **`beta`** is the integration/prerelease branch (semantic-release publishes `x.y.z-beta.N`
   prerelease packages from it). Feature PRs into `beta` are merged via **squash or rebase** — both
   keep history linear, which is enforced by branch protection (`Require linear history` on `beta`).
+  **Pick squash vs. rebase based on the branch's commit history, not by default:**
+  - **Squash** when the branch is a single logical change (even if split into several WIP commits
+    like "wip", "fix typo", "address review") — semantic-release only sees the squash commit's own
+    message, so this is safe as long as one changelog entry is actually correct for the whole
+    branch.
+  - **Rebase** when the branch contains multiple commits that each deserve their own changelog
+    entry (e.g. an independent `fix:` alongside a `feat:`, or several unrelated `feat:`/`fix:`
+    commits bundled in one PR) — squashing would collapse them into a single message and
+    semantic-release would only pick up one type/bump instead of several. Rebase preserves each
+    commit's own message, so semantic-release analyzes them individually.
 - **`main`** is the stable release branch. Once `beta` is in a good state, open a pull request from
   `beta` into `main` and merge it as a **regular merge commit** (the "Merge pull request" button —
   not squash, not rebase). This is intentional, not an oversight: `main` accumulates its own

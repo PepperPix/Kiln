@@ -22,6 +22,11 @@ public sealed partial class MarkdownProcessor : IMarkdownProcessor
         return html;
     }
 
+    public string ToPlainText(string markdown)
+    {
+        return Markdown.ToPlainText(markdown, _pipeline).Trim();
+    }
+
     // Matches <img ... src="<relative-path>"> where the src value is not an absolute URL or root-relative path.
     [GeneratedRegex("""(<img\b[^>]*?\bsrc=")(?!https?://|//)(?!/)([^"]*)(")""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex RelativeImgSrcRegex();
