@@ -195,7 +195,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         {
             case null:
                 return [];
-            case List<object> list:
+            case List<object?> list:
                 return [.. list.Where(static v => v is not null).Select(static v => v!.ToString()!)];
             default:
                 return [rawValue.ToString()!];
