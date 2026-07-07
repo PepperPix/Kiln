@@ -54,6 +54,44 @@ public class ContentReaderTests
     }
 
     [Test]
+    public async Task ReadCollection_ReadsCustomTaxonomyGenerically()
+    {
+        var tempDir = CreateTempContent(
+            "test.md",
+            """
+            ---
+            title: Test Post
+            tags:
+              - dotnet
+            series:
+              - foo
+              - bar
+            ---
+
+            content
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir, taxonomies: ["tags", "series"]);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            var item = result[0];
+            await Assert.That(item.Taxonomies.ContainsKey("series")).IsTrue();
+            var series = (List<string>)item.Taxonomies["series"];
+            await Assert.That(series).IsEquivalentTo(["foo", "bar"]);
+
+            // Custom taxonomy values must not also leak into Extra.
+            await Assert.That(item.Extra.ContainsKey("series")).IsFalse();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
     public async Task ReadCollection_SkipsFilesWithoutFrontMatter()
     {
         var tempDir = CreateTempContent("no-frontmatter.md", "Just plain markdown.");
@@ -454,7 +492,7 @@ public class ContentReaderTests
         return dir;
     }
 
-    private static ContentGroup MakeCollection(string name, string directory, string sort = "none") =>
-        new() { Name = name, Directory = directory, Sort = sort, Taxonomies = ["tags", "categories"] };
+    private static ContentGroup MakeCollection(string name, string directory, string sort = "none", string[]? taxonomies = null) =>
+        new() { Name = name, Directory = directory, Sort = sort, Taxonomies = [.. taxonomies ?? ["tags", "categories"]] };
 }
 

@@ -18,7 +18,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
     private static readonly HashSet<string> KnownFrontMatterKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "id", "title", "date", "draft", "layout", "slug", "description",
-        "url", "weight", "tags", "categories", "extra"
+        "url", "weight", "extra"
     };
 
     public IReadOnlyList<ContentItem> ReadCollection(ContentGroup collection, string projectPath)
@@ -91,7 +91,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
     private ContentItem? ReadFile(string filePath, string contentDirectory, ContentGroup collection, string? assetDirectory, string sectionPath)
     {
         var content = File.ReadAllText(filePath);
-        var (frontMatter, body, extraFromFrontMatter) = ParseFrontMatter(content);
+        var (frontMatter, body, extraFromFrontMatter, rawAll) = ParseFrontMatter(content, collection);
 
         if (frontMatter is null)
             return null;
@@ -112,10 +112,9 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         var taxonomies = new Dictionary<string, object>();
         foreach (var taxName in collection.Taxonomies)
         {
-            if (string.Equals(taxName, "tags", StringComparison.OrdinalIgnoreCase))
-                taxonomies[taxName] = frontMatter.Tags;
-            else if (string.Equals(taxName, "categories", StringComparison.OrdinalIgnoreCase))
-                taxonomies[taxName] = frontMatter.Categories;
+            taxonomies[taxName] = rawAll.TryGetValue(taxName, out var rawValue)
+                ? ConvertToStringList(rawValue)
+                : new List<string>();
         }
 
         var effectiveSlugForAssets = string.IsNullOrEmpty(sectionPath) ? slug : $"{sectionPath}/{slug}";
@@ -159,14 +158,14 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         };
     }
 
-    private static (FrontMatter? frontMatter, string body, Dictionary<string, object> extraFromFrontMatter) ParseFrontMatter(string content)
+    private static (FrontMatter? frontMatter, string body, Dictionary<string, object> extraFromFrontMatter, Dictionary<string, object> rawAll) ParseFrontMatter(string content, ContentGroup collection)
     {
         if (!content.StartsWith("---", StringComparison.Ordinal))
-            return (null, content, []);
+            return (null, content, [], []);
 
         var endIndex = content.IndexOf("---", 3, StringComparison.Ordinal);
         if (endIndex < 0)
-            return (null, content, []);
+            return (null, content, [], []);
 
         var yamlBlock = content[3..endIndex].Trim();
         var body = content[(endIndex + 3)..].Trim();
@@ -174,10 +173,32 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         var frontMatter = YamlDeserializer.Deserialize<FrontMatter>(yamlBlock);
 
         var rawAll = RawYamlDeserializer.Deserialize<Dictionary<string, object>>(yamlBlock);
+        var excludedKeys = new HashSet<string>(KnownFrontMatterKeys, StringComparer.OrdinalIgnoreCase);
+        foreach (var taxName in collection.Taxonomies)
+            excludedKeys.Add(taxName);
         var extraFromFrontMatter = rawAll
-            .Where(kvp => !KnownFrontMatterKeys.Contains(kvp.Key))
+            .Where(kvp => !excludedKeys.Contains(kvp.Key))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-        return (frontMatter, body, extraFromFrontMatter);
+        return (frontMatter, body, extraFromFrontMatter, rawAll);
+    }
+
+    /// <summary>
+    /// Converts a raw YAML value (as produced by <see cref="RawYamlDeserializer"/> when deserializing
+    /// into a <see cref="Dictionary{TKey, TValue}"/>) into a string list. Handles a YAML sequence
+    /// (deserialized as <see cref="List{Object}"/>), a single bare scalar (e.g. <c>tags: dotnet</c>),
+    /// and a missing/null value.
+    /// </summary>
+    private static List<string> ConvertToStringList(object? rawValue)
+    {
+        switch (rawValue)
+        {
+            case null:
+                return [];
+            case List<object?> list:
+                return [.. list.Where(static v => v is not null).Select(static v => v!.ToString()!)];
+            default:
+                return [rawValue.ToString()!];
+        }
     }
 }
