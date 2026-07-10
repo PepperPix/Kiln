@@ -135,7 +135,8 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         return new ContentGroup
         {
             Name = name,
-            Directory = dto.Directory ?? $"content/{name}",
+            Directory = (dto.Directory ?? $"content/{name}")
+                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar),
             Permalink = dto.Permalink ?? "/:slug/",
             Sort = dto.Sort ?? "none",
             Feed = dto.Feed,
