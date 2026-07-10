@@ -9,8 +9,18 @@ using Kiln.Abstractions;
 using Kiln.Models;
 using Kiln.Services;
 
+// GetFreePort() below asks the OS for an ephemeral port via a short-lived TcpListener, closes it,
+// then hands that port number to DevServer.RunAsync's own HttpListener — an inherent
+// check-then-use race: under CI's parallel test execution, another test (or another process) can
+// grab the same "free" port in the gap between the two. This has been observed causing
+// HttpListenerException: Address already in use on macOS/Windows CI. Retrying is the pragmatic,
+// widely-used mitigation for this class of OS-resource-race flake (a fresh GetFreePort() call on
+// each attempt picks a different port), scoped narrowly to this exact exception type so it never
+// masks a real assertion failure or genuine regression.
+[Retry(PortRaceRetryAttempts, RetryOnExceptionTypes = new[] { typeof(HttpListenerException) })]
 public class DevServerLiveReloadTests
 {
+    private const int PortRaceRetryAttempts = 2;
     private const int RebuildCountAfterBurst = 2;
     private const int WaitForDebounceMilliseconds = 450;
     private const int PortForSiteBaseUrl = 5555;

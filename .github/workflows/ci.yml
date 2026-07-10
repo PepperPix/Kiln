@@ -6,6 +6,16 @@ on:
   pull_request:
     branches: [main, beta]
 
+# A push to a branch with an open PR fires BOTH the push and pull_request triggers above for the
+# same commit, producing two separate check runs of the same name. If either one hits a flake,
+# GitHub reports mergeStateStatus: BLOCKED even though the other run (same commit) is green. Group
+# both event types by branch name (github.head_ref is only set for pull_request; ref_name gives the
+# short branch name for push, matching head_ref's format) so the newer run cancels the older
+# in-progress one instead of both running to completion independently.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
