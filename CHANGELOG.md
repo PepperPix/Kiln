@@ -1,3 +1,11 @@
+# [1.1.0-beta.2](https://github.com/PepperPix/Kiln/compare/v1.1.0-beta.1...v1.1.0-beta.2) (2026-07-10)
+
+
+### Bug Fixes
+
+* **core:** encode spaces in link/image destinations before Markdig parsing ([ae27e40](https://github.com/PepperPix/Kiln/commit/ae27e402f5dd5f4a77a53c83a31c4e63ec596ecc))
+* **core:** normalize collection directory separators for cross-platform path equality ([201c16d](https://github.com/PepperPix/Kiln/commit/201c16dee675aea3b603629ad51532f41b6db299))
+
 # [1.1.0-beta.1](https://github.com/PepperPix/Kiln/compare/v1.0.1-beta.1...v1.1.0-beta.1) (2026-07-07)
 
 
