@@ -57,7 +57,7 @@ public class SiteConfigLoaderTests
             await Assert.That(config.Collections).Count().IsEqualTo(2);
 #pragma warning restore S109
             await Assert.That(config.Collections.ContainsKey("posts")).IsTrue();
-            await Assert.That(config.Collections["posts"].Directory).IsEqualTo("content/blog");
+            await Assert.That(config.Collections["posts"].Directory).IsEqualTo(Path.Combine("content", "blog"));
             await Assert.That(config.Collections["posts"].Permalink).IsEqualTo("/blog/:slug/");
             await Assert.That(config.Collections["posts"].Sort).IsEqualTo("date desc");
             await Assert.That(config.Collections["posts"].Feed).IsTrue();
@@ -154,6 +154,30 @@ public class SiteConfigLoaderTests
             await Assert.That(config.ThemesDir).IsEqualTo("themes");
             await Assert.That(config.Collections).IsEmpty();
             await Assert.That(config.Taxonomies).IsEmpty();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_CollectionWithoutExplicitDirectory_UsesNativeSeparator()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+
+            collections:
+              posts:
+                permalink: /:slug/
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Collections["posts"].Directory).IsEqualTo(Path.Combine("content", "posts"));
         }
         finally
         {
