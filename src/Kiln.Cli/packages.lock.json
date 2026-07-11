@@ -93,10 +93,10 @@
           "SkiaSharp.NativeAssets.macOS": "3.119.4"
         }
       },
-      "SkiaSharp.NativeAssets.Linux": {
+      "SkiaSharp.NativeAssets.Linux.NoDependencies": {
         "type": "Transitive",
         "resolved": "3.119.4",
-        "contentHash": "UAyVzbqNfZsZbKbzj68zXLyUyF/SbTKmzTfOO6qDu++dtIUMMTzPBe8oOuzU/DiewpfKoUUlOSsJmqWc6blxBw=="
+        "contentHash": "iFnpOfZoim2SwhSPy0EJNZtQAaWM7D0A6Q1YvquwOXUdQAFrSy81Tfb1I4c0IHrrQnoVjcZPcwOc1+VM2ja77w=="
       },
       "SkiaSharp.NativeAssets.macOS": {
         "type": "Transitive",
@@ -146,7 +146,7 @@
           "NUglify": "[1.*, )",
           "Scriban": "[7.*, )",
           "SkiaSharp": "[3.*, )",
-          "SkiaSharp.NativeAssets.Linux": "[3.*, )",
+          "SkiaSharp.NativeAssets.Linux.NoDependencies": "[3.*, )",
           "YamlDotNet": "[18.*, )"
         }
       }
