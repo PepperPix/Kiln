@@ -114,6 +114,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             Build = MapBuildOptions(dto.Build),
             Assets = new AssetsOptions { Minifier = dto.Assets?.Minifier ?? "nuglify" },
             Search = MapSearchOptions(dto.Search),
+            Images = MapImageOptions(dto.Images),
         };
     }
 
@@ -176,6 +177,19 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         };
     }
 
+    private static ImageOptions MapImageOptions(ImageDto? dto)
+    {
+        if (dto is null) return new ImageOptions();
+        return new ImageOptions
+        {
+            Enabled = dto.Enabled ?? true,
+            MaxWidth = dto.MaxWidth ?? ImageOptions.DefaultMaxWidth,
+            Quality = dto.Quality ?? ImageOptions.DefaultQuality,
+            Webp = dto.Webp ?? false,
+            Exclude = dto.Exclude ?? [],
+        };
+    }
+
     // DTOs for YAML deserialization — properties are assigned by YamlDotNet via reflection
 
 #pragma warning disable S3459, S1144, S3996 // Properties are assigned/read by YamlDotNet via reflection
@@ -201,6 +215,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public BuildDto? Build { get; set; }
         public AssetsDto? Assets { get; set; }
         public SearchDto? Search { get; set; }
+        public ImageDto? Images { get; set; }
     }
 
     private sealed class BuildDto
@@ -266,6 +281,15 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public bool? Enabled { get; set; }
         public bool? Extended { get; set; }
         public string? BinaryPath { get; set; }
+    }
+
+    private sealed class ImageDto
+    {
+        public bool? Enabled { get; set; }
+        public int? MaxWidth { get; set; }
+        public int? Quality { get; set; }
+        public bool? Webp { get; set; }
+        public List<string>? Exclude { get; set; }
     }
 
 #pragma warning restore S3459, S1144, S3996

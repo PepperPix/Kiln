@@ -326,7 +326,7 @@ public class AssetPipelineIntegrationTests
         var permalinkGenerator = new PermalinkGenerator();
         var configLoader = new SiteConfigLoader();
         var pluginLoader = new PluginLoader();
-        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, minifiers);
+        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, minifiers, new SkiaSharpImageOptimizer());
     }
 
     private static string GetSingleFingerprintedCssFileName(string cssOutputDir)

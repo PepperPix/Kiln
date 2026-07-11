@@ -401,6 +401,66 @@ public class SiteConfigLoaderTests
         }
     }
 
+    [Test]
+    public async Task Load_ImagesSection_ParsesAllFields()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            images:
+              enabled: false
+              maxWidth: 1200
+              quality: 70
+              webp: true
+              exclude:
+                - "static/hero-*.png"
+                - "static/logos/**"
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Images.Enabled).IsFalse();
+#pragma warning disable S109
+            await Assert.That(config.Images.MaxWidth).IsEqualTo(1200);
+            await Assert.That(config.Images.Quality).IsEqualTo(70);
+#pragma warning restore S109
+            await Assert.That(config.Images.Webp).IsTrue();
+            await Assert.That(config.Images.Exclude).IsEquivalentTo(["static/hero-*.png", "static/logos/**"]);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_ImagesSectionAbsent_UsesDefaults()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Images.Enabled).IsTrue();
+#pragma warning disable S109
+            await Assert.That(config.Images.MaxWidth).IsEqualTo(2000);
+            await Assert.That(config.Images.Quality).IsEqualTo(82);
+#pragma warning restore S109
+            await Assert.That(config.Images.Webp).IsFalse();
+            await Assert.That(config.Images.Exclude).IsEmpty();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     private static string CreateTempSite(string yamlContent)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");

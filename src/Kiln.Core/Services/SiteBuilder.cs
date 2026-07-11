@@ -6,13 +6,14 @@ using System.Text;
 using Kiln.Abstractions;
 using Kiln.Models;
 
-public sealed class SiteBuilder(
+public sealed partial class SiteBuilder(
     IContentReader contentReader,
     ITemplateRenderer templateRenderer,
     IPermalinkGenerator permalinkGenerator,
     ISiteConfigLoader configLoader,
     IPluginLoader pluginLoader,
-    IEnumerable<IAssetMinifier> assetMinifiers) : ISiteBuilder
+    IEnumerable<IAssetMinifier> assetMinifiers,
+    IImageOptimizer imageOptimizer) : ISiteBuilder
 {
     private readonly IReadOnlyList<IAssetMinifier> _assetMinifiers = [.. assetMinifiers];
 
@@ -326,17 +327,28 @@ public sealed class SiteBuilder(
         if (Directory.Exists(themeStaticDir))
             CopyDirectory(themeStaticDir, assetsOutputDir, generatedFiles);
 
+        // Image optimization (Production only): only Site static/ and Page Bundle assets are
+        // candidates, and only when actually referenced via <img src="/assets/..."> in already-
+        // rendered HtmlContent. Theme/plugin static/ above and below are never optimized.
+        var referencedImages = config.Images.Enabled && environment == BuildEnvironment.Production
+            ? CollectReferencedImageWebPaths(allItems)
+            : [];
+        var imageRenameManifest = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var imageCopyContext = new ImageCopyContext(outputDir, projectPath, config.Images, referencedImages, imageRenameManifest);
+
         // Copy static assets from site → _site/assets/ (overrides theme, warns on collision)
         var siteStaticDir = Path.Combine(projectPath, "static");
         if (Directory.Exists(siteStaticDir))
-            CopyDirectoryWithCollisionWarning(siteStaticDir, assetsOutputDir, config.Theme, warnings, generatedFiles);
+            CopyDirectoryWithCollisionWarning(siteStaticDir, assetsOutputDir, config.Theme, warnings, generatedFiles, imageCopyContext);
 
         // Copy co-located assets from Page Bundles → _site/assets/content/<collection>/<sectionPath>/<slug>/
         foreach (var item in allItems.Where(static i => i.AssetDirectory is not null))
         {
             var slugPath = string.IsNullOrEmpty(item.SectionPath) ? item.Slug : $"{item.SectionPath}/{item.Slug}";
             var destDir = Path.Combine(assetsOutputDir, "content", item.Collection.Name, slugPath);
-            CopyNonMarkdownFiles(item.AssetDirectory!, destDir, generatedFiles);
+            // Note: item.ImageOptimization == false already excluded this item's images from
+            // 'referencedImages' above, so CopyOrOptimizeFile naturally skips optimizing them.
+            CopyNonMarkdownFiles(item.AssetDirectory!, destDir, generatedFiles, imageCopyContext, warnings);
         }
 
         // Copy plugin assets: plugins/<name>/static/ → _site/assets/plugins/<name>/
@@ -348,6 +360,12 @@ public sealed class SiteBuilder(
             var pluginAssetsDir = Path.Combine(assetsOutputDir, "plugins", pluginKey);
             CopyDirectory(pluginStaticDir, pluginAssetsDir, generatedFiles);
         }
+
+        // Rewrite HTML/CSS references for any images renamed by optimization (e.g. WebP
+        // conversion changing the extension) — must run before the fingerprint stage below,
+        // so hashes cover the final on-disk bytes.
+        if (imageRenameManifest.Count > 0)
+            AssetPipeline.RewriteReferences(outputDir, imageRenameManifest);
 
         // Generate sitemap.xml
         var sitemapContent = SitemapGenerator.Generate(config, allItems, allTaxonomyTerms, includeDrafts);
@@ -684,12 +702,13 @@ public sealed class SiteBuilder(
         }
     }
 
-    private static void CopyDirectoryWithCollisionWarning(
+    private void CopyDirectoryWithCollisionWarning(
         string sourceDir,
         string destDir,
         string themeName,
         Collection<string> warnings,
-        HashSet<string>? generatedFiles)
+        HashSet<string>? generatedFiles,
+        ImageCopyContext imageCopyContext)
     {
         foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
         {
@@ -700,12 +719,17 @@ public sealed class SiteBuilder(
                 warnings.Add($"Asset '{relativePath}' in static/ overrides same file from theme '{themeName}'");
 
             Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-            File.Copy(file, destPath, overwrite: true);
+            CopyOrOptimizeFile(file, destPath, imageCopyContext, warnings);
             generatedFiles?.Add(Path.GetFullPath(destPath));
         }
     }
 
-    private static void CopyNonMarkdownFiles(string sourceDir, string destDir, HashSet<string>? generatedFiles)
+    private void CopyNonMarkdownFiles(
+        string sourceDir,
+        string destDir,
+        HashSet<string>? generatedFiles,
+        ImageCopyContext imageCopyContext,
+        Collection<string> warnings)
     {
         foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.TopDirectoryOnly))
         {
@@ -714,10 +738,91 @@ public sealed class SiteBuilder(
 
             Directory.CreateDirectory(destDir);
             var outputPath = Path.Combine(destDir, Path.GetFileName(file));
-            File.Copy(file, outputPath, overwrite: true);
+            CopyOrOptimizeFile(file, outputPath, imageCopyContext, warnings);
             generatedFiles?.Add(Path.GetFullPath(outputPath));
         }
     }
+
+    /// <summary>
+    /// Bundles the state needed to decide whether a candidate file (Site static/ or Page Bundle
+    /// asset) should be optimized as an image: the output directory (for web-path comparisons
+    /// against <see cref="CollectReferencedImageWebPaths"/>), the project path (cache location +
+    /// exclude-glob base), the effective <see cref="ImageOptions"/>, the set of referenced image
+    /// web paths, and the rename manifest for extension changes (e.g. WebP conversion).
+    /// </summary>
+    private sealed record ImageCopyContext(
+        string OutputDir,
+        string ProjectPath,
+        ImageOptions ImageOptions,
+        HashSet<string> ReferencedImages,
+        Dictionary<string, string> RenameManifest);
+
+    private void CopyOrOptimizeFile(string sourceFile, string destPath, ImageCopyContext context, Collection<string> warnings)
+    {
+        var ext = Path.GetExtension(sourceFile);
+        var webPath = AssetPipeline.ToWebPath(context.OutputDir, destPath);
+        var shouldOptimize = context.ImageOptions.Enabled
+            && imageOptimizer.CanOptimize(ext)
+            && context.ReferencedImages.Contains(webPath)
+            && !ImageExcludeMatcher.IsExcluded(sourceFile, context.ProjectPath, context.ImageOptions.Exclude);
+
+        if (!shouldOptimize)
+        {
+            File.Copy(sourceFile, destPath, overwrite: true);
+            return;
+        }
+
+        try
+        {
+            var settings = new ImageOptimizationSettings(context.ImageOptions.MaxWidth, context.ImageOptions.Quality, context.ImageOptions.Webp);
+            var (bytes, resultExt) = ImageOptimizationCache.GetOrOptimize(context.ProjectPath, sourceFile, settings, imageOptimizer);
+            var finalDestPath = resultExt.Equals(ext, StringComparison.OrdinalIgnoreCase)
+                ? destPath
+                : Path.ChangeExtension(destPath, resultExt);
+
+            File.WriteAllBytes(finalDestPath, bytes);
+            if (!string.Equals(finalDestPath, destPath, StringComparison.OrdinalIgnoreCase))
+                context.RenameManifest[webPath] = AssetPipeline.ToWebPath(context.OutputDir, finalDestPath);
+        }
+#pragma warning disable CA1031 // Intentional: a broken source image should not abort the entire build
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            warnings.Add($"Image optimization failed for '{sourceFile}': {ex.Message} — using unoptimized copy.");
+            File.Copy(sourceFile, destPath, overwrite: true);
+        }
+    }
+
+    /// <summary>
+    /// Scans already-rendered <see cref="ContentItem.HtmlContent"/> for image references (an
+    /// <c>img</c> element's <c>src</c> attribute), honoring the per-item
+    /// <see cref="ContentItem.ImageOptimization"/> opt-out. Both Page-Bundle images (relative
+    /// <c>assetBasePath</c> resolved by <see cref="IMarkdownProcessor.ToHtml"/>) and
+    /// Site-<c>static/</c>-referenced images already use the <c>/assets/</c> convention by the
+    /// time HtmlContent is built, so no separate Markdown parsing is needed here.
+    /// </summary>
+    private static HashSet<string> CollectReferencedImageWebPaths(IReadOnlyList<ContentItem> items)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in items)
+        {
+            if (!item.ImageOptimization) continue;
+
+            foreach (System.Text.RegularExpressions.Match match in ImgSrcRegex().Matches(item.HtmlContent))
+            {
+                var src = match.Groups[1].Value;
+                if (src.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
+                    result.Add(src);
+            }
+        }
+        return result;
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(
+        "<img\\b[^>]*\\bsrc=\"([^\"]+)\"",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase)]
+    private static partial System.Text.RegularExpressions.Regex ImgSrcRegex();
+
 
     private static void PruneStaleOutputs(string outputDir, HashSet<string> generatedFiles)
     {
