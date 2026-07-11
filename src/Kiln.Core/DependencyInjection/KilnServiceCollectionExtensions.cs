@@ -28,6 +28,7 @@ public static class KilnServiceCollectionExtensions
         services.AddSingleton<IProcessRunner, SystemProcessRunner>();
         services.AddSingleton<IPagefindBinaryProvider, PagefindBinaryProvider>();
         services.AddSingleton<ISearchIndexer, PagefindSearchIndexer>();
+        services.AddSingleton<IImageOptimizer, SkiaSharpImageOptimizer>();
 
         return new KilnBuilder(services);
     }

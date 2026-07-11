@@ -18,7 +18,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
     private static readonly HashSet<string> KnownFrontMatterKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "id", "title", "date", "draft", "layout", "slug", "description",
-        "url", "weight", "extra"
+        "url", "weight", "extra", "image_optimization"
     };
 
     public IReadOnlyList<ContentItem> ReadCollection(ContentGroup collection, string projectPath)
@@ -117,6 +117,16 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
                 : new List<string>();
         }
 
+        // Read directly from the raw YAML dictionary rather than via a FrontMatter
+        // [YamlMember(Alias = "image_optimization")] property: CamelCaseNamingConvention applies
+        // its casing transform to explicit snake_case aliases too (verified against the installed
+        // YamlDotNet version), so a literal "image_optimization:" key in a user's frontmatter never
+        // actually binds to the aliased property and silently stays null. Dictionary<string, object>
+        // keys are untouched by the naming convention, so the raw dictionary is the only reliable way
+        // to read a snake_case-named frontmatter flag here. Scalars in the raw dictionary can come back
+        // as either bool or string depending on the YAML representation, so both are handled.
+        var imageOptimization = ParseImageOptimizationFlag(rawAll);
+
         var effectiveSlugForAssets = string.IsNullOrEmpty(sectionPath) ? slug : $"{sectionPath}/{slug}";
         var assetBasePath = assetDirectory is not null
             ? $"/assets/content/{collection.Name}/{effectiveSlugForAssets}/"
@@ -156,7 +166,8 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             Collection = collection,
             Extra = extra,
             Taxonomies = taxonomies,
-            AssetDirectory = assetDirectory
+            AssetDirectory = assetDirectory,
+            ImageOptimization = imageOptimization
         };
     }
 
@@ -229,5 +240,22 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             default:
                 return [rawValue.ToString()!];
         }
+    }
+
+    /// <summary>
+    /// Reads the <c>image_optimization</c> frontmatter flag from the raw YAML dictionary. Missing
+    /// key or an unrecognized value both default to enabled (<c>true</c>).
+    /// </summary>
+    private static bool ParseImageOptimizationFlag(Dictionary<string, object> rawAll)
+    {
+        if (!rawAll.TryGetValue("image_optimization", out var raw))
+            return true;
+
+        return raw switch
+        {
+            bool b => b,
+            string s when bool.TryParse(s, out var parsed) => parsed,
+            _ => true
+        };
     }
 }

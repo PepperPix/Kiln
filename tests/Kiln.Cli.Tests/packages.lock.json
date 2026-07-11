@@ -87,6 +87,11 @@
         "resolved": "8.0.2",
         "contentHash": "mUBDZZRgZrSyFOsJ2qJJ9fXfqd/kXJwf3AiDoqLD9m6TjY5OO/vLNOb9fb4juC0487eq4hcGN/M2Rh/CKS7QYw=="
       },
+      "Microsoft.Extensions.FileSystemGlobbing": {
+        "type": "Transitive",
+        "resolved": "10.0.9",
+        "contentHash": "mvRf9qOH/LslWIee/h+lsElnoUyKotEwoPL31soqScmO/eoxObaTCLCdx2DdqPdRi9LnB+7qKZ49jfyrLZuc+w=="
+      },
       "Microsoft.OpenApi": {
         "type": "Transitive",
         "resolved": "1.6.29",
@@ -157,8 +162,8 @@
       },
       "NUglify": {
         "type": "Transitive",
-        "resolved": "1.21.17",
-        "contentHash": "K2ywYpoPEvU3+Ooq6wxz+FJOkmbDeoE41q/sJZWv9tI7qbTmH2A5R0E4hWzruvl/9pnUhqwbu1mxT06C45D0ZQ=="
+        "resolved": "1.21.18",
+        "contentHash": "M6IoRH/8/1cJU2rS/zmYkr+Gwc9s0VuDcao+3wfRihcZ7hwDtJ3VgMOOa8BIKh4YC2KxOYdHhnrQIVL7elUSrQ=="
       },
       "Scriban": {
         "type": "Transitive",
@@ -170,6 +175,30 @@
         "resolved": "2.1.1",
         "contentHash": "BISoFuW2AwZYXxrZGaBnedo21BvrdgC4kkWd6QYrOdhOGSsZB0RSqcBw09l9caUE1g3sykJoRfSbtSzZS6tYig=="
       },
+      "SkiaSharp": {
+        "type": "Transitive",
+        "resolved": "3.119.4",
+        "contentHash": "53NOSUZ1Us+91Sm0uCkIivh/k7jOowRErZT2sIWwPFN9mLUvdxnE6rS4sWo4255+Rd2MWUSF+j0NMZHD6Cke+Q==",
+        "dependencies": {
+          "SkiaSharp.NativeAssets.Win32": "3.119.4",
+          "SkiaSharp.NativeAssets.macOS": "3.119.4"
+        }
+      },
+      "SkiaSharp.NativeAssets.Linux": {
+        "type": "Transitive",
+        "resolved": "3.119.4",
+        "contentHash": "UAyVzbqNfZsZbKbzj68zXLyUyF/SbTKmzTfOO6qDu++dtIUMMTzPBe8oOuzU/DiewpfKoUUlOSsJmqWc6blxBw=="
+      },
+      "SkiaSharp.NativeAssets.macOS": {
+        "type": "Transitive",
+        "resolved": "3.119.4",
+        "contentHash": "fgBOWEqbY012x7gMfJU4ezgz6dfhJb30Z6YdW35h85Zoe39+a8YNbAAwL29ihPfWoppg5AjvyKNzD1oCvlqWwA=="
+      },
+      "SkiaSharp.NativeAssets.Win32": {
+        "type": "Transitive",
+        "resolved": "3.119.4",
+        "contentHash": "XOpbx/4CReO2wYsq2s6rbvdauc6dntG4Zv499sHGTJ87bwZaFXszFkwql3+FIZMc8kUPeaj3Mx2ezIJmo8a1Kg=="
+      },
       "SonarAnalyzer.CSharp": {
         "type": "Transitive",
         "resolved": "10.16.0.128591",
@@ -177,16 +206,16 @@
       },
       "Spectre.Console": {
         "type": "Transitive",
-        "resolved": "0.55.2",
-        "contentHash": "yc0g12YJpmZHofGJLTQX02/uqfzJ6XHRx6pe9rANNjleQptXMHPxD9KI2/DWkXiJWddc+4oizEdGox15c89hhw==",
+        "resolved": "0.55.0",
+        "contentHash": "2TVhUHFsDux0Z+y2Hv4bFsOMuON4SuotEEKkMparFkp5Rm259naaaEQrN4Sv6C1cbsiGKPjfkJDGgUp+hZPjTw==",
         "dependencies": {
-          "Spectre.Console.Ansi": "0.55.2"
+          "Spectre.Console.Ansi": "0.55.0"
         }
       },
       "Spectre.Console.Ansi": {
         "type": "Transitive",
-        "resolved": "0.55.2",
-        "contentHash": "tN3KEJQQZwLW9HJnG5YTSAxfBwxsmg1wVuGvhGG2rM+pbl+NGaHU8pDcNofPlOXlgpkbpBMxI5t9o9qPfy3sHQ=="
+        "resolved": "0.55.0",
+        "contentHash": "GIfgOvuF8MpU52bprhwtDEtx0gmVIGOepM8bw0lH/TSMD0rg1Xp+5Y53kPG8rFVdcpbNANlhDQ5mEVVPO3/2Tg=="
       },
       "Spectre.Console.Cli": {
         "type": "Transitive",
@@ -234,7 +263,7 @@
       "Kiln": {
         "type": "Project",
         "dependencies": {
-          "Kiln.Core": "[0.1.0, )",
+          "Kiln.Core": "[1.1.0-beta.2, )",
           "Microsoft.Extensions.DependencyInjection": "[10.*, )",
           "Spectre.Console.Cli": "[0.55.*, )"
         }
@@ -246,13 +275,15 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.*, )",
-          "Kiln.Abstractions": "[0.1.0, )",
+          "Kiln.Abstractions": "[1.1.0-beta.2, )",
           "Markdig": "[1.*, )",
           "Microsoft.Extensions.DependencyInjection": "[10.*, )",
+          "Microsoft.Extensions.FileSystemGlobbing": "[10.*, )",
           "Microsoft.OpenApi.Readers": "[1.*, )",
           "NUglify": "[1.*, )",
           "Scriban": "[7.*, )",
-          "Spectre.Console": "[0.55.*, )",
+          "SkiaSharp": "[3.*, )",
+          "SkiaSharp.NativeAssets.Linux": "[3.*, )",
           "YamlDotNet": "[18.*, )"
         }
       }

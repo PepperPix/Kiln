@@ -20,4 +20,5 @@ public sealed class SiteConfiguration
     public BuildOptions Build { get; init; } = new BuildOptions();
     public AssetsOptions Assets { get; init; } = new AssetsOptions();
     public SearchOptions Search { get; init; } = new SearchOptions();
+    public ImageOptions Images { get; init; } = new ImageOptions();
 }

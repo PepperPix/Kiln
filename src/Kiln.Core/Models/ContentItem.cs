@@ -40,6 +40,12 @@ public sealed class ContentItem
     /// </summary>
     public string? AssetDirectory { get; init; }
 
+    /// <summary>
+    /// Opt-out for the production-only image optimization pipeline. Set from the
+    /// <c>image_optimization</c> front matter key; defaults to <c>true</c> (optimize).
+    /// </summary>
+    public bool ImageOptimization { get; init; } = true;
+
     public ContentItem? Next { get; set; }
     public ContentItem? Prev { get; set; }
     public Dictionary<string, ContentItem> ResolvedReferences { get; } = [];
