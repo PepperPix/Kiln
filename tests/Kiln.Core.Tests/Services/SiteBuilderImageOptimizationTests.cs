@@ -275,7 +275,7 @@ public class SiteBuilderImageOptimizationTests
             ---
             title: Opted Out
             date: 2026-01-01
-            image_optimization: false
+            imageOptimization: false
             ---
             ![Opted-out Image](opted-out.png)
             """);
