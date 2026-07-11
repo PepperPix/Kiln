@@ -1,5 +1,6 @@
 namespace Kiln.Core.Tests.Configuration;
 
+using Kiln.Models;
 using Kiln.Services;
 
 public class SiteConfigLoaderTests
@@ -454,6 +455,54 @@ public class SiteConfigLoaderTests
 #pragma warning restore S109
             await Assert.That(config.Images.Webp).IsFalse();
             await Assert.That(config.Images.Exclude).IsEmpty();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_CollectionTeaserWords_OverridesDefault()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            collections:
+              posts:
+                teaserWords: 30
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+#pragma warning disable S109
+            await Assert.That(config.Collections["posts"].TeaserWords).IsEqualTo(30);
+#pragma warning restore S109
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_CollectionTeaserWordsAbsent_UsesDefault()
+    {
+        var dir = CreateTempSite("""
+            title: Test
+            baseUrl: http://localhost
+            collections:
+              posts:
+                permalink: /:slug/
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Collections["posts"].TeaserWords).IsEqualTo(ContentGroup.DefaultTeaserWords);
         }
         finally
         {
