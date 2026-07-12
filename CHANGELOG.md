@@ -1,3 +1,16 @@
+# [1.1.0-beta.3](https://github.com/PepperPix/Kiln/compare/v1.1.0-beta.2...v1.1.0-beta.3) (2026-07-12)
+
+
+### Bug Fixes
+
+* **core:** use camelCase for image_optimization/teaser_words keys ([9c0b426](https://github.com/PepperPix/Kiln/commit/9c0b426f5ddb58345985fdad93c31f91b8c25a27))
+* **core:** use SkiaSharp.NativeAssets.Linux.NoDependencies ([2ce4008](https://github.com/PepperPix/Kiln/commit/2ce40083bad74277327997ed6d30bf57976539ef))
+
+
+### Features
+
+* **core:** image optimization pipeline for content images (ADR-051) ([b3f8ce0](https://github.com/PepperPix/Kiln/commit/b3f8ce0fb10ffa2da673cd716e3b7cb15389b521))
+
 # [1.1.0-beta.2](https://github.com/PepperPix/Kiln/compare/v1.1.0-beta.1...v1.1.0-beta.2) (2026-07-10)
 
 
