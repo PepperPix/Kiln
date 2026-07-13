@@ -6,14 +6,17 @@ using System.Text;
 using Kiln.Abstractions;
 using Kiln.Models;
 
-public sealed partial class SiteBuilder(
+#pragma warning disable S107 // 8 DI-injected services; no sensible split without a facade.
+public sealed class SiteBuilder(
     IContentReader contentReader,
     ITemplateRenderer templateRenderer,
     IPermalinkGenerator permalinkGenerator,
     ISiteConfigLoader configLoader,
     IPluginLoader pluginLoader,
     IEnumerable<IAssetMinifier> assetMinifiers,
-    IImageOptimizer imageOptimizer) : ISiteBuilder
+    IImageOptimizer imageOptimizer,
+    IAssetReferenceIndexBuilder assetReferenceIndexBuilder) : ISiteBuilder
+#pragma warning restore S107
 {
     private readonly IReadOnlyList<IAssetMinifier> _assetMinifiers = [.. assetMinifiers];
 
@@ -331,7 +334,7 @@ public sealed partial class SiteBuilder(
         // candidates, and only when actually referenced via <img src="/assets/..."> in already-
         // rendered HtmlContent. Theme/plugin static/ above and below are never optimized.
         var referencedImages = config.Images.Enabled && environment == BuildEnvironment.Production
-            ? CollectReferencedImageWebPaths(allItems)
+            ? assetReferenceIndexBuilder.Build(allItems).Keys.ToHashSet(StringComparer.OrdinalIgnoreCase)
             : [];
         var imageRenameManifest = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var imageCopyContext = new ImageCopyContext(outputDir, projectPath, config.Images, referencedImages, imageRenameManifest);
@@ -746,9 +749,10 @@ public sealed partial class SiteBuilder(
     /// <summary>
     /// Bundles the state needed to decide whether a candidate file (Site static/ or Page Bundle
     /// asset) should be optimized as an image: the output directory (for web-path comparisons
-    /// against <see cref="CollectReferencedImageWebPaths"/>), the project path (cache location +
-    /// exclude-glob base), the effective <see cref="ImageOptions"/>, the set of referenced image
-    /// web paths, and the rename manifest for extension changes (e.g. WebP conversion).
+    /// against the set of referenced web paths built by <see cref="IAssetReferenceIndexBuilder"/>),
+    /// the project path (cache location + exclude-glob base), the effective
+    /// <see cref="ImageOptions"/>, the set of referenced image web paths, and the rename
+    /// manifest for extension changes (e.g. WebP conversion).
     /// </summary>
     private sealed record ImageCopyContext(
         string OutputDir,
@@ -792,37 +796,6 @@ public sealed partial class SiteBuilder(
             File.Copy(sourceFile, destPath, overwrite: true);
         }
     }
-
-    /// <summary>
-    /// Scans already-rendered <see cref="ContentItem.HtmlContent"/> for image references (an
-    /// <c>img</c> element's <c>src</c> attribute), honoring the per-item
-    /// <see cref="ContentItem.ImageOptimization"/> opt-out. Both Page-Bundle images (relative
-    /// <c>assetBasePath</c> resolved by <see cref="IMarkdownProcessor.ToHtml"/>) and
-    /// Site-<c>static/</c>-referenced images already use the <c>/assets/</c> convention by the
-    /// time HtmlContent is built, so no separate Markdown parsing is needed here.
-    /// </summary>
-    private static HashSet<string> CollectReferencedImageWebPaths(IReadOnlyList<ContentItem> items)
-    {
-        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var item in items)
-        {
-            if (!item.ImageOptimization) continue;
-
-            foreach (System.Text.RegularExpressions.Match match in ImgSrcRegex().Matches(item.HtmlContent))
-            {
-                var src = match.Groups[1].Value;
-                if (src.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
-                    result.Add(src);
-            }
-        }
-        return result;
-    }
-
-    [System.Text.RegularExpressions.GeneratedRegex(
-        "<img\\b[^>]*\\bsrc=\"([^\"]+)\"",
-        System.Text.RegularExpressions.RegexOptions.IgnoreCase)]
-    private static partial System.Text.RegularExpressions.Regex ImgSrcRegex();
-
 
     private static void PruneStaleOutputs(string outputDir, HashSet<string> generatedFiles)
     {

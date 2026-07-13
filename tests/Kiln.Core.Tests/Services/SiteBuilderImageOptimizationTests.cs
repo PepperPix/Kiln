@@ -318,7 +318,15 @@ public class SiteBuilderImageOptimizationTests
         var configLoader = new SiteConfigLoader();
         var pluginLoader = new PluginLoader();
         IAssetMinifier[] assetMinifiers = [new NuglifyAssetMinifier(), new NoOpAssetMinifier()];
-        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, assetMinifiers, optimizer ?? new SkiaSharpImageOptimizer());
+        return new SiteBuilder(
+            contentReader,
+            templateRenderer,
+            permalinkGenerator,
+            configLoader,
+            pluginLoader,
+            assetMinifiers,
+            optimizer ?? new SkiaSharpImageOptimizer(),
+            new AssetReferenceIndexBuilder());
     }
 
     private sealed class CountingImageOptimizer(IImageOptimizer inner) : IImageOptimizer
