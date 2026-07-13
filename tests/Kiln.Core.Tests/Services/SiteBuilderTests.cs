@@ -244,7 +244,7 @@ public class SiteBuilderTests
         var permalinkGenerator = new PermalinkGenerator();
         var configLoader = new SiteConfigLoader();
         var pluginLoader = new PluginLoader();
-        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, [], new SkiaSharpImageOptimizer());
+        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, [], new SkiaSharpImageOptimizer(), new AssetReferenceIndexBuilder());
     }
 
     private static string CreateSiteWithNestedContent()
