@@ -18,9 +18,12 @@ public sealed partial class SiteBuilder(
     private readonly IReadOnlyList<IAssetMinifier> _assetMinifiers = [.. assetMinifiers];
 
     public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default)
-        => BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, ct);
+        => BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, progress: null, ct);
 
-    public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
+    public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
+        => BuildAsync(projectPath, includeDrafts, environment, progress: null, ct);
+
+    public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, CancellationToken ct)
     {
         var stopwatch = Stopwatch.StartNew();
         var warnings = new Collection<string>();
@@ -202,6 +205,7 @@ public sealed partial class SiteBuilder(
             if (item.Draft && !includeDrafts)
             {
                 skippedDrafts++;
+                progress?.Report(new BuildProgress("Rendering pages", rendered + skippedDrafts, allItems.Count));
                 continue;
             }
 
@@ -218,6 +222,8 @@ public sealed partial class SiteBuilder(
             {
                 errors.Add($"Error rendering '{item.RelativePath}': {ex.Message}");
             }
+
+            progress?.Report(new BuildProgress("Rendering pages", rendered + skippedDrafts, allItems.Count));
         }
 
         // Render collection index pages (for collections with Paginate > 0)
