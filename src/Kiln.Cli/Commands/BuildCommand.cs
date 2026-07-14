@@ -45,10 +45,18 @@ public sealed class BuildCommand(
 
         var environment = ResolveEnvironment(settings);
 
-        var result = await console.Status()
-            .Spinner(Spinner.Known.Dots)
-            .StartAsync("Building site...", async _ =>
-                await siteBuilder.BuildAsync(projectPath, settings.IncludeDrafts, environment, cancellationToken).ConfigureAwait(false))
+        var result = await console.Progress()
+            .StartAsync(async ctx =>
+            {
+                var task = ctx.AddTask("Building site...", maxValue: 1);
+                var reporter = new Progress<BuildProgress>(p =>
+                {
+                    task.Description = p.Phase;
+                    task.MaxValue = p.Total > 0 ? p.Total : 1;
+                    task.Value = p.Completed;
+                });
+                return await siteBuilder.BuildAsync(projectPath, settings.IncludeDrafts, environment, reporter, cancellationToken).ConfigureAwait(false);
+            })
             .ConfigureAwait(false);
 
         if (!result.Success)
