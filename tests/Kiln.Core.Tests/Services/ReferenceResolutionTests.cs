@@ -46,6 +46,32 @@ public class ReferenceResolutionTests
         }
     }
 
+    [Test]
+    public async Task BuildAsync_MultipleSourceCollectionsReferenceSameTarget_ResolvesBoth()
+    {
+        var dir = CreateSiteWithTwoSourceCollectionsReferencingAuthors();
+
+        try
+        {
+            var builder = CreateBuilder();
+            var result = await builder.BuildAsync(dir);
+
+            await Assert.That(result.Success).IsTrue();
+
+            var postHtml = await File.ReadAllTextAsync(
+                Path.Combine(dir, "_site", "blog", "hello-world", "index.html"));
+            await Assert.That(postHtml).Contains("Marcel Kummerow");
+
+            var pageHtml = await File.ReadAllTextAsync(
+                Path.Combine(dir, "_site", "about", "index.html"));
+            await Assert.That(pageHtml).Contains("Marcel Kummerow");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static string CreateSiteWithAuthorReference()
@@ -130,6 +156,69 @@ public class ReferenceResolutionTests
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
             "{{ page.content }}");
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
+
+        return dir;
+    }
+
+    private static string CreateSiteWithTwoSourceCollectionsReferencingAuthors()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"kiln-ref-shared-target-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(dir, "content", "posts"));
+        Directory.CreateDirectory(Path.Combine(dir, "content", "pages"));
+        Directory.CreateDirectory(Path.Combine(dir, "content", "authors"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "layouts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "partials"));
+
+        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+            """
+            title: Test Site
+            baseUrl: http://localhost:5555
+            collections:
+              posts:
+                directory: content/posts
+                permalink: /blog/:slug/
+                references:
+                  author: authors
+              pages:
+                directory: content/pages
+                permalink: /:slug/
+                references:
+                  author: authors
+              authors:
+                directory: content/authors
+                permalink: /authors/:slug/
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "posts", "hello-world.md"),
+            """
+            ---
+            title: Hello World
+            author: marcel
+            ---
+            Content
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "pages", "about.md"),
+            """
+            ---
+            title: About
+            author: marcel
+            ---
+            About content
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "authors", "marcel.md"),
+            """
+            ---
+            title: Marcel Kummerow
+            ---
+            About me
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
+            "{{ if page.author }}{{ page.author.title }}{{ end }}");
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
             "<html>Not Found</html>");
 
