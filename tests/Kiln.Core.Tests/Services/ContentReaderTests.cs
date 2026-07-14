@@ -630,6 +630,45 @@ public class ContentReaderTests
         }
     }
 
+    [Test]
+    public async Task ReadCollection_WithoutSort_PreservesDirectoryFileOrder()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        var fileNames = new[] { "post-05.md", "post-01.md", "post-13.md", "post-02.md" };
+        foreach (var fileName in fileNames)
+        {
+            await File.WriteAllTextAsync(Path.Combine(tempDir, fileName),
+                $"""
+                ---
+                title: {Path.GetFileNameWithoutExtension(fileName)}
+                ---
+                content
+                """).ConfigureAwait(false);
+        }
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            var expectedOrder = Directory.GetFiles(tempDir, "*.md", SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFileName)
+                .ToList();
+
+            await Assert.That(result.Count).IsEqualTo(expectedOrder.Count);
+            for (var i = 0; i < result.Count; i++)
+            {
+                await Assert.That(Path.GetFileName(result[i].SourcePath)).IsEqualTo(expectedOrder[i]);
+            }
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
     private static string CreateTempContent(string fileName, string content)
 
     {
