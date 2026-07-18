@@ -21,9 +21,12 @@ public sealed class SiteBuilder(
     private readonly IReadOnlyList<IAssetMinifier> _assetMinifiers = [.. assetMinifiers];
 
     public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default)
-        => BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, ct);
+        => BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, progress: null, ct);
 
-    public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
+    public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
+        => BuildAsync(projectPath, includeDrafts, environment, progress: null, ct);
+
+    public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, CancellationToken ct)
     {
         var stopwatch = Stopwatch.StartNew();
         var warnings = new Collection<string>();
@@ -110,6 +113,8 @@ public sealed class SiteBuilder(
         }
 
         // Resolve cross-collection references (e.g. author: marcel → authors item)
+        var slugIndexCache = new Dictionary<ContentGroup, Dictionary<string, ContentItem>>();
+
         foreach (var (collName, collection) in config.Collections)
         {
             foreach (var (frontmatterKey, targetCollName) in collection.References)
@@ -120,13 +125,18 @@ public sealed class SiteBuilder(
                     continue;
                 }
 
+                if (!slugIndexCache.TryGetValue(targetCollection, out var slugIndex))
+                {
+                    slugIndex = BuildSlugIndex(targetCollection);
+                    slugIndexCache[targetCollection] = slugIndex;
+                }
+
                 foreach (var item in collection.Items)
                 {
                     if (!item.Extra.TryGetValue(frontmatterKey, out var rawValue) || rawValue is not string slugValue)
                         continue;
 
-                    var refItem = targetCollection.Items.FirstOrDefault(
-                        i => string.Equals(i.Slug, slugValue, StringComparison.OrdinalIgnoreCase));
+                    var refItem = slugIndex.GetValueOrDefault(slugValue);
 
                     if (refItem is null)
                         warnings.Add($"'{item.RelativePath}': reference '{frontmatterKey}: {slugValue}' not found in collection '{targetCollName}'");
@@ -198,6 +208,7 @@ public sealed class SiteBuilder(
             if (item.Draft && !includeDrafts)
             {
                 skippedDrafts++;
+                progress?.Report(new BuildProgress("Rendering pages", rendered + skippedDrafts, allItems.Count));
                 continue;
             }
 
@@ -214,6 +225,8 @@ public sealed class SiteBuilder(
             {
                 errors.Add($"Error rendering '{item.RelativePath}': {ex.Message}");
             }
+
+            progress?.Report(new BuildProgress("Rendering pages", rendered + skippedDrafts, allItems.Count));
         }
 
         // Render collection index pages (for collections with Paginate > 0)
@@ -661,6 +674,14 @@ public sealed class SiteBuilder(
         return string.IsNullOrEmpty(normalized)
             ? "index.html"
             : Path.Combine(normalized, "index.html");
+    }
+
+    private static Dictionary<string, ContentItem> BuildSlugIndex(ContentGroup targetCollection)
+    {
+        var index = new Dictionary<string, ContentItem>(StringComparer.OrdinalIgnoreCase);
+        foreach (var candidate in targetCollection.Items)
+            index.TryAdd(candidate.Slug, candidate);
+        return index;
     }
 
     private static BuildResult MakeResult(int total, int rendered, int skipped, TimeSpan duration, string outputDir, Collection<string> warnings, Collection<string> errors)

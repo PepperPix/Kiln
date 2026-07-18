@@ -14,4 +14,9 @@ public interface ISiteBuilder
     /// Builds the entire site for the specified build environment.
     /// </summary>
     Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct);
+
+    /// <summary>
+    /// Builds the entire site for the specified build environment and reports progress.
+    /// </summary>
+    Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, CancellationToken ct);
 }

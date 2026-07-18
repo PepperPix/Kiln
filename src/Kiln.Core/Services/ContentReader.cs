@@ -40,9 +40,14 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
     {
         var sectionPath = ToSectionPath(contentDirectory, dir);
 
-        foreach (var file in Directory.GetFiles(dir, "*.md", SearchOption.TopDirectoryOnly))
+        var files = Directory.GetFiles(dir, "*.md", SearchOption.TopDirectoryOnly);
+        var fileResults = new ContentItem?[files.Length];
+        Parallel.For(0, files.Length, i =>
         {
-            var item = ReadFile(file, contentDirectory, collection, assetDirectory: null, sectionPath);
+            fileResults[i] = ReadFile(files[i], contentDirectory, collection, assetDirectory: null, sectionPath);
+        });
+        foreach (var item in fileResults)
+        {
             if (item is not null)
                 items.Add(item);
         }

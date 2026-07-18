@@ -377,9 +377,12 @@ public class DevServerLiveReloadTests
         private const int SimulatedBuildMilliseconds = 120;
 
         public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default)
-            => BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, ct);
+            => BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, progress: null, ct);
 
-        public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
+        public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
+            => BuildAsync(projectPath, includeDrafts, environment, progress: null, ct);
+
+        public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, CancellationToken ct)
         {
             var active = Interlocked.Increment(ref _currentConcurrent);
             if (active > MaxConcurrentBuilds)
