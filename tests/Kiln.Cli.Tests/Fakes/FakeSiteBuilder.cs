@@ -12,8 +12,6 @@ public sealed class FakeSiteBuilder : ISiteBuilder
 
     public Func<BuildResult>? ResultFactory { get; set; }
 
-    public IProgress<BuildProgress>? CapturedProgress { get; private set; }
-
     public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default) =>
         BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, progress: null, ct);
 
@@ -24,7 +22,6 @@ public sealed class FakeSiteBuilder : ISiteBuilder
     {
         CapturedIncludeDrafts = includeDrafts;
         CapturedEnvironment = environment;
-        CapturedProgress = progress;
 
         var result = ResultFactory?.Invoke() ?? new BuildResult
         {
