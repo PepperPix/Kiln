@@ -1,3 +1,17 @@
+# [1.2.0-beta.2](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2026-07-19)
+
+
+### Features
+
+* **cli:** report live progress during kiln build ([d7f5fc7](https://github.com/PepperPix/Kiln/commit/d7f5fc7fc3780c882578f2c7489d4e4641ded046))
+* **core:** extract shared asset reference index service ([a7b0a05](https://github.com/PepperPix/Kiln/commit/a7b0a05690575f7326340d192695dd32a910fee1))
+
+
+### Performance Improvements
+
+* **core:** parallelize content file reads within a section ([24bca59](https://github.com/PepperPix/Kiln/commit/24bca5904ca92ced99afe5e883570b71e1a2e6ad))
+* **core:** use O(1) slug index for cross-collection reference resolution ([a7d4139](https://github.com/PepperPix/Kiln/commit/a7d41396f763c344a0c46ef747b8e890fd3a0dfa))
+
 # [1.2.0-beta.1](https://github.com/PepperPix/Kiln/compare/v1.1.0...v1.2.0-beta.1) (2026-07-18)
 
 
