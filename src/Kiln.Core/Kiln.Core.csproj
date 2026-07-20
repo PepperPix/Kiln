@@ -34,8 +34,8 @@
     <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.*" />
     <PackageReference Include="NUglify" Version="1.*" />
     <PackageReference Include="Scriban" Version="7.*" />
-    <PackageReference Include="SkiaSharp" Version="4.*" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.*" />
+    <PackageReference Include="SkiaSharp" Version="3.*" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.*" />
     <PackageReference Include="YamlDotNet" Version="18.*" />
   </ItemGroup>
 
