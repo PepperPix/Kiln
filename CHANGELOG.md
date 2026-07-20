@@ -1,3 +1,10 @@
+# [1.2.0-beta.3](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.2...v1.2.0-beta.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **core:** align SkiaSharp version with Avalonia.Skia 12.1 ([bcae5cb](https://github.com/PepperPix/Kiln/commit/bcae5cb97172f20af20a4570500877d074110534))
+
 # [1.2.0-beta.2](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2026-07-19)
 
 
