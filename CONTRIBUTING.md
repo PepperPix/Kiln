@@ -37,6 +37,13 @@ Before opening a pull request, the codebase is expected to be clean under static
 (InspectCode). Please fix any findings reported for files you touch rather than suppressing them,
 unless there is a clear, documented reason not to (leave a short inline comment explaining why).
 
+### File Organization
+
+Every `.cs` file must contain exactly one top-level type (class, record, struct, interface, or
+enum). Nested types are allowed only as a deliberate encapsulation aid (for example,
+Spectre.Console.Cli `CommandSettings`). If a file currently contains multiple top-level types,
+split them into separate files rather than introducing new nested types.
+
 ## Dependency Lockfiles
 
 This repository uses `RestorePackagesWithLockFile`. If your change adds or updates a NuGet package
