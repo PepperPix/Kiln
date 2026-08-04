@@ -7,6 +7,16 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Kiln.Services;
 
+/// <summary>
+/// All tests in this class read or write the process-wide <c>KILN_PAGEFIND_PATH</c> environment
+/// variable via <see cref="PagefindBinaryProvider.GetBinaryPathAsync"/>. Environment variables are
+/// not test-scoped, so running these tests concurrently (TUnit's default) allows one test's
+/// <c>Environment.SetEnvironmentVariable</c> call to leak into another test's read between its
+/// Before/After hooks, causing intermittent, timing-dependent failures (observed on
+/// <c>windows-latest</c> CI). <see cref="NotInParallelAttribute"/> forces this class to run
+/// sequentially instead.
+/// </summary>
+[NotInParallel]
 public class PagefindBinaryProviderTests
 {
     private string? _savedPagefindPathOverride;
