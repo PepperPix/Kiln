@@ -173,7 +173,7 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
             {
                 // Shutdown path.
             }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // intentional graceful failure: rebuild errors must be streamed to the browser instead of killing watch mode
             catch (Exception ex)
 #pragma warning restore CA1031
             {

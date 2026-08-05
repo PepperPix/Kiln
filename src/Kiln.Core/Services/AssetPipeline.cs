@@ -101,7 +101,7 @@ internal sealed partial class AssetPipeline
         {
             minified = minifier.Minify(original, assetType);
         }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // intentional graceful failure: one minifier must not block emitting the original asset
         catch (Exception ex)
 #pragma warning restore CA1031
         {
@@ -175,9 +175,9 @@ internal sealed partial class AssetPipeline
 
     internal static string ToWebPath(string outputDir, string fullPath)
     {
-#pragma warning disable S1075 // URL paths use '/' by spec, independent of the OS path separator
-        return "/" + Path.GetRelativePath(outputDir, fullPath).Replace(Path.DirectorySeparatorChar, '/');
-#pragma warning restore S1075
+        var relativePath = Path.GetRelativePath(outputDir, fullPath)
+            .Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return $"{Path.AltDirectorySeparatorChar}{relativePath}";
     }
 
     /// <summary>

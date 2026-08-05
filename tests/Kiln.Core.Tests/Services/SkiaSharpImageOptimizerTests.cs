@@ -37,10 +37,8 @@ public class SkiaSharpImageOptimizerTests
         var result = optimizer.Optimize(sourceBytes, ".png", settings);
 
         using var decoded = SKBitmap.Decode(result.Bytes);
-#pragma warning disable S109
         await Assert.That(decoded.Width).IsEqualTo(1000);
         await Assert.That(decoded.Height).IsEqualTo(667); // 2000 * (1000/3000), rounded
-#pragma warning restore S109
         await Assert.That(result.Extension).IsEqualTo(".png");
     }
 
@@ -54,10 +52,8 @@ public class SkiaSharpImageOptimizerTests
         var result = optimizer.Optimize(sourceBytes, ".png", settings);
 
         using var decoded = SKBitmap.Decode(result.Bytes);
-#pragma warning disable S109
         await Assert.That(decoded.Width).IsEqualTo(400);
         await Assert.That(decoded.Height).IsEqualTo(300);
-#pragma warning restore S109
     }
 
     [Test]
@@ -71,10 +67,8 @@ public class SkiaSharpImageOptimizerTests
 
         await Assert.That(result.Extension).IsEqualTo(".webp");
         // RIFF....WEBP magic bytes: bytes 0-3 = "RIFF", bytes 8-11 = "WEBP"
-#pragma warning disable S109
         await Assert.That(System.Text.Encoding.ASCII.GetString(result.Bytes, 0, 4)).IsEqualTo("RIFF");
         await Assert.That(System.Text.Encoding.ASCII.GetString(result.Bytes, 8, 4)).IsEqualTo("WEBP");
-#pragma warning restore S109
     }
 
     [Test]
