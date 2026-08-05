@@ -1,3 +1,10 @@
+# [1.2.0-beta.4](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.3...v1.2.0-beta.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* **core:** prevent parallel-execution race in PagefindBinaryProviderTests ([0595816](https://github.com/PepperPix/Kiln/commit/0595816755cc20561f3ce6e796fc202a35245d2c))
+
 # [1.2.0-beta.3](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.2...v1.2.0-beta.3) (2026-07-20)
 
 
