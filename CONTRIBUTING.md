@@ -28,6 +28,18 @@ dotnet build
 dotnet test
 ```
 
+All test projects use TUnit. For targeted runs, use `--treenode-filter` and TUnit's tree-node
+paths:
+
+```bash
+dotnet test tests/Projekt.Tests
+dotnet test --treenode-filter "/*/*/ClassName/*"
+dotnet test --treenode-filter "/*/*/ClassName/TestName"
+```
+
+Do not use `dotnet test --filter "FullyQualifiedName~..."` here — that is VSTest syntax and does
+not work with TUnit.
+
 The build treats warnings as errors (`TreatWarningsAsErrors`), so a change with build warnings will
 fail CI. All tests must pass, including any new tests added for the change.
 
@@ -128,4 +140,3 @@ Resolve any conflicts in `CHANGELOG.md`/`Directory.Build.props` by keeping `beta
 checkout --ours CHANGELOG.md Directory.Build.props`): semantic-release recomputes both from git
 tags on the next release regardless of what's currently in those files, so `beta`'s more advanced
 prerelease content is the more accurate one to keep in the meantime.
-
