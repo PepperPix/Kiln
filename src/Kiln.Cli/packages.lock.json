@@ -32,8 +32,8 @@
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.5.2",
-        "contentHash": "LVZ7rrr6GHbhERhTgVDarVygl1e6KwE96pronA90LBOMacDhxR4lB+xYLjn/vlnUu+xbOB2RM9fuCPEx5bdyWA=="
+        "resolved": "1.7.0",
+        "contentHash": "v1R++46dblGRBo2/fKFUfgtZOaFnDGQhqBM0AarxgZSJuumj1e1vexBbjlTv2hx3Olr3qeoJa2yUoWyv5fuJ5A=="
       },
       "Markdig": {
         "type": "Transitive",
@@ -71,13 +71,13 @@
       },
       "NUglify": {
         "type": "Transitive",
-        "resolved": "1.22.0",
-        "contentHash": "0muSp8yUZ2e/SiZjeygMrZyY9UiIroDQv6R/XKZZRxPMnbt7S7y4vyl+QhWhxWrt/TB4loGQ8Sg1KEr7Vzie8Q=="
+        "resolved": "1.22.3",
+        "contentHash": "JVrw7wZClUNO9Djp+5dZdu9VFkPVQy4nGPip8y2wLV2BL0v6EZluj6xpdEXTPBETDKw5X+vDQ0J+yjVDeuH1bw=="
       },
       "Scriban": {
         "type": "Transitive",
-        "resolved": "7.2.5",
-        "contentHash": "6HDyv0P6PVdx/prWM3Aw0QHAT/DCpkBxOovZ2iPIH4L4ZvJ13JNYJgyUI+xJ5K2agXreYTBe23AL5ZQNTqJQvA=="
+        "resolved": "7.2.6",
+        "contentHash": "k6DvaRY83jtigNudMoYlN5Zg42JEDDOCSeKrnpHiE5Gthkd9Fr+6VnYFnL3DqtkZTtPezJJdoX3ZfOTTFpQEMg=="
       },
       "SharpYaml": {
         "type": "Transitive",
@@ -138,7 +138,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.*, )",
-          "Kiln.Abstractions": "[1.2.0-beta.1, )",
+          "Kiln.Abstractions": "[1.2.0-beta.4, )",
           "Markdig": "[1.*, )",
           "Microsoft.Extensions.DependencyInjection": "[10.*, )",
           "Microsoft.Extensions.FileSystemGlobbing": "[10.*, )",
