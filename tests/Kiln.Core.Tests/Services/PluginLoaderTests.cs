@@ -26,7 +26,7 @@ public class PluginLoaderTests
     [Test]
     public async Task LoadPlugins_SkipsDirectory_WithoutPluginYaml()
     {
-        var dir = CreateProjectWithPlugin(
+        var dir = await CreateProjectWithPluginAsync(
             pluginName: "no-yaml-plugin",
             yamlContent: null,
             slotFiles: []);
@@ -44,7 +44,7 @@ public class PluginLoaderTests
     [Test]
     public async Task LoadPlugins_ParsesNameAndSlots()
     {
-        var dir = CreateProjectWithPlugin(
+        var dir = await CreateProjectWithPluginAsync(
             pluginName: "my-plugin",
             yamlContent: """
                 name: My Plugin
@@ -78,7 +78,7 @@ public class PluginLoaderTests
     [Test]
     public async Task LoadPlugins_FallsBackToDirectoryNameWhenNameMissing()
     {
-        var dir = CreateProjectWithPlugin(
+        var dir = await CreateProjectWithPluginAsync(
             pluginName: "disqus",
             yamlContent: """
                 slots:
@@ -110,9 +110,7 @@ public class PluginLoaderTests
         try
         {
             var plugins = _loader.LoadPlugins(dir);
-#pragma warning disable S109
             await Assert.That(plugins.Count).IsEqualTo(2);
-#pragma warning restore S109
         }
         finally
         {
@@ -120,7 +118,7 @@ public class PluginLoaderTests
         }
     }
 
-    private static string CreateProjectWithPlugin(
+    private static async Task<string> CreateProjectWithPluginAsync(
         string pluginName,
         string? yamlContent,
         IEnumerable<string> slotFiles)
@@ -130,13 +128,11 @@ public class PluginLoaderTests
         Directory.CreateDirectory(pluginDir);
         Directory.CreateDirectory(Path.Combine(pluginDir, "slots"));
 
-#pragma warning disable S6966 // WriteAllTextAsync not applicable in non-async helper
         if (yamlContent is not null)
-            File.WriteAllText(Path.Combine(pluginDir, "plugin.yaml"), yamlContent);
+            await File.WriteAllTextAsync(Path.Combine(pluginDir, "plugin.yaml"), yamlContent);
 
         foreach (var slotFile in slotFiles)
-            File.WriteAllText(Path.Combine(pluginDir, "slots", slotFile), $"<div>{slotFile}</div>");
-#pragma warning restore S6966
+            await File.WriteAllTextAsync(Path.Combine(pluginDir, "slots", slotFile), $"<div>{slotFile}</div>");
 
         return dir;
     }

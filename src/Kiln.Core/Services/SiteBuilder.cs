@@ -628,10 +628,8 @@ public sealed class SiteBuilder(
         return urls;
     }
 
-#pragma warning disable CA1859 // IReadOnlyList intentional: supports both List and Collection callers
     private static List<Paginator> BuildPaginators(
-        IReadOnlyList<ContentItem> items, int pageSize, string baseUrl)
-#pragma warning restore CA1859
+        List<ContentItem> items, int pageSize, string baseUrl)
     {
         var totalPages = (int)Math.Ceiling(items.Count / (double)pageSize);
         if (totalPages == 0) totalPages = 1;
@@ -839,4 +837,3 @@ public sealed class SiteBuilder(
         }
     }
 }
-

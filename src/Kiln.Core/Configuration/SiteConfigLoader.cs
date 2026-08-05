@@ -192,8 +192,6 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
 
     // DTOs for YAML deserialization — properties are assigned by YamlDotNet via reflection
 
-#pragma warning disable S3459, S1144, S3996 // Properties are assigned/read by YamlDotNet via reflection
-
     private sealed class SiteConfigDto
     {
         public string? Title { get; set; }
@@ -291,6 +289,4 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public List<string>? Exclude { get; set; }
     }
 
-#pragma warning restore S3459, S1144, S3996
 }
-

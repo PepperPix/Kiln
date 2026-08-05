@@ -54,7 +54,6 @@ public sealed class PluginLoader : IPluginLoader
         return result;
     }
 
-#pragma warning disable S3459, S1144 // Properties are assigned/read by YamlDotNet via reflection
     private sealed class PluginDefinitionDto
     {
         public string? Name { get; set; }
@@ -62,5 +61,4 @@ public sealed class PluginLoader : IPluginLoader
         public string? Description { get; set; }
         public List<string>? Slots { get; set; }
     }
-#pragma warning restore S3459, S1144
 }
