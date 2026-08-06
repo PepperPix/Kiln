@@ -32,21 +32,115 @@ public sealed class SiteBuilder(
         var warnings = new Collection<string>();
         var errors = new Collection<string>();
 
-        // Load configuration
-        var config = configLoader.Load(projectPath);
-        var outputDir = Path.Combine(projectPath, config.OutputDir);
-        var themePath = Path.Combine(projectPath, config.ThemesDir, config.Theme);
-
-        if (!Directory.Exists(themePath))
-        {
-            errors.Add($"Theme directory not found: {themePath}");
+        if (!TryLoadConfiguration(projectPath, out var config, out var outputDir, out var themePath, errors))
             return MakeResult(0, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
-        }
 
         // Discover plugins
         var plugins = pluginLoader.LoadPlugins(projectPath);
 
         // Read all collections and assign URLs
+        var allItems = ReadAllContent(config, projectPath, errors);
+
+        if (errors.Count > 0)
+            return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
+
+        // Set next/prev navigation within each collection
+        ComputeNextPrevLinks(config, includeDrafts);
+
+        // Resolve cross-collection references (e.g. author: marcel → authors item)
+        ResolveCrossCollectionReferences(config, warnings);
+
+        // Extract taxonomy terms (aggregate across all collections)
+        var allTaxonomyTerms = ExtractTaxonomyTerms(config, includeDrafts);
+
+        // Build navigation tree once per build
+        var publishedItems = allItems.Where(i => !i.Draft || includeDrafts).ToList();
+        var navTree = NavigationTreeBuilder.Build(publishedItems);
+        var sharedRenderContext = SharedRenderContext.Build(config, allTaxonomyTerms, navTree);
+
+        // Collect all virtual page URLs for collision checking
+        var virtualUrls = CollectVirtualUrls(config, allTaxonomyTerms, includeDrafts);
+
+        // Permalink collision check: content items + virtual pages
+        CheckPermalinkCollisions(allItems, virtualUrls, errors);
+
+        if (errors.Count > 0)
+            return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
+
+        // Resolve menu references
+        ResolveMenuRefs(config, allItems, virtualUrls, warnings, errors);
+
+        if (errors.Count > 0)
+            return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
+
+        var useWriteThenPrune = environment == BuildEnvironment.Development;
+        var generatedFiles = useWriteThenPrune
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        // For development builds, write-then-prune avoids transient 404 windows during serve.
+        if (!useWriteThenPrune && Directory.Exists(outputDir))
+            Directory.Delete(outputDir, recursive: true);
+        Directory.CreateDirectory(outputDir);
+
+        var render = new RenderPassContext(sharedRenderContext, config, themePath, plugins, outputDir, generatedFiles);
+
+        // Render content items
+        var (rendered, skippedDrafts) = await RenderContentItemsAsync(
+            allItems, includeDrafts, render, progress, errors, ct).ConfigureAwait(false);
+
+        // Render collection index pages (for collections with Paginate > 0)
+        rendered += await RenderCollectionIndexesAsync(includeDrafts, render, errors, ct).ConfigureAwait(false);
+
+        // Render taxonomy term and overview pages
+        rendered += await RenderTaxonomyPagesAsync(allTaxonomyTerms, render, errors, ct).ConfigureAwait(false);
+
+        // Emit a 404 page only when the theme provides a dedicated '404.html' layout.
+        await RenderNotFoundPageAsync(render, errors, ct).ConfigureAwait(false);
+
+        // Copy assets (theme → site → page bundles → plugins), then rewrite renamed image refs
+        RunAssetCopyPipeline(allItems, projectPath, environment, warnings, render);
+
+        // Generate sitemap.xml, Atom feeds, robots.txt
+        await WriteFeedsAndMetaAsync(config, allItems, allTaxonomyTerms, includeDrafts, outputDir, generatedFiles, ct).ConfigureAwait(false);
+
+        // Production asset pipeline: minify → fingerprint → link-check
+        var tally = new BuildTally(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed);
+        var earlyResult = await RunProductionAssetPipelineAsync(config, environment, outputDir, tally, warnings, errors, ct).ConfigureAwait(false);
+        if (earlyResult is not null)
+            return earlyResult;
+
+        if (generatedFiles is not null)
+            PruneStaleOutputs(outputDir, generatedFiles);
+
+        stopwatch.Stop();
+        return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);
+    }
+
+    // ── Build phases ─────────────────────────────────────────────────────
+
+    private bool TryLoadConfiguration(
+        string projectPath,
+        out SiteConfiguration config,
+        out string outputDir,
+        out string themePath,
+        Collection<string> errors)
+    {
+        config = configLoader.Load(projectPath);
+        outputDir = Path.Combine(projectPath, config.OutputDir);
+        themePath = Path.Combine(projectPath, config.ThemesDir, config.Theme);
+
+        if (!Directory.Exists(themePath))
+        {
+            errors.Add($"Theme directory not found: {themePath}");
+            return false;
+        }
+
+        return true;
+    }
+
+    private List<ContentItem> ReadAllContent(SiteConfiguration config, string projectPath, Collection<string> errors)
+    {
         var allItems = new List<ContentItem>();
         foreach (var collection in config.Collections.Values)
         {
@@ -96,10 +190,11 @@ public sealed class SiteBuilder(
             }
         }
 
-        if (errors.Count > 0)
-            return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
+        return allItems;
+    }
 
-        // Set next/prev navigation within each collection
+    private static void ComputeNextPrevLinks(SiteConfiguration config, bool includeDrafts)
+    {
         foreach (var collection in config.Collections.Values)
         {
             var published = collection.Items
@@ -111,8 +206,10 @@ public sealed class SiteBuilder(
                 published[i].Next = i < published.Count - 1 ? published[i + 1] : null;
             }
         }
+    }
 
-        // Resolve cross-collection references (e.g. author: marcel → authors item)
+    private static void ResolveCrossCollectionReferences(SiteConfiguration config, Collection<string> warnings)
+    {
         var slugIndexCache = new Dictionary<ContentGroup, Dictionary<string, ContentItem>>();
 
         foreach (var (collName, collection) in config.Collections)
@@ -145,19 +242,10 @@ public sealed class SiteBuilder(
                 }
             }
         }
+    }
 
-        // Extract taxonomy terms (aggregate across all collections)
-        var allTaxonomyTerms = ExtractTaxonomyTerms(config, includeDrafts);
-
-        // Build navigation tree once per build
-        var publishedItems = allItems.Where(i => !i.Draft || includeDrafts).ToList();
-        var navTree = NavigationTreeBuilder.Build(publishedItems);
-        var sharedRenderContext = SharedRenderContext.Build(config, allTaxonomyTerms, navTree);
-
-        // Collect all virtual page URLs for collision checking
-        var virtualUrls = CollectVirtualUrls(config, allTaxonomyTerms, includeDrafts);
-
-        // Permalink collision check: content items + virtual pages
+    private static void CheckPermalinkCollisions(List<ContentItem> allItems, List<string> virtualUrls, Collection<string> errors)
+    {
         var urlToSources = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in allItems)
         {
@@ -177,30 +265,32 @@ public sealed class SiteBuilder(
             var sourcesText = string.Join(", ", sources);
             errors.Add($"Permalink collision — '{url}' is generated by: {sourcesText}");
         }
+    }
 
-        if (errors.Count > 0)
-            return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
+    /// <summary>
+    /// Bundles the render-time state shared by all page-rendering phases (content items,
+    /// collection indexes, taxonomy pages, 404, asset copying) — keeps phase method parameter
+    /// counts within the S107 limit without changing behavior.
+    /// </summary>
+    private sealed record RenderPassContext(
+        SharedRenderContext SharedContext,
+        SiteConfiguration Config,
+        string ThemePath,
+        IReadOnlyList<PluginDefinition> Plugins,
+        string OutputDir,
+        HashSet<string>? GeneratedFiles);
 
-        // Resolve menu references
-        ResolveMenuRefs(config, allItems, virtualUrls, warnings, errors);
-
-        if (errors.Count > 0)
-            return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
-
-        var useWriteThenPrune = environment == BuildEnvironment.Development;
-        var generatedFiles = useWriteThenPrune
-            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            : null;
-
-        // For development builds, write-then-prune avoids transient 404 windows during serve.
-        if (!useWriteThenPrune && Directory.Exists(outputDir))
-            Directory.Delete(outputDir, recursive: true);
-        Directory.CreateDirectory(outputDir);
-
+    private async Task<(int Rendered, int SkippedDrafts)> RenderContentItemsAsync(
+        List<ContentItem> allItems,
+        bool includeDrafts,
+        RenderPassContext render,
+        IProgress<BuildProgress>? progress,
+        Collection<string> errors,
+        CancellationToken ct)
+    {
         var rendered = 0;
         var skippedDrafts = 0;
 
-        // Render content items
         foreach (var item in allItems)
         {
             ct.ThrowIfCancellationRequested();
@@ -214,9 +304,9 @@ public sealed class SiteBuilder(
 
             try
             {
-                var html = templateRenderer.Render(item, sharedRenderContext, config, themePath, plugins);
-                var outputPath = Path.Combine(outputDir, item.OutputPath);
-                await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
+                var html = templateRenderer.Render(item, render.SharedContext, render.Config, render.ThemePath, render.Plugins);
+                var outputPath = Path.Combine(render.OutputDir, item.OutputPath);
+                await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                 rendered++;
             }
 #pragma warning disable CA1031 // Intentional: one file error should not abort the entire build
@@ -229,8 +319,18 @@ public sealed class SiteBuilder(
             progress?.Report(new BuildProgress("Rendering pages", rendered + skippedDrafts, allItems.Count));
         }
 
-        // Render collection index pages (for collections with Paginate > 0)
-        foreach (var collection in config.Collections.Values)
+        return (rendered, skippedDrafts);
+    }
+
+    private async Task<int> RenderCollectionIndexesAsync(
+        bool includeDrafts,
+        RenderPassContext render,
+        Collection<string> errors,
+        CancellationToken ct)
+    {
+        var rendered = 0;
+
+        foreach (var collection in render.Config.Collections.Values)
         {
             if (!(collection.Paginate > 0)) continue;
 
@@ -245,13 +345,13 @@ public sealed class SiteBuilder(
                 ct.ThrowIfCancellationRequested();
                 try
                 {
-                    var html = templateRenderer.RenderCollectionIndex(collection, paginator, sharedRenderContext, config, themePath, plugins);
+                    var html = templateRenderer.RenderCollectionIndex(collection, paginator, render.SharedContext, render.Config, render.ThemePath, render.Plugins);
                     var indexBase = collection.IndexUrl.OriginalString;
                     var pageUrl = paginator.Page == 1
                         ? indexBase
                         : $"{indexBase.TrimEnd('/')}/page/{paginator.Page}/";
-                    var outputPath = Path.Combine(outputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative)));
-                    await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
+                    var outputPath = Path.Combine(render.OutputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative)));
+                    await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                     rendered++;
                 }
 #pragma warning disable CA1031 // Intentional: one collection index page error should not abort the entire build
@@ -263,19 +363,29 @@ public sealed class SiteBuilder(
             }
         }
 
-        // Render taxonomy term and overview pages
+        return rendered;
+    }
+
+    private async Task<int> RenderTaxonomyPagesAsync(
+        Dictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomyTerms,
+        RenderPassContext render,
+        Collection<string> errors,
+        CancellationToken ct)
+    {
+        var rendered = 0;
+
         foreach (var (taxName, terms) in allTaxonomyTerms)
         {
-            if (!config.Taxonomies.TryGetValue(taxName, out var taxDef)) continue;
+            if (!render.Config.Taxonomies.TryGetValue(taxName, out var taxDef)) continue;
 
             // Taxonomy overview page
             ct.ThrowIfCancellationRequested();
             try
             {
                 var overviewUrl = TemplateRenderer.GetTaxonomyOverviewUrl(taxDef);
-                var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, sharedRenderContext, config, themePath, plugins);
-                var outputPath = Path.Combine(outputDir, ToOutputPath(overviewUrl));
-                await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
+                var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, render.SharedContext, render.Config, render.ThemePath, render.Plugins);
+                var outputPath = Path.Combine(render.OutputDir, ToOutputPath(overviewUrl));
+                await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                 rendered++;
             }
 #pragma warning disable CA1031 // Intentional: one taxonomy overview error should not abort the entire build
@@ -297,12 +407,12 @@ public sealed class SiteBuilder(
                 {
                     try
                     {
-                        var html = templateRenderer.RenderTaxonomyTerm(term, paginator, sharedRenderContext, config, themePath, plugins);
+                        var html = templateRenderer.RenderTaxonomyTerm(term, paginator, render.SharedContext, render.Config, render.ThemePath, render.Plugins);
                         var pageUrl = paginator.Page == 1
                             ? term.Url.OriginalString
                             : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
-                        var outputPath = Path.Combine(outputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative)));
-                        await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
+                        var outputPath = Path.Combine(render.OutputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative)));
+                        await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                         rendered++;
                     }
 #pragma warning disable CA1031 // Intentional: one taxonomy term page error should not abort the entire build
@@ -315,31 +425,50 @@ public sealed class SiteBuilder(
             }
         }
 
+        return rendered;
+    }
+
+    private async Task RenderNotFoundPageAsync(
+        RenderPassContext render,
+        Collection<string> errors,
+        CancellationToken ct)
+    {
         // Emit a 404 page only when the theme provides a dedicated '404.html' layout.
         // We deliberately do NOT fall back to 'default.html' here: that layout expects a
         // 'page' content item (e.g. page.content), which the not-found page does not bind.
         // A theme without a 404 layout simply gets no 404 page rather than a failed build.
-        var hasNotFoundLayout = File.Exists(Path.Combine(themePath, "layouts", "404.html"));
-        if (hasNotFoundLayout)
+        var hasNotFoundLayout = File.Exists(Path.Combine(render.ThemePath, "layouts", "404.html"));
+        if (!hasNotFoundLayout) return;
+
+        ct.ThrowIfCancellationRequested();
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            try
-            {
-                var notFoundHtml = templateRenderer.RenderNotFound(sharedRenderContext, config, themePath, plugins);
-                var notFoundPath = Path.Combine(outputDir, "404.html");
-                await WriteOutputTextAsync(notFoundPath, notFoundHtml, generatedFiles, ct).ConfigureAwait(false);
-            }
-#pragma warning disable CA1031 // Intentional: a 404 page rendering error should not abort the entire build
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                errors.Add($"Error rendering not-found page: {ex.Message}");
-            }
+            var notFoundHtml = templateRenderer.RenderNotFound(render.SharedContext, render.Config, render.ThemePath, render.Plugins);
+            var notFoundPath = Path.Combine(render.OutputDir, "404.html");
+            await WriteOutputTextAsync(notFoundPath, notFoundHtml, render.GeneratedFiles, ct).ConfigureAwait(false);
         }
+#pragma warning disable CA1031 // Intentional: a 404 page rendering error should not abort the entire build
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            errors.Add($"Error rendering not-found page: {ex.Message}");
+        }
+    }
+
+    private void RunAssetCopyPipeline(
+        List<ContentItem> allItems,
+        string projectPath,
+        BuildEnvironment environment,
+        Collection<string> warnings,
+        RenderPassContext render)
+    {
+        var config = render.Config;
+        var outputDir = render.OutputDir;
+        var generatedFiles = render.GeneratedFiles;
 
         // Copy static assets from theme → _site/assets/ (lowest priority)
         var assetsOutputDir = Path.Combine(outputDir, "assets");
-        var themeStaticDir = Path.Combine(themePath, "static");
+        var themeStaticDir = Path.Combine(render.ThemePath, "static");
         if (Directory.Exists(themeStaticDir))
             CopyDirectory(themeStaticDir, assetsOutputDir, generatedFiles);
 
@@ -368,7 +497,7 @@ public sealed class SiteBuilder(
         }
 
         // Copy plugin assets: plugins/<name>/static/ → _site/assets/plugins/<name>/
-        foreach (var plugin in plugins)
+        foreach (var plugin in render.Plugins)
         {
             var pluginStaticDir = Path.Combine(plugin.Directory, "static");
             if (!Directory.Exists(pluginStaticDir)) continue;
@@ -382,7 +511,17 @@ public sealed class SiteBuilder(
         // so hashes cover the final on-disk bytes.
         if (imageRenameManifest.Count > 0)
             AssetPipeline.RewriteReferences(outputDir, imageRenameManifest);
+    }
 
+    private static async Task WriteFeedsAndMetaAsync(
+        SiteConfiguration config,
+        List<ContentItem> allItems,
+        Dictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomyTerms,
+        bool includeDrafts,
+        string outputDir,
+        HashSet<string>? generatedFiles,
+        CancellationToken ct)
+    {
         // Generate sitemap.xml
         var sitemapContent = SitemapGenerator.Generate(config, allItems, allTaxonomyTerms, includeDrafts);
         await WriteOutputTextAsync(Path.Combine(outputDir, "sitemap.xml"), sitemapContent, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
@@ -403,27 +542,38 @@ public sealed class SiteBuilder(
         // Generate robots.txt
         var robotsTxt = $"User-agent: *\nAllow: /\n\nSitemap: {config.BaseUrl.ToString().TrimEnd('/')}/sitemap.xml\n";
         await WriteOutputTextAsync(Path.Combine(outputDir, "robots.txt"), robotsTxt, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
+    }
 
-        // Production asset pipeline: minify → fingerprint → link-check
-        if (environment == BuildEnvironment.Production)
+    /// <summary>
+    /// Bundles the item/render counters needed by the final production asset pipeline phase
+    /// (only used for the unknown-minifier early-return result) — keeps the phase method's
+    /// parameter count within the S107 limit without changing behavior.
+    /// </summary>
+    private sealed record BuildTally(int TotalItems, int Rendered, int SkippedDrafts, TimeSpan Elapsed);
+
+    private async Task<BuildResult?> RunProductionAssetPipelineAsync(
+        SiteConfiguration config,
+        BuildEnvironment environment,
+        string outputDir,
+        BuildTally tally,
+        Collection<string> warnings,
+        Collection<string> errors,
+        CancellationToken ct)
+    {
+        if (environment != BuildEnvironment.Production)
+            return null;
+
+        var minifierId = config.Assets.Minifier;
+        var selectedMinifier = _assetMinifiers.FirstOrDefault(m => string.Equals(m.Id, minifierId, StringComparison.OrdinalIgnoreCase));
+        if (selectedMinifier is null)
         {
-            var minifierId = config.Assets.Minifier;
-            var selectedMinifier = _assetMinifiers.FirstOrDefault(m => string.Equals(m.Id, minifierId, StringComparison.OrdinalIgnoreCase));
-            if (selectedMinifier is null)
-            {
-                var available = string.Join(", ", _assetMinifiers.Select(static m => $"'{m.Id}'"));
-                errors.Add($"Unknown asset minifier id '{minifierId}'. Available: {available}");
-                return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);
-            }
-
-            await AssetPipeline.RunAsync(outputDir, config.AssetPrefix, config.Build, selectedMinifier, warnings, errors, ct).ConfigureAwait(false);
+            var available = string.Join(", ", _assetMinifiers.Select(static m => $"'{m.Id}'"));
+            errors.Add($"Unknown asset minifier id '{minifierId}'. Available: {available}");
+            return MakeResult(tally.TotalItems, tally.Rendered, tally.SkippedDrafts, tally.Elapsed, outputDir, warnings, errors);
         }
 
-        if (generatedFiles is not null)
-            PruneStaleOutputs(outputDir, generatedFiles);
-
-        stopwatch.Stop();
-        return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);
+        await AssetPipeline.RunAsync(outputDir, config.AssetPrefix, config.Build, selectedMinifier, warnings, errors, ct).ConfigureAwait(false);
+        return null;
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────
