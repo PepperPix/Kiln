@@ -6,7 +6,7 @@ using System.Text;
 using Kiln.Abstractions;
 using Kiln.Models;
 
-public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteConfigLoader) : IDevServer
+public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteConfigLoader, ISearchIndexer searchIndexer) : IDevServer
 {
     private const string LiveReloadEndpoint = "/__kiln/livereload";
     private const int DebounceMilliseconds = 200;
@@ -31,6 +31,11 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
             .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
             .Trim(Path.DirectorySeparatorChar);
 
+        if (config.Search.Enabled)
+        {
+            await RunSearchIndexAsync(outputDirFullPath, config.Search, ct).ConfigureAwait(false);
+        }
+
         var pendingChanges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using var rebuildSync = new SemaphoreSlim(1, 1);
         var debounceLock = new object();
@@ -38,11 +43,14 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         {
             Server = this,
             SiteBuilder = siteBuilder,
+            SearchIndexer = searchIndexer,
             PendingChanges = pendingChanges,
             DebounceLock = debounceLock,
             RebuildSync = rebuildSync,
             ProjectPath = projectPath,
+            OutputDir = outputDirFullPath,
             IncludeDrafts = includeDrafts,
+            SearchOptions = config.Search,
             CancellationToken = ct
         };
 
@@ -164,6 +172,21 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
                 {
                     await state.Server.BroadcastEventAsync("error", BuildErrorMessage(result), state.CancellationToken).ConfigureAwait(false);
                     return;
+                }
+
+                if (state.SearchOptions.Enabled)
+                {
+                    var searchResult = await state.SearchIndexer
+                        .IndexAsync(state.OutputDir, state.SearchOptions, allowDownload: true, state.CancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (!searchResult.Success)
+                    {
+                        var message = searchResult.Errors.Count > 0
+                            ? string.Join("; ", searchResult.Errors)
+                            : "Pagefind indexing failed.";
+                        await state.Server.BroadcastEventAsync("error", $"Search index: {message}", state.CancellationToken).ConfigureAwait(false);
+                    }
                 }
 
                 var eventName = ShouldSendCssEvent(changedPaths, state.ProjectPath) ? "css" : "reload";
@@ -288,6 +311,21 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         finally
         {
             RemoveSseClient(id);
+        }
+    }
+
+    private async Task RunSearchIndexAsync(string outputDir, SearchOptions searchOptions, CancellationToken ct)
+    {
+        var searchResult = await searchIndexer
+            .IndexAsync(outputDir, searchOptions, allowDownload: true, ct)
+            .ConfigureAwait(false);
+
+        if (!searchResult.Success)
+        {
+            var message = searchResult.Errors.Count > 0
+                ? string.Join("; ", searchResult.Errors)
+                : "Pagefind indexing failed.";
+            await BroadcastEventAsync("error", $"Search index: {message}", ct).ConfigureAwait(false);
         }
     }
 
@@ -428,6 +466,8 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
 
         public required ISiteBuilder SiteBuilder { get; init; }
 
+        public required ISearchIndexer SearchIndexer { get; init; }
+
         public required HashSet<string> PendingChanges { get; init; }
 
         public required object DebounceLock { get; init; }
@@ -436,7 +476,11 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
 
         public required string ProjectPath { get; init; }
 
+        public required string OutputDir { get; init; }
+
         public required bool IncludeDrafts { get; init; }
+
+        public required SearchOptions SearchOptions { get; init; }
 
         public required CancellationToken CancellationToken { get; init; }
 
