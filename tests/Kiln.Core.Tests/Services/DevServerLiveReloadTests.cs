@@ -442,7 +442,16 @@ public class DevServerLiveReloadTests
         public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
             => BuildAsync(projectPath, includeDrafts, environment, progress: null, ct);
 
-        public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, CancellationToken ct)
+        public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, CancellationToken ct)
+            => BuildAsync(projectPath, includeDrafts, environment, progress, baseUrlOverride: null, ct);
+
+        public async Task<BuildResult> BuildAsync(
+            string projectPath,
+            bool includeDrafts,
+            BuildEnvironment environment,
+            IProgress<BuildProgress>? progress,
+            Uri? baseUrlOverride,
+            CancellationToken ct = default)
         {
             var active = Interlocked.Increment(ref _currentConcurrent);
             if (active > MaxConcurrentBuilds)

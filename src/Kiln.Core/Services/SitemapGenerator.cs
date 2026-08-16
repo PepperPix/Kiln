@@ -13,7 +13,7 @@ internal static class SitemapGenerator
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomyTerms,
         bool includeDrafts)
     {
-        var baseUrl = config.BaseUrl.ToString().TrimEnd('/');
+        var baseUrl = config.Origin;
         var buildDate = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         using var sw = new Utf8StringWriter();
@@ -42,7 +42,7 @@ internal static class SitemapGenerator
             if (nonDraftCount == 0) continue;
 
             var totalPages = (int)Math.Ceiling(nonDraftCount / (double)collection.Paginate!.Value);
-            var indexUrl = collection.IndexUrl.OriginalString;
+            var indexUrl = SiteConfiguration.ApplyBasePath(config.BasePath, collection.IndexUrl);
 
             WriteUrl(writer, $"{baseUrl}{indexUrl}", buildDate);
             for (var p = 2; p <= totalPages; p++)
@@ -54,17 +54,18 @@ internal static class SitemapGenerator
         {
             if (!config.Taxonomies.TryGetValue(taxName, out var taxDef)) continue;
 
-            var overviewUrl = TemplateRenderer.GetTaxonomyOverviewUrl(taxDef).OriginalString;
+            var overviewUrl = SiteConfiguration.ApplyBasePath(config.BasePath, TemplateRenderer.GetTaxonomyOverviewUrl(taxDef));
             WriteUrl(writer, $"{baseUrl}{overviewUrl}", buildDate);
 
             foreach (var term in terms)
             {
-                WriteUrl(writer, $"{baseUrl}{term.Url.OriginalString}", buildDate);
+                var termUrl = SiteConfiguration.ApplyBasePath(config.BasePath, term.Url);
+                WriteUrl(writer, $"{baseUrl}{termUrl}", buildDate);
                 if (taxDef.Paginate > 0)
                 {
                     var totalPages = (int)Math.Ceiling(term.Count / (double)taxDef.Paginate!.Value);
                     for (var p = 2; p <= totalPages; p++)
-                        WriteUrl(writer, $"{baseUrl}{term.Url.OriginalString.TrimEnd('/')}/page/{p}/", buildDate);
+                        WriteUrl(writer, $"{baseUrl}{termUrl.TrimEnd('/')}/page/{p}/", buildDate);
                 }
             }
         }
