@@ -1,4 +1,5 @@
-﻿using Kiln.Cli.Commands;
+﻿using System.Reflection;
+using Kiln.Cli.Commands;
 using Kiln.Cli.Infrastructure;
 using Kiln.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,13 +10,19 @@ var services = new ServiceCollection();
 services.AddKiln();
 services.AddSingleton(AnsiConsole.Console);
 
+var appVersion = typeof(Program).Assembly
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+    .InformationalVersion
+    ?? typeof(Program).Assembly.GetName().Version?.ToString()
+    ?? "0.0.0";
+
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
 
 app.Configure(config =>
 {
     config.SetApplicationName("kiln");
-    config.SetApplicationVersion("0.1.0");
+    config.SetApplicationVersion(appVersion);
 
     config.AddCommand<BuildCommand>("build")
         .WithDescription("Build the static site.");
