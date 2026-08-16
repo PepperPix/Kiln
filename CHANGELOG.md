@@ -1,3 +1,13 @@
+# [1.2.0-beta.6](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.5...v1.2.0-beta.6) (2026-08-16)
+
+
+### Bug Fixes
+
+* ensure pagefind indexes during kiln serve rebuilds ([a6f328f](https://github.com/PepperPix/Kiln/commit/a6f328f1c619edefa04f28cb2af86b6be1cf8865))
+* migrate default theme search to component ui ([4b77263](https://github.com/PepperPix/Kiln/commit/4b7726392be99a830b59cc6497109e657e93ea53))
+* run generated deploy workflows via dotnet tool run ([c354233](https://github.com/PepperPix/Kiln/commit/c354233ad1ac248d7534f0a430de605deec3d586))
+* support base-url override and subfolder base-path for internal links ([11f9168](https://github.com/PepperPix/Kiln/commit/11f91681cd6d7790f2f384e7671b6bcc7c095433))
+
 # [1.2.0-beta.5](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.4...v1.2.0-beta.5) (2026-08-16)
 
 
