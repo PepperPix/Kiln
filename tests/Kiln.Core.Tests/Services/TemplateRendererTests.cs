@@ -144,6 +144,30 @@ public class TemplateRendererTests
         }
     }
 
+    [Test]
+    public async Task Render_AssetUrlFunction_RespectsConfiguredBasePath()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html><head>{{ asset_url 'css/style.css' }}</head></html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var site = CreateTestSite(collection, basePath: "/blog");
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("/blog/assets/css/style.css");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
     private static string CreateTempTheme(string layout, string layoutName)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-theme-{Guid.NewGuid():N}");
@@ -253,10 +277,10 @@ public class TemplateRendererTests
         Collection = collection
     };
 
-    private static SiteConfiguration CreateTestSite(ContentGroup collection) => new()
+    private static SiteConfiguration CreateTestSite(ContentGroup collection, string basePath = "/") => new()
     {
         Title = "Test Site",
-        BaseUrl = new UriBuilder(Uri.UriSchemeHttp, "localhost", 5555).Uri,
+        BaseUrl = new UriBuilder(Uri.UriSchemeHttp, "localhost", 5555, basePath).Uri,
         Collections = new Dictionary<string, ContentGroup> { ["posts"] = collection }
     };
 }
