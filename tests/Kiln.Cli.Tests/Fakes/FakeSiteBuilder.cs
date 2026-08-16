@@ -10,6 +10,8 @@ public sealed class FakeSiteBuilder : ISiteBuilder
 
     public BuildEnvironment? CapturedEnvironment { get; private set; }
 
+    public Uri? CapturedBaseUrlOverride { get; private set; }
+
     public Func<BuildResult>? ResultFactory { get; set; }
 
     public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default) =>
@@ -18,10 +20,14 @@ public sealed class FakeSiteBuilder : ISiteBuilder
     public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct) =>
         BuildAsync(projectPath, includeDrafts, environment, progress: null, ct);
 
-    public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, CancellationToken ct)
+    public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, CancellationToken ct) =>
+        BuildAsync(projectPath, includeDrafts, environment, progress, baseUrlOverride: null, ct);
+
+    public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, IProgress<BuildProgress>? progress, Uri? baseUrlOverride, CancellationToken ct = default)
     {
         CapturedIncludeDrafts = includeDrafts;
         CapturedEnvironment = environment;
+        CapturedBaseUrlOverride = baseUrlOverride;
 
         var result = ResultFactory?.Invoke() ?? new BuildResult
         {

@@ -71,6 +71,29 @@ public class BuildCommandAppTests
     }
 
     [Test]
+    public async Task BuildCommand_BaseUrlOverride_PassesOverrideToSiteBuilder()
+    {
+        var (app, _, builder, _, _) = CreateApp();
+
+        var result = await app.RunAsync(["build", ".", "--base-url", "https://example.com/reponame"]);
+
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(builder.CapturedBaseUrlOverride).IsNotNull();
+        await Assert.That(builder.CapturedBaseUrlOverride!.ToString()).IsEqualTo("https://example.com/reponame/");
+    }
+
+    [Test]
+    public async Task BuildCommand_InvalidBaseUrlOverride_ExitsOneWithClearMessage()
+    {
+        var (app, console, _, _, _) = CreateApp();
+
+        var result = await app.RunAsync(["build", ".", "--base-url", "not-a-valid-url"]);
+
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+        await Assert.That(console.Output).Contains("valid absolute URL");
+    }
+
+    [Test]
     public async Task BuildCommand_Drafts_PassesIncludeDraftsTrue()
     {
         var (app, _, builder, _, _) = CreateApp();
