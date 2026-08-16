@@ -1,3 +1,10 @@
+# [1.2.0-beta.5](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.4...v1.2.0-beta.5) (2026-08-16)
+
+
+### Bug Fixes
+
+* **cli:** use build metadata for CLI version ([e4fce35](https://github.com/PepperPix/Kiln/commit/e4fce35cdd0a639e6a7d861ca9f0d55a2d818e2b))
+
 # [1.2.0-beta.4](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.3...v1.2.0-beta.4) (2026-08-05)
 
 
