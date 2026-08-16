@@ -20,7 +20,8 @@ public class SearchUiIntegrationTests
                 Path.Combine(dir, "_site", "index", "index.html"));
 
             await Assert.That(indexHtml).Contains("id=\"search\"");
-            await Assert.That(indexHtml).Contains("pagefind-ui.js");
+            await Assert.That(indexHtml).Contains("pagefind/pagefind.js");
+            await Assert.That(indexHtml).Contains("js/kiln-search.js");
         }
         finally
         {
@@ -43,7 +44,8 @@ public class SearchUiIntegrationTests
             var indexHtml = await File.ReadAllTextAsync(
                 Path.Combine(dir, "_site", "index", "index.html"));
 
-            await Assert.That(indexHtml).DoesNotContain("pagefind-ui.js");
+            await Assert.That(indexHtml).DoesNotContain("pagefind/pagefind.js");
+            await Assert.That(indexHtml).DoesNotContain("js/kiln-search.js");
         }
         finally
         {
@@ -95,14 +97,10 @@ public class SearchUiIntegrationTests
         File.WriteAllText(Path.Combine(dir, "themes", "default", "partials", "search.html"),
             """
             {{ if site.search.enabled }}
-            <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
-            <div id="search" class="kiln-search"></div>
-            <script src="/pagefind/pagefind-ui.js"></script>
-            <script>
-              window.addEventListener("DOMContentLoaded", function () {
-                new PagefindUI({ element: "#search", showSubResults: true });
-              });
-            </script>
+            <link href="{{ asset_url 'pagefind/pagefind-ui.css' }}" rel="stylesheet" />
+            <div id="search" class="kiln-search" data-pagefind-root></div>
+            <script src="{{ asset_url 'pagefind/pagefind.js' }}" type="module"></script>
+            <script src="{{ asset_url 'js/kiln-search.js' }}" defer></script>
             {{ end }}
             """);
 
