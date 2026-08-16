@@ -19,7 +19,10 @@ public sealed class SiteBuilder(
     public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts = false, CancellationToken ct = default)
         => BuildAsync(projectPath, includeDrafts, BuildEnvironment.Development, ct);
 
-    public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
+    public Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, CancellationToken ct)
+        => BuildAsync(projectPath, includeDrafts, environment, baseUrlOverride: null, ct);
+
+    public async Task<BuildResult> BuildAsync(string projectPath, bool includeDrafts, BuildEnvironment environment, Uri? baseUrlOverride, CancellationToken ct = default)
     {
         var stopwatch = Stopwatch.StartNew();
         var warnings = new Collection<string>();
@@ -27,6 +30,9 @@ public sealed class SiteBuilder(
 
         // Load configuration
         var config = configLoader.Load(projectPath);
+        if (baseUrlOverride is not null)
+            config = config.WithBaseUrl(baseUrlOverride);
+
         var outputDir = Path.Combine(projectPath, config.OutputDir);
         var themePath = Path.Combine(projectPath, config.ThemesDir, config.Theme);
 
@@ -46,8 +52,8 @@ public sealed class SiteBuilder(
             var items = contentReader.ReadCollection(collection, projectPath);
             foreach (var item in items)
             {
-                item.Url = permalinkGenerator.Generate(item, collection);
-                item.OutputPath = ToOutputPath(item.Url);
+                item.Url = permalinkGenerator.Generate(item, collection, config.BasePath);
+                item.OutputPath = ToOutputPath(item.Url, config.BasePath);
                 collection.Items.Add(item);
             }
 
@@ -75,8 +81,8 @@ public sealed class SiteBuilder(
                 {
                     var homeCollection = new ContentGroup { Name = "home", Layout = "home" };
                     var homeItem = contentReader.ReadSingleFile(homePageAbsolute, homeCollection);
-                    homeItem.Url = new Uri("/", UriKind.Relative);
-                    homeItem.OutputPath = ToOutputPath(homeItem.Url);
+                    homeItem.Url = new Uri(SiteConfiguration.ApplyBasePath(config.BasePath, new Uri("/", UriKind.Relative)), UriKind.Relative);
+                    homeItem.OutputPath = ToOutputPath(homeItem.Url, config.BasePath);
                     homeCollection.Items.Add(homeItem);
                     allItems.Add(homeItem);
                 }
@@ -137,7 +143,7 @@ public sealed class SiteBuilder(
 
         // Build navigation tree once per build
         var publishedItems = allItems.Where(i => !i.Draft || includeDrafts).ToList();
-        var navTree = NavigationTreeBuilder.Build(publishedItems);
+        var navTree = NavigationTreeBuilder.Build(publishedItems, config.BasePath);
         var sharedRenderContext = SharedRenderContext.Build(config, allTaxonomyTerms, navTree);
 
         // Collect all virtual page URLs for collision checking
@@ -222,7 +228,7 @@ public sealed class SiteBuilder(
                 .ToList();
             if (nonDraftItems.Count == 0) continue;
 
-            var paginators = BuildPaginators(nonDraftItems, collection.Paginate!.Value, collection.IndexUrl.OriginalString);
+            var paginators = BuildPaginators(nonDraftItems, collection.Paginate!.Value, collection.IndexUrl.OriginalString, config.BasePath);
             foreach (var paginator in paginators)
             {
                 ct.ThrowIfCancellationRequested();
@@ -233,7 +239,7 @@ public sealed class SiteBuilder(
                     var pageUrl = paginator.Page == 1
                         ? indexBase
                         : $"{indexBase.TrimEnd('/')}/page/{paginator.Page}/";
-                    var outputPath = Path.Combine(outputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative)));
+                    var outputPath = Path.Combine(outputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative), config.BasePath));
                     await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                     rendered++;
                 }
@@ -257,7 +263,7 @@ public sealed class SiteBuilder(
             {
                 var overviewUrl = TemplateRenderer.GetTaxonomyOverviewUrl(taxDef);
                 var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, sharedRenderContext, config, themePath, plugins);
-                var outputPath = Path.Combine(outputDir, ToOutputPath(overviewUrl));
+                var outputPath = Path.Combine(outputDir, ToOutputPath(overviewUrl, config.BasePath));
                 await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                 rendered++;
             }
@@ -273,7 +279,7 @@ public sealed class SiteBuilder(
             {
                 ct.ThrowIfCancellationRequested();
                 var paginators = taxDef.Paginate > 0
-                    ? BuildPaginators(term.Items.ToList(), taxDef.Paginate!.Value, term.Url.OriginalString)
+                    ? BuildPaginators(term.Items.ToList(), taxDef.Paginate!.Value, term.Url.OriginalString, config.BasePath)
                     : [new Paginator { Items = term.Items, Page = 1, TotalPages = 1, TotalItems = term.Count }];
 
                 foreach (var paginator in paginators)
@@ -284,7 +290,7 @@ public sealed class SiteBuilder(
                         var pageUrl = paginator.Page == 1
                             ? term.Url.OriginalString
                             : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
-                        var outputPath = Path.Combine(outputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative)));
+                        var outputPath = Path.Combine(outputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative), config.BasePath));
                         await WriteOutputTextAsync(outputPath, html, generatedFiles, ct).ConfigureAwait(false);
                         rendered++;
                     }
@@ -432,7 +438,10 @@ public sealed class SiteBuilder(
         }
         else if (item.Url is not null && !item.External)
         {
-            if (!knownUrls.Contains(item.Url.OriginalString))
+            // Menu URLs are authored site-relative (without the base path); known page URLs
+            // already carry the base path prefix, so the same prefix must be applied before comparing.
+            var resolvedUrl = SiteConfiguration.ApplyBasePath(config.BasePath, item.Url);
+            if (!knownUrls.Contains(resolvedUrl))
                 warnings.Add($"Menu '{menuName}': URL '{item.Url.OriginalString}' ('{item.Title}') does not match any known page");
         }
 
@@ -596,29 +605,28 @@ public sealed class SiteBuilder(
 
 #pragma warning disable CA1859 // IReadOnlyList intentional: supports both List and Collection callers
     private static List<Paginator> BuildPaginators(
-        IReadOnlyList<ContentItem> items, int pageSize, string baseUrl)
+        IReadOnlyList<ContentItem> items, int pageSize, string baseUrl, string basePath = "")
 #pragma warning restore CA1859
     {
         var totalPages = (int)Math.Ceiling(items.Count / (double)pageSize);
         if (totalPages == 0) totalPages = 1;
 
         var paginators = new List<Paginator>(totalPages);
-        var baseNormalized = baseUrl.TrimEnd('/') + "/";
         const int firstPage = 1;
         const int secondPage = 2;
         for (var page = firstPage; page <= totalPages; page++)
         {
             var pageItems = items.Skip((page - firstPage) * pageSize).Take(pageSize).ToList();
             Uri? nextUrl = page < totalPages
-                ? new Uri($"{baseNormalized}page/{page + firstPage}/", UriKind.Relative)
+                ? BuildRelativePaginationUrl(baseUrl, page + firstPage, basePath)
                 : null;
             Uri? prevUrl;
             if (page == firstPage)
                 prevUrl = null;
             else if (page == secondPage)
-                prevUrl = new Uri(baseNormalized, UriKind.Relative);
+                prevUrl = BuildRelativePaginationUrl(baseUrl, 1, basePath);
             else
-                prevUrl = new Uri($"{baseNormalized}page/{page - firstPage}/", UriKind.Relative);
+                prevUrl = BuildRelativePaginationUrl(baseUrl, page - firstPage, basePath);
 
             paginators.Add(new Paginator
             {
@@ -633,10 +641,20 @@ public sealed class SiteBuilder(
         return paginators;
     }
 
-    private static string ToOutputPath(Uri url)
+    private static Uri BuildRelativePaginationUrl(string baseUrl, int pageNumber, string basePath)
+    {
+        var normalizedBase = baseUrl.TrimEnd('/');
+        var pagePath = pageNumber <= 1
+            ? normalizedBase
+            : $"{normalizedBase}/page/{pageNumber}/";
+
+        return new Uri(SiteConfiguration.ApplyBasePath(basePath, new Uri(pagePath, UriKind.Relative)), UriKind.Relative);
+    }
+
+    private static string ToOutputPath(Uri url, string basePath = "")
     {
         // /blog/hello-world/ → blog/hello-world/index.html
-        var normalized = url.OriginalString.Trim('/');
+        var normalized = SiteConfiguration.RemoveBasePath(url, basePath).Trim('/');
         return string.IsNullOrEmpty(normalized)
             ? "index.html"
             : Path.Combine(normalized, "index.html");

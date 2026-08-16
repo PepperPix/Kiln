@@ -168,6 +168,32 @@ public class TemplateRendererTests
         }
     }
 
+    [Test]
+    public async Task Render_ProvidesBasePathVariableAndPrefixedPageUrl()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html>{{ site.base_path }}|{{ page.url }}|{{ page.collection.url }}</html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var site = CreateTestSite(collection, basePath: "/reponame");
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("/reponame");
+            await Assert.That(result).Contains("/reponame/blog/test-post/");
+            await Assert.That(result).Contains("/reponame/blog/");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
     private static string CreateTempTheme(string layout, string layoutName)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-theme-{Guid.NewGuid():N}");
