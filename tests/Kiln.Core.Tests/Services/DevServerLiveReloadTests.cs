@@ -35,7 +35,7 @@ public class DevServerLiveReloadTests
         var projectDir = CreateWatchedProject();
         var builder = new RecordingSiteBuilder("_site");
         var configLoader = new StubSiteConfigLoader("_site");
-        var server = new DevServer(builder, configLoader);
+        var server = new DevServer(builder, configLoader, new RecordingSearchIndexer());
         var port = GetFreePort();
         using var cts = new CancellationTokenSource();
 
@@ -84,7 +84,7 @@ public class DevServerLiveReloadTests
             var builtHtml = await File.ReadAllTextAsync(Path.Combine(projectDir, "_site", "blog", "hello-world", "index.html"));
             await Assert.That(builtHtml).DoesNotContain(LiveReloadEndpoint);
 
-            var server = new DevServer(siteBuilder, configLoader);
+            var server = new DevServer(siteBuilder, configLoader, new RecordingSearchIndexer());
             var runTask = server.RunAsync(projectDir, port, ct: cts.Token);
 
             using var client = new HttpClient();
@@ -108,7 +108,7 @@ public class DevServerLiveReloadTests
         var projectDir = CreateWatchedProject();
         var builder = new RecordingSiteBuilder("_site");
         var configLoader = new StubSiteConfigLoader("_site");
-        var server = new DevServer(builder, configLoader);
+        var server = new DevServer(builder, configLoader, new RecordingSearchIndexer());
         var port = GetFreePort();
         using var cts = new CancellationTokenSource();
 
@@ -154,7 +154,7 @@ public class DevServerLiveReloadTests
         var projectDir = CreateWatchedProject();
         var builder = new RecordingSiteBuilder("_site");
         var configLoader = new StubSiteConfigLoader("_site");
-        var server = new DevServer(builder, configLoader);
+        var server = new DevServer(builder, configLoader, new RecordingSearchIndexer());
         var port = GetFreePort();
         using var cts = new CancellationTokenSource();
 
@@ -190,12 +190,51 @@ public class DevServerLiveReloadTests
     }
 
     [Test]
+    public async Task RunAsync_IndexesPagefindAfterInitialBuildAndRebuild_WhenSearchEnabled()
+    {
+        var projectDir = CreateWatchedProject();
+        var builder = new RecordingSiteBuilder("_site");
+        var configLoader = new StubSiteConfigLoader("_site", searchEnabled: true);
+        var indexer = new RecordingSearchIndexer();
+        var server = new DevServer(builder, configLoader, indexer);
+        var port = GetFreePort();
+        using var cts = new CancellationTokenSource();
+
+        var runTask = server.RunAsync(projectDir, port, ct: cts.Token);
+
+        try
+        {
+            await builder.WaitForBuildCountAsync(1, DefaultTimeout);
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(4);
+            await WaitForServerReadyAsync(client, port, DefaultTimeout);
+
+            var markerPath = Path.Combine(projectDir, "_site", "pagefind", "pagefind.js");
+            await Assert.That(File.Exists(markerPath)).IsTrue();
+            await Assert.That(indexer.CallCount).IsEqualTo(1);
+
+            await File.WriteAllTextAsync(Path.Combine(projectDir, "content", "posts", "hello.md"), "updated", CancellationToken.None);
+            await builder.WaitForBuildCountAsync(RebuildCountAfterBurst, DefaultTimeout);
+            await Task.Delay(TimeSpan.FromMilliseconds(WaitForDebounceMilliseconds));
+
+            await Assert.That(File.Exists(markerPath)).IsTrue();
+            await Assert.That(indexer.CallCount).IsEqualTo(RebuildCountAfterBurst);
+        }
+        finally
+        {
+            await cts.CancelAsync();
+            await runTask.WaitAsync(TimeSpan.FromSeconds(3));
+            Directory.Delete(projectDir, true);
+        }
+    }
+
+    [Test]
     public async Task RunAsync_ShutdownClosesOpenSseStreams()
     {
         var projectDir = CreateWatchedProject();
         var builder = new RecordingSiteBuilder("_site");
         var configLoader = new StubSiteConfigLoader("_site");
-        var server = new DevServer(builder, configLoader);
+        var server = new DevServer(builder, configLoader, new RecordingSearchIndexer());
         var port = GetFreePort();
         using var cts = new CancellationTokenSource();
 
@@ -345,7 +384,7 @@ public class DevServerLiveReloadTests
         return dir;
     }
 
-    private sealed class StubSiteConfigLoader(string outputDir) : ISiteConfigLoader
+    private sealed class StubSiteConfigLoader(string outputDir, bool searchEnabled = false) : ISiteConfigLoader
     {
         public SiteConfiguration Load(string projectPath)
         {
@@ -353,8 +392,29 @@ public class DevServerLiveReloadTests
             {
                 Title = "Test",
                 BaseUrl = new UriBuilder(Uri.UriSchemeHttp, "localhost", PortForSiteBaseUrl).Uri,
-                OutputDir = outputDir
+                OutputDir = outputDir,
+                Search = new SearchOptions { Enabled = searchEnabled }
             };
+        }
+    }
+
+    private sealed class RecordingSearchIndexer : ISearchIndexer
+    {
+        private readonly object _sync = new();
+
+        public int CallCount { get; private set; }
+
+        public async Task<SearchIndexResult> IndexAsync(string outputDir, SearchOptions options, bool allowDownload, CancellationToken ct)
+        {
+            lock (_sync)
+            {
+                CallCount++;
+            }
+
+            var markerPath = Path.Combine(outputDir, "pagefind", "pagefind.js");
+            Directory.CreateDirectory(Path.GetDirectoryName(markerPath)!);
+            await File.WriteAllTextAsync(markerPath, "pagefind-marker", ct).ConfigureAwait(false);
+            return new SearchIndexResult(true, [], []);
         }
     }
 
