@@ -163,6 +163,29 @@ public sealed class TemplateRenderer : ITemplateRenderer
         return template.Render(context);
     }
 
+    private static string CombineBasePathAndRelativePath(SiteConfiguration site, string relativePath)
+    {
+        var normalizedRelativePath = relativePath.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedRelativePath))
+            return GetSiteBasePath(site.BaseUrl);
+
+        var basePath = GetSiteBasePath(site.BaseUrl);
+        var relative = normalizedRelativePath.TrimStart('/');
+
+        return string.IsNullOrEmpty(basePath)
+            ? $"/{relative}"
+            : $"{basePath}/{relative}";
+    }
+
+    private static string GetSiteBasePath(Uri baseUrl)
+    {
+        var path = baseUrl.AbsolutePath;
+        if (string.IsNullOrWhiteSpace(path) || path == "/")
+            return string.Empty;
+
+        return path.TrimEnd('/');
+    }
+
     private static ScriptObject BuildItemScriptObject(
         ContentItem item,
         SharedRenderContext shared,
@@ -220,7 +243,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
         var assetPrefix = site.AssetPrefix.TrimEnd('/');
         var effectiveSlug = string.IsNullOrEmpty(item.SectionPath) ? item.Slug : $"{item.SectionPath}/{item.Slug}";
         so.Import("page_asset_url", new Func<string, string>(
-            filename => $"{assetPrefix}/content/{item.Collection.Name}/{effectiveSlug}/{filename.TrimStart('/')}"));
+            filename => CombineBasePathAndRelativePath(site, $"{assetPrefix}/content/{item.Collection.Name}/{effectiveSlug}/{filename.TrimStart('/')}")));
 
         return so;
     }
@@ -297,11 +320,11 @@ public sealed class TemplateRenderer : ITemplateRenderer
         // asset_url
         var assetPrefix = site.AssetPrefix.TrimEnd('/');
         so.Import("asset_url", new Func<string, string>(
-            path => $"{assetPrefix}/{path.TrimStart('/')}"));
+            path => CombineBasePathAndRelativePath(site, $"{assetPrefix}/{path.TrimStart('/')}")));
 
         // plugin_asset_url
         so.Import("plugin_asset_url", new Func<string, string, string>(
-            (pluginName, path) => $"{assetPrefix}/plugins/{pluginName}/{path.TrimStart('/')}"));
+            (pluginName, path) => CombineBasePathAndRelativePath(site, $"{assetPrefix}/plugins/{pluginName}/{path.TrimStart('/')}")));
 
         // limit helper for concise list widgets: collections.posts.items | limit 5
         so.Import("limit", new Func<object?, int, object>((source, n) =>
