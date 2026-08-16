@@ -32,6 +32,7 @@ public class DeploymentInitializerTests
             var workflow = await File.ReadAllTextAsync(workflowPath);
             await Assert.That(workflow).Contains("name: Deploy to GitHub Pages");
             await Assert.That(workflow).Contains("uses: actions/deploy-pages@v4");
+            await Assert.That(workflow).Contains("dotnet tool run kiln build --release");
         }
         finally
         {
@@ -67,6 +68,7 @@ public class DeploymentInitializerTests
 
             await Assert.That(workflow).Contains("name: Deploy to Azure Static Web Apps");
             await Assert.That(workflow).Contains("uses: Azure/static-web-apps-deploy@v1");
+            await Assert.That(workflow).Contains("dotnet tool run kiln build --release");
             await Assert.That(config).Contains("\"responseOverrides\"");
             await Assert.That(config).Contains("\"/404.html\"");
         }
