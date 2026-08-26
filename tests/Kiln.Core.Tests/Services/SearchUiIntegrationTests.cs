@@ -20,7 +20,8 @@ public class SearchUiIntegrationTests
                 Path.Combine(dir, "_site", "index", "index.html"));
 
             await Assert.That(indexHtml).Contains("id=\"search\"");
-            await Assert.That(indexHtml).Contains("pagefind/pagefind.js");
+            await Assert.That(indexHtml).Contains("/pagefind/pagefind.js");
+            await Assert.That(indexHtml).DoesNotContain("/assets/pagefind/pagefind.js");
             await Assert.That(indexHtml).Contains("js/kiln-search.js");
         }
         finally
@@ -97,9 +98,8 @@ public class SearchUiIntegrationTests
         File.WriteAllText(Path.Combine(dir, "themes", "default", "partials", "search.html"),
             """
             {{ if site.search.enabled }}
-            <link href="{{ asset_url 'pagefind/pagefind-ui.css' }}" rel="stylesheet" />
-            <div id="search" class="kiln-search" data-pagefind-root></div>
-            <script src="{{ asset_url 'pagefind/pagefind.js' }}" type="module"></script>
+            <link href="{{ site.base_path }}/pagefind/pagefind-ui.css" rel="stylesheet" />
+            <div id="search" class="kiln-search" data-pagefind-root data-pagefind-module="{{ site.base_path }}/pagefind/pagefind.js"></div>
             <script src="{{ asset_url 'js/kiln-search.js' }}" defer></script>
             {{ end }}
             """);
