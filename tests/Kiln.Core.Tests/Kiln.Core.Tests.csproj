@@ -4,11 +4,13 @@
     <OutputType>Exe</OutputType>
     <StaticAnalysisCodeType>Test</StaticAnalysisCodeType>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TUnit" Version="1.58.*" />
-    <PackageReference Include="TUnit.Mocks" Version="1.58.*" />
+    <PackageReference Include="TUnit" Version="1.65.*" />
+    <PackageReference Include="TUnit.Mocks" Version="1.65.*" />
   </ItemGroup>
 
   <ItemGroup>

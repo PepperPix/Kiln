@@ -1,5 +1,6 @@
 {{ if site.search.enabled }}
-<link href="{{ asset_url 'pagefind/pagefind-ui.css' }}" rel="stylesheet" />
-<div id="search" class="kiln-search" data-pagefind-root data-pagefind-module="{{ asset_url 'pagefind/pagefind.js' }}"></div>
+<link href="{{ site.base_path }}/pagefind/pagefind-ui.css" rel="stylesheet" />
+<div id="search" class="kiln-search" data-pagefind-root
+    data-pagefind-module="{{ site.base_path }}/pagefind/pagefind.js"></div>
 <script src="{{ asset_url 'js/kiln-search.js' }}" defer></script>
 {{ end }}
