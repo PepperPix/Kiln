@@ -99,7 +99,7 @@ public sealed class SiteBuilder(
 
         // Render content items
         var (rendered, skippedDrafts) = await RenderContentItemsAsync(
-            allItems, includeDrafts, render, progress, errors, ct).ConfigureAwait(false);
+            allItems, includeDrafts, render, warnings, progress, errors, ct).ConfigureAwait(false);
 
         // Render collection index pages (for collections with Paginate > 0)
         rendered += await RenderCollectionIndexesAsync(includeDrafts, render, errors, ct).ConfigureAwait(false);
@@ -301,6 +301,7 @@ public sealed class SiteBuilder(
         List<ContentItem> allItems,
         bool includeDrafts,
         RenderPassContext render,
+        Collection<string> warnings,
         IProgress<BuildProgress>? progress,
         Collection<string> errors,
         CancellationToken ct)
@@ -322,6 +323,14 @@ public sealed class SiteBuilder(
             try
             {
                 var html = templateRenderer.Render(item, render.SharedContext, render.Config, render.ThemePath, render.Plugins);
+                if (item.NoIndex)
+                {
+                    var originalHtml = html;
+                    html = InjectNoIndexMeta(html);
+                    if (html == originalHtml)
+                        warnings.Add($"'{item.RelativePath}' has noIndex: true but no </head> tag was found; robots meta tag was not injected.");
+                }
+
                 var outputPath = Path.Combine(render.OutputDir, item.OutputPath);
                 await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                 rendered++;
@@ -337,6 +346,15 @@ public sealed class SiteBuilder(
         }
 
         return (rendered, skippedDrafts);
+    }
+
+    private static string InjectNoIndexMeta(string html)
+    {
+        const string metaTag = "<meta name=\"robots\" content=\"noindex, nofollow\">";
+        var headEndIndex = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+        return headEndIndex < 0
+            ? html
+            : html.Insert(headEndIndex, metaTag);
     }
 
     private async Task<int> RenderCollectionIndexesAsync(

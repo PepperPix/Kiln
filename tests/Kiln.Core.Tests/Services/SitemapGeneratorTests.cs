@@ -85,6 +85,26 @@ public class SitemapGeneratorTests
         }
     }
 
+    [Test]
+    public async Task BuildAsync_Sitemap_ExcludesNoIndexPagesEvenWhenDraftsIncluded()
+    {
+        var dir = CreateSiteForSitemap();
+
+        try
+        {
+            var builder = CreateBuilder();
+            await builder.BuildAsync(dir, includeDrafts: true);
+
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "_site", "sitemap.xml"));
+
+            await Assert.That(sitemap).DoesNotContain("/hidden-post/");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static string CreateSiteForSitemap()
@@ -121,6 +141,15 @@ public class SitemapGeneratorTests
             draft: true
             ---
             Draft content
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "posts", "hidden-post.md"),
+            """
+            ---
+            title: Hidden Post
+            noIndex: true
+            ---
+            Hidden content
             """);
 
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),

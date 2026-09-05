@@ -19,7 +19,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor, IShortco
     private static readonly HashSet<string> KnownFrontMatterKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "id", "title", "date", "draft", "layout", "slug", "description",
-        "url", "weight", "extra", "imageOptimization"
+        "url", "weight", "extra", "imageOptimization", "noIndex"
     };
 
     private readonly IShortcodeProcessor _shortcodeProcessor = shortcodeProcessor ?? new ShortcodeProcessor();
@@ -190,7 +190,8 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor, IShortco
             Extra = extra,
             Taxonomies = taxonomies,
             AssetDirectory = assetDirectory,
-            ImageOptimization = frontMatter.ImageOptimization ?? true
+            ImageOptimization = frontMatter.ImageOptimization ?? true,
+            NoIndex = frontMatter.NoIndex
         };
     }
 

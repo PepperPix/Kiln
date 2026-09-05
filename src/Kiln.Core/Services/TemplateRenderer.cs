@@ -233,6 +233,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
         pageObj.Add("description", item.Description);
         pageObj.Add("teaser", item.Teaser);
         pageObj.Add("draft", item.Draft);
+        pageObj.Add("no_index", item.NoIndex);
         pageObj.Add("weight", item.Weight);
         pageObj.Add("extra", item.Extra);
         pageObj.Add("tags", item.Taxonomies.GetValueOrDefault("tags"));

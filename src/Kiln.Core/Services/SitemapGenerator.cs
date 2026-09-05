@@ -26,7 +26,7 @@ internal static class SitemapGenerator
         // Content items
         foreach (var item in allItems)
         {
-            if (item.Draft && !includeDrafts) continue;
+            if ((item.Draft && !includeDrafts) || item.NoIndex) continue;
             var lastmod = item.Date.HasValue
                 ? item.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
                 : buildDate;
