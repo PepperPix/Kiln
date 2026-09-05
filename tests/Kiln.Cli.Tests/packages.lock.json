@@ -25,29 +25,29 @@
       "TUnit": {
         "type": "Direct",
         "requested": "[1.65.*, )",
-        "resolved": "1.65.63",
-        "contentHash": "g0XnXiXEbcBtwJTvQ1lEuut4iqU7/cOzkhRjQ3ZTU4DxPwmFGO7kQZiYHs3sR2GbCSjpkkwZGxB4kdPleOBJuQ==",
+        "resolved": "1.65.68",
+        "contentHash": "m9T37lAzkKxAbnj3PkKQ9irRC0CvL8P2tuE2UzRyEsaaWMZZXIDHmSqjs4RDN4URnvT8iFfp3/1TLPUi4cwtXg==",
         "dependencies": {
           "Microsoft.Testing.Extensions.CodeCoverage": "18.10.0",
           "Microsoft.Testing.Extensions.Telemetry": "2.3.3",
           "Microsoft.Testing.Extensions.TrxReport": "2.3.3",
-          "TUnit.Assertions": "1.65.63",
-          "TUnit.Engine": "1.65.63"
+          "TUnit.Assertions": "1.65.68",
+          "TUnit.Engine": "1.65.68"
         }
       },
       "TUnit.Mocks": {
         "type": "Direct",
         "requested": "[1.65.*, )",
-        "resolved": "1.65.63",
-        "contentHash": "LU3rJ/QMUxyaSwLUgdq7TegeNYCvsk6LTzwZ485+9Hxycdn0zPBmGMR00iHBozrJ5U4HkkI8I7lVwpqDKJ/dSA==",
+        "resolved": "1.65.68",
+        "contentHash": "Z5Ll3iD7O3A/eYNqowiSZudkwuTyF0jwCFYvSV0WdpfYCQBcT97Zr/Y3sDP5U80EbKinlsa0VZLHLvnXiSByEg==",
         "dependencies": {
-          "TUnit.Core": "1.65.63"
+          "TUnit.Core": "1.65.68"
         }
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.7.2",
-        "contentHash": "r1rb5Qo/0KPzmP0nbSiXPDVfh4Ctu0B+y1RyyUq73g4sgAmEW7q10RDyTq2ZsILwtO9O2LAvMrUles7eD4zz1g=="
+        "resolved": "1.7.3",
+        "contentHash": "I8TpSvgOPAVQHjVvXaROZOkIGZdX0tn+e9CUix6mv5pMqfyKO+/zm/dofsXgsxVTJl/sSTnEMFwrdnqxTt2axQ=="
       },
       "Markdig": {
         "type": "Transitive",
@@ -155,6 +155,57 @@
         "resolved": "17.14.15",
         "contentHash": "mXQPJsbuUD2ydq4/ffd8h8tSOFCXec+2xJOVNCvXjuMOq/+5EKHq3D2m2MC2+nUaXeFMSt66VS/J4HdKBixgcw=="
       },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.3",
+        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+      },
+      "NuGet.Common": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "OWFEzHpwvgzSaHYmWzfbyTm6oBOy/BFSFEDk73zM9jiJaxdopYZ/DrqIQogaM3F+ZGTppBJffmzu5adetEI/YA==",
+        "dependencies": {
+          "NuGet.Frameworks": "7.9.0"
+        }
+      },
+      "NuGet.Configuration": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "oY9XZp+TWjOmiGmU4R4JWBRY3F4TAVo7tqPr/z7MOsFcEpdYHMryjNSscoLBxUTR3WmFmYgO0Gvu4eRbz6pzOg==",
+        "dependencies": {
+          "NuGet.Common": "7.9.0",
+          "System.Security.Cryptography.ProtectedData": "8.0.0"
+        }
+      },
+      "NuGet.Frameworks": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "w2adPmgUafmW9ON1MzDjuHmViN0vtiPV48Dz3OE6px8BiGSqrnWHOjwFEPOEPAZx20J1c7bxp90Hxo9l4xGWtw=="
+      },
+      "NuGet.Packaging": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "Q2jxuud5kJLV0rUzsC02iC5ts8QsQu9UVyMvF8lULY3TwHL/W/PrnQ9bQFvMR7jJkzF1uilRPI1o+7VOtc2XMg==",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3",
+          "NuGet.Configuration": "7.9.0",
+          "NuGet.Versioning": "7.9.0",
+          "System.Security.Cryptography.Pkcs": "8.0.1"
+        }
+      },
+      "NuGet.Protocol": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "Ts0qPUGJYfFHhlNSSWWrkaSG6++WqS6ry32WmQA7eNdzTc9SumyhDflITcusBYkT6pEQD5BI1UEByakciV3s0A==",
+        "dependencies": {
+          "NuGet.Packaging": "7.9.0"
+        }
+      },
+      "NuGet.Versioning": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "r4sZuVpVqwSBLe4qYDrnpScqdyctlRXg0HSF5OoCGkeBc8b+o8BBYHuI/u1RoWYX78PbieijU13TBt71/Xf3lw=="
+      },
       "NUglify": {
         "type": "Transitive",
         "resolved": "1.22.4",
@@ -162,8 +213,8 @@
       },
       "Scriban": {
         "type": "Transitive",
-        "resolved": "7.2.6",
-        "contentHash": "k6DvaRY83jtigNudMoYlN5Zg42JEDDOCSeKrnpHiE5Gthkd9Fr+6VnYFnL3DqtkZTtPezJJdoX3ZfOTTFpQEMg=="
+        "resolved": "7.4.0",
+        "contentHash": "h5QYOAKw7F4ajVNxeScBsq0c7en6YWyKDSC4ZnZIlrkeJrl0ekHk1PlpqP5C4peqkt6NoXl9dlwK3pI4oDC5oA=="
       },
       "SharpYaml": {
         "type": "Transitive",
@@ -228,25 +279,35 @@
           "Spectre.Console": "0.55.0"
         }
       },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA=="
+      },
+      "System.Security.Cryptography.ProtectedData": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "+TUFINV2q2ifyXauQXRwy4CiBhqvDEDZeVJU7qfxya4aRYOKzVBpN+4acx25VcPB9ywUN6C0n8drWl110PhZEg=="
+      },
       "TUnit.Assertions": {
         "type": "Transitive",
-        "resolved": "1.65.63",
-        "contentHash": "zl8cTQJbBNH5x+B0kkDeIN65193PQYStyQ6r3wodf8Q9sHn22G9fsWPPEYj6mHKfOxBTGStEN+06leoEAlDOuA=="
+        "resolved": "1.65.68",
+        "contentHash": "9k88ue1cG4Gt2M2le3VQrdWK3ngTxSXdnXshvsVr3jeH80ZmBTGIZ5K5EdZpIkdca6j10pcMmJSHuFhkSz85Nw=="
       },
       "TUnit.Core": {
         "type": "Transitive",
-        "resolved": "1.65.63",
-        "contentHash": "7rdRvWgnNqHhfFTcM2nERRI32YJqjm4GKgAjgDUqNRdKQYdYSqR2vkzPOzMZthKqQXW4BYdxuHMpj1UwRXx0dw=="
+        "resolved": "1.65.68",
+        "contentHash": "5uE6TGXwY/ozRgz5qNLK+n6XGfS2tgG8AA2loA1YilBZTMgbnv2QoPdyBPS4f/uQQZ1sclCq7zdF1aUQkDxNug=="
       },
       "TUnit.Engine": {
         "type": "Transitive",
-        "resolved": "1.65.63",
-        "contentHash": "fzx5iVl+zQyv6j3f2UEk+u0sVONzB9T7sV6DZBPfw9H5Bt/0leo0Bj/gdb61yJ+IISgYCQ9V9zvI4h7CVj1vYw==",
+        "resolved": "1.65.68",
+        "contentHash": "1D0LcIzrz7th8AP8vHGK/5vWsxa4QnJurMRGuo6y+vzDePkfCRXGGirLd7Cty8Bs87dIFaiRI9AvAKWDzkOHuQ==",
         "dependencies": {
           "Microsoft.Testing.Extensions.TrxReport.Abstractions": "2.3.3",
           "Microsoft.Testing.Platform": "2.3.3",
           "Microsoft.Testing.Platform.MSBuild": "2.3.3",
-          "TUnit.Core": "1.65.63"
+          "TUnit.Core": "1.65.68"
         }
       },
       "YamlDotNet": {
@@ -275,6 +336,8 @@
           "Microsoft.Extensions.FileSystemGlobbing": "[10.*, )",
           "Microsoft.OpenApi.Readers": "[1.6.31, )",
           "NUglify": "[1.22.4, )",
+          "NuGet.Packaging": "[7.*, )",
+          "NuGet.Protocol": "[7.*, )",
           "Scriban": "[7.*, )",
           "SharpYaml": "[2.1.5, )",
           "SkiaSharp": "[4.151.1, )",

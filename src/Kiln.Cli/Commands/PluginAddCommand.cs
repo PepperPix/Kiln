@@ -38,7 +38,7 @@ public sealed class PluginAddCommand(
             installResult.Version,
             "nuget"), cancellationToken).ConfigureAwait(false);
 
-        console.MarkupLine($"[green]Installed plugin:[/] {installResult.PluginName} ({installResult.PackageId} {installResult.Version})");
+        console.MarkupLine($"[green]Installed plugin:[/] {installResult.PluginName} ({installResult.PackageId} {installResult.Version}) at {installResult.InstallPath}");
         console.MarkupLine("[dim]Activate it in site.yaml under the relevant collection/plugins section.[/]");
         return 0;
     }

@@ -87,6 +87,6 @@ public sealed class PluginUpdateCommand(
             result.Version,
             "nuget"), cancellationToken).ConfigureAwait(false);
 
-        console.MarkupLine($"[green]Updated plugin:[/] {result.PluginName} ({result.PackageId} {result.Version})");
+        console.MarkupLine($"[green]Updated plugin:[/] {result.PluginName} ({result.PackageId} {result.Version}) at {result.InstallPath}");
     }
 }

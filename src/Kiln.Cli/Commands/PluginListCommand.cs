@@ -37,7 +37,7 @@ public sealed class PluginListCommand(
             if (lockEntries.TryGetValue(pluginKey, out var entry) ||
                 lockEntries.TryGetValue(plugin.Name, out entry))
             {
-                source = $"{entry.PackageId} {entry.Version} (nuget)";
+                source = $"{entry.PackageId} {entry.Version} ({entry.Source})";
             }
 
             table.AddRow(plugin.Name, plugin.Version ?? "unknown", plugin.Description ?? string.Empty, source);

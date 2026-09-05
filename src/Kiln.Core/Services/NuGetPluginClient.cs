@@ -76,7 +76,7 @@ public sealed class NuGetPluginClient : INuGetPluginClient
             if (!Array.Exists(tagNames, tag => string.Equals(tag, "kiln-plugin", StringComparison.OrdinalIgnoreCase)))
                 continue;
 
-            var versionText = identity.Version?.OriginalVersion ?? string.Empty;
+            var versionText = identity.Version.OriginalVersion ?? string.Empty;
             results.Add(new PluginSearchResult(identity.Id, versionText, item.Description ?? string.Empty));
         }
 
