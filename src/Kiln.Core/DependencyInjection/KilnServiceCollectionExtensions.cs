@@ -30,6 +30,8 @@ public static class KilnServiceCollectionExtensions
         services.AddSingleton<IProcessRunner, SystemProcessRunner>();
         services.AddSingleton<IPagefindBinaryProvider, PagefindBinaryProvider>();
         services.AddSingleton<ISearchIndexer, PagefindSearchIndexer>();
+        services.AddSingleton<INuGetPluginClient, NuGetPluginClient>();
+        services.AddSingleton<IPluginLockFile, PluginLockFile>();
         services.AddSingleton<IImageOptimizer, SkiaSharpImageOptimizer>();
 
         return new KilnBuilder(services);

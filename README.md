@@ -82,6 +82,34 @@ kiln search index
 
 Important: the `deploy` command expects a target argument, e.g. `github-pages` or `azure-swa`.
 
+## Plugins find & install
+
+Kiln can discover and install content plugins from NuGet packages marked with the `kiln-plugin` tag.
+
+> Security warning: content plugins can inject arbitrary HTML and JavaScript into pages, so install only packages from trusted sources.
+
+```bash
+# Search public NuGet packages for Kiln plugins
+kiln plugin search email-protect
+
+# Install a plugin into the current project
+kiln plugin add Kiln.Plugin.EmailProtect --version 1.0.0
+
+# Update a plugin that was installed through kiln plugin add
+kiln plugin update email-protect
+
+# Update all plugins recorded in .kiln/plugins.lock.json
+kiln plugin update --all
+
+# Remove a plugin folder and its lock entry
+kiln plugin remove email-protect --yes
+
+# List local plugins and their installation source
+kiln plugin list
+```
+
+Each installed plugin is recorded in `.kiln/plugins.lock.json` with the package ID, installed version, and source (`nuget`). This file is intentionally project-local and versioned so `kiln plugin update` can resolve the correct package without guessing names.
+
 ## Theme & Template Development
 
 Kiln uses Scriban templates for layouts, partials and helpers. Basic concepts:
