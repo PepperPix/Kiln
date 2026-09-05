@@ -1,3 +1,10 @@
+# [1.2.0-beta.7](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.6...v1.2.0-beta.7) (2026-09-05)
+
+
+### Features
+
+* add content plugin shortcodes ([#25](https://github.com/PepperPix/Kiln/issues/25)) ([f224eb1](https://github.com/PepperPix/Kiln/commit/f224eb1fd2f86b21a395a14dc85153d344e83b4d))
+
 # [1.2.0-beta.6](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.5...v1.2.0-beta.6) (2026-08-16)
 
 
