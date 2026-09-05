@@ -328,7 +328,7 @@ public sealed class SiteBuilder(
                     var originalHtml = html;
                     html = InjectNoIndexMeta(html);
                     if (html == originalHtml)
-                        warnings.Add($"'{item.RelativePath}' has no_index: true but no </head> tag was found; robots meta tag was not injected.");
+                        warnings.Add($"'{item.RelativePath}' has noIndex: true but no </head> tag was found; robots meta tag was not injected.");
                 }
 
                 var outputPath = Path.Combine(render.OutputDir, item.OutputPath);

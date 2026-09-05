@@ -147,7 +147,7 @@ public class SitemapGeneratorTests
             """
             ---
             title: Hidden Post
-            no_index: true
+            noIndex: true
             ---
             Hidden content
             """);

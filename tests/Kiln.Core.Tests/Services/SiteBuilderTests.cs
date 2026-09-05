@@ -165,7 +165,7 @@ public class SiteBuilderTests
             var result = await builder.BuildAsync(tempDir, false, BuildEnvironment.Development, CancellationToken.None);
 
             await Assert.That(result.Success).IsTrue();
-            await Assert.That(result.Warnings).Any(item => item.Contains("no_index: true but no </head> tag was found"));
+            await Assert.That(result.Warnings).Any(item => item.Contains("noIndex: true but no </head> tag was found"));
 
             var hiddenOutput = Path.Combine(tempDir, "_site", "blog", "hidden-post", "index.html");
             var hiddenHtml = await File.ReadAllTextAsync(hiddenOutput);
@@ -320,7 +320,7 @@ public class SiteBuilderTests
             """
             ---
             title: Hidden Post
-            no_index: true
+            noIndex: true
             ---
             hidden content
             """);

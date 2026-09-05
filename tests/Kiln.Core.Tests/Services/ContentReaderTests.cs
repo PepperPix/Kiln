@@ -116,7 +116,7 @@ public class ContentReaderTests
             """
             ---
             title: Hidden Post
-            no_index: true
+            noIndex: true
             ---
 
             hidden content
