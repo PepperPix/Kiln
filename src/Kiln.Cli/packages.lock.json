@@ -32,8 +32,8 @@
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.7.2",
-        "contentHash": "r1rb5Qo/0KPzmP0nbSiXPDVfh4Ctu0B+y1RyyUq73g4sgAmEW7q10RDyTq2ZsILwtO9O2LAvMrUles7eD4zz1g=="
+        "resolved": "1.7.3",
+        "contentHash": "I8TpSvgOPAVQHjVvXaROZOkIGZdX0tn+e9CUix6mv5pMqfyKO+/zm/dofsXgsxVTJl/sSTnEMFwrdnqxTt2axQ=="
       },
       "Markdig": {
         "type": "Transitive",
@@ -69,6 +69,57 @@
         "resolved": "17.14.15",
         "contentHash": "mXQPJsbuUD2ydq4/ffd8h8tSOFCXec+2xJOVNCvXjuMOq/+5EKHq3D2m2MC2+nUaXeFMSt66VS/J4HdKBixgcw=="
       },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.3",
+        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+      },
+      "NuGet.Common": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "OWFEzHpwvgzSaHYmWzfbyTm6oBOy/BFSFEDk73zM9jiJaxdopYZ/DrqIQogaM3F+ZGTppBJffmzu5adetEI/YA==",
+        "dependencies": {
+          "NuGet.Frameworks": "7.9.0"
+        }
+      },
+      "NuGet.Configuration": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "oY9XZp+TWjOmiGmU4R4JWBRY3F4TAVo7tqPr/z7MOsFcEpdYHMryjNSscoLBxUTR3WmFmYgO0Gvu4eRbz6pzOg==",
+        "dependencies": {
+          "NuGet.Common": "7.9.0",
+          "System.Security.Cryptography.ProtectedData": "8.0.0"
+        }
+      },
+      "NuGet.Frameworks": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "w2adPmgUafmW9ON1MzDjuHmViN0vtiPV48Dz3OE6px8BiGSqrnWHOjwFEPOEPAZx20J1c7bxp90Hxo9l4xGWtw=="
+      },
+      "NuGet.Packaging": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "Q2jxuud5kJLV0rUzsC02iC5ts8QsQu9UVyMvF8lULY3TwHL/W/PrnQ9bQFvMR7jJkzF1uilRPI1o+7VOtc2XMg==",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3",
+          "NuGet.Configuration": "7.9.0",
+          "NuGet.Versioning": "7.9.0",
+          "System.Security.Cryptography.Pkcs": "8.0.1"
+        }
+      },
+      "NuGet.Protocol": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "Ts0qPUGJYfFHhlNSSWWrkaSG6++WqS6ry32WmQA7eNdzTc9SumyhDflITcusBYkT6pEQD5BI1UEByakciV3s0A==",
+        "dependencies": {
+          "NuGet.Packaging": "7.9.0"
+        }
+      },
+      "NuGet.Versioning": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "r4sZuVpVqwSBLe4qYDrnpScqdyctlRXg0HSF5OoCGkeBc8b+o8BBYHuI/u1RoWYX78PbieijU13TBt71/Xf3lw=="
+      },
       "NUglify": {
         "type": "Transitive",
         "resolved": "1.22.4",
@@ -76,8 +127,8 @@
       },
       "Scriban": {
         "type": "Transitive",
-        "resolved": "7.2.6",
-        "contentHash": "k6DvaRY83jtigNudMoYlN5Zg42JEDDOCSeKrnpHiE5Gthkd9Fr+6VnYFnL3DqtkZTtPezJJdoX3ZfOTTFpQEMg=="
+        "resolved": "7.4.0",
+        "contentHash": "h5QYOAKw7F4ajVNxeScBsq0c7en6YWyKDSC4ZnZIlrkeJrl0ekHk1PlpqP5C4peqkt6NoXl9dlwK3pI4oDC5oA=="
       },
       "SharpYaml": {
         "type": "Transitive",
@@ -126,6 +177,16 @@
         "resolved": "0.55.0",
         "contentHash": "GIfgOvuF8MpU52bprhwtDEtx0gmVIGOepM8bw0lH/TSMD0rg1Xp+5Y53kPG8rFVdcpbNANlhDQ5mEVVPO3/2Tg=="
       },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA=="
+      },
+      "System.Security.Cryptography.ProtectedData": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "+TUFINV2q2ifyXauQXRwy4CiBhqvDEDZeVJU7qfxya4aRYOKzVBpN+4acx25VcPB9ywUN6C0n8drWl110PhZEg=="
+      },
       "YamlDotNet": {
         "type": "Transitive",
         "resolved": "18.1.0",
@@ -144,6 +205,8 @@
           "Microsoft.Extensions.FileSystemGlobbing": "[10.*, )",
           "Microsoft.OpenApi.Readers": "[1.6.31, )",
           "NUglify": "[1.22.4, )",
+          "NuGet.Packaging": "[7.*, )",
+          "NuGet.Protocol": "[7.*, )",
           "Scriban": "[7.*, )",
           "SharpYaml": "[2.1.5, )",
           "SkiaSharp": "[4.151.1, )",

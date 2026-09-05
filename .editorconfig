@@ -47,9 +47,15 @@ dotnet_diagnostic.S1144.severity = none
 resharper_unused_auto_property_accessor_local_highlighting = none
 resharper_collection_never_updated_local_highlighting = none
 
-# Magic numbers in tests are intentional and keep test data readable.
+[src/Kiln.Core/Services/NuGetPluginClient.cs]
+dotnet_diagnostic.CA1054.severity = none
+dotnet_diagnostic.S1075.severity = none
+
+# Test fixtures intentionally include sample URLs and numeric literals for behavior verification.
 [tests/**/*.cs]
 dotnet_diagnostic.S109.severity = none
+dotnet_diagnostic.S1075.severity = none
+dotnet_diagnostic.CA2000.severity = none
 
 # Encoded image payload stays as raw bytes until written to disk.
 [src/Kiln.Core/Services/ImageOptimizationOutput.cs]

@@ -49,6 +49,20 @@ app.Configure(config =>
         s.AddCommand<SearchIndexCommand>("index")
             .WithDescription("Build the Pagefind search index over the built site.");
     });
+
+    config.AddBranch("plugin", p =>
+    {
+        p.AddCommand<PluginSearchCommand>("search")
+            .WithDescription("Search public NuGet packages tagged with kiln-plugin.");
+        p.AddCommand<PluginAddCommand>("add")
+            .WithDescription("Download and install a NuGet plugin into the project.");
+        p.AddCommand<PluginUpdateCommand>("update")
+            .WithDescription("Update a locked plugin or all locked plugins.");
+        p.AddCommand<PluginRemoveCommand>("remove")
+            .WithDescription("Remove a plugin from the project and its lock entry.");
+        p.AddCommand<PluginListCommand>("list")
+            .WithDescription("List local plugins with their NuGet lock metadata.");
+    });
 });
 
 return await app.RunAsync(args).ConfigureAwait(false);
