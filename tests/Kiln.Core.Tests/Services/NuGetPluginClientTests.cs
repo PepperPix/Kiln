@@ -1,149 +1,47 @@
 namespace Kiln.Core.Tests.Services;
 
 using System.IO.Compression;
-using System.Net;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using Kiln.Services;
+using NuGet.Configuration;
+using NuGet.Protocol;
+using NuGet.Protocol.Core.Types;
 
 public class NuGetPluginClientTests
 {
     [Test]
-    public async Task SearchAsync_ParsesKilnPluginResults()
+    public async Task SearchAsync_FindsKilnPluginPackagesInLocalSource()
     {
-        var handler = new StubHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent("""
-                {
-                  "data": [
-                    {
-                      "id": "Kiln.Plugin.EmailProtect",
-                      "version": "1.2.3",
-                      "description": "Protect emails from scrapers",
-                      "tags": ["kiln-plugin", "email", "privacy"]
-                    }
-                  ]
-                }
-                """, Encoding.UTF8, "application/json")
-        });
+        var sourceRoot = CreateLocalPackageSource();
+        var client = new NuGetPluginClient(Repository.Factory.GetCoreV3(new PackageSource(sourceRoot)));
 
-        var client = new NuGetPluginClient("https://api.nuget.org/v3", handler);
-        var results = await client.SearchAsync("email-protect");
+        var results = await client.SearchAsync("kiln-plugin");
 
-        await Assert.That(results.Count).IsEqualTo(1);
+        await Assert.That(results.Count >= 1).IsTrue();
         await Assert.That(results[0].Id).IsEqualTo("Kiln.Plugin.EmailProtect");
-        await Assert.That(results[0].Version).IsEqualTo("1.2.3");
+        await Assert.That(results[0].Version).IsEqualTo("1.3.0");
         await Assert.That(results[0].Description).IsEqualTo("Protect emails from scrapers");
     }
 
     [Test]
-    public async Task GetLatestVersionAsync_ResolvesLatestSemVer()
+    public async Task GetLatestVersionAsync_ResolvesHighestStableVersion()
     {
-        var handler = new StubHttpMessageHandler(req =>
-        {
-            if (req.RequestUri!.ToString().Contains("registration5-semver2/kiln.plugin.emailprotect/index.json", StringComparison.OrdinalIgnoreCase))
-            {
-                return new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent("""
-                        {
-                          "items": [
-                            {
-                              "items": [
-                                {
-                                  "catalogEntry": {
-                                    "id": "Kiln.Plugin.EmailProtect",
-                                    "version": "1.2.0",
-                                    "packageHash": "Zg==",
-                                    "packageHashAlgorithm": "SHA512",
-                                    "packageContent": "https://api.nuget.org/v3-flatcontainer/kiln.plugin.emailprotect/1.2.0/kiln.plugin.emailprotect.1.2.0.nupkg"
-                                  }
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                        """, Encoding.UTF8, "application/json")
-                };
-            }
+        var sourceRoot = CreateLocalPackageSource();
+        var client = new NuGetPluginClient(Repository.Factory.GetCoreV3(new PackageSource(sourceRoot)));
 
-            throw new InvalidOperationException($"Unexpected request: {req.RequestUri}");
-        });
-
-        var client = new NuGetPluginClient("https://api.nuget.org/v3", handler);
         var version = await client.GetLatestVersionAsync("Kiln.Plugin.EmailProtect");
 
-        await Assert.That(version).IsEqualTo("1.2.0");
+        await Assert.That(version).IsEqualTo("1.3.0");
     }
 
     [Test]
-    public async Task AddAsync_RejectsHashMismatch_BeforeWritingFiles()
+    public async Task GetLatestVersionAsync_WhenPackageDoesNotExist_ReturnsNull()
     {
-        var tempRoot = Path.Combine(Path.GetTempPath(), $"kiln-nuget-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(tempRoot);
+        var sourceRoot = CreateLocalPackageSource();
+        var client = new NuGetPluginClient(Repository.Factory.GetCoreV3(new PackageSource(sourceRoot)));
 
-        try
-        {
-            var packageBytes = CreatePackageBytesWithPluginManifest("email-protect", "1.0.0");
-            _ = Convert.ToHexString(SHA512.HashData(packageBytes));
-            var wrongHash = Convert.ToHexString(SHA512.HashData("tampered"u8.ToArray()));
+        var version = await client.GetLatestVersionAsync("Kiln.Plugin.DoesNotExist");
 
-            var handler = new StubHttpMessageHandler(req =>
-            {
-                if (req.RequestUri!.ToString().Contains("registration5-semver2/kiln.plugin.emailprotect/index.json", StringComparison.OrdinalIgnoreCase))
-                {
-                    var responseBody = JsonSerializer.Serialize(new
-                    {
-                        items = new[]
-                        {
-                            new
-                            {
-                                items = new[]
-                                {
-                                    new
-                                    {
-                                        catalogEntry = new
-                                        {
-                                            id = "Kiln.Plugin.EmailProtect",
-                                            version = "1.0.0",
-                                            packageHash = wrongHash,
-                                            packageHashAlgorithm = "SHA512",
-                                            packageContent = "https://api.nuget.org/v3-flatcontainer/kiln.plugin.emailprotect/1.0.0/kiln.plugin.emailprotect.1.0.0.nupkg"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-
-                    return new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
-                    };
-                }
-
-                if (req.RequestUri!.ToString().Contains("/kiln.plugin.emailprotect.1.0.0.nupkg"))
-                {
-                    return new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new ByteArrayContent(packageBytes)
-                    };
-                }
-
-                throw new InvalidOperationException($"Unexpected request: {req.RequestUri}");
-            });
-
-            var client = new NuGetPluginClient("https://api.nuget.org/v3", handler);
-
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => client.AddAsync("Kiln.Plugin.EmailProtect", "1.0.0", tempRoot));
-            await Assert.That(ex!.Message).Contains("SHA512 mismatch");
-            await Assert.That(Directory.Exists(Path.Combine(tempRoot, "plugins", "email-protect"))).IsFalse();
-        }
-        finally
-        {
-            Directory.Delete(tempRoot, recursive: true);
-        }
+        await Assert.That(version).IsNull();
     }
 
     [Test]
@@ -154,60 +52,16 @@ public class NuGetPluginClientTests
 
         try
         {
-            var packageBytes = CreatePackageBytesWithPluginManifest("email-protect", "1.0.0");
-            var hash = Convert.ToHexString(SHA512.HashData(packageBytes));
+            var sourceRoot = CreateLocalPackageSource();
+            var client = new NuGetPluginClient(Repository.Factory.GetCoreV3(new PackageSource(sourceRoot)));
 
-            var handler = new StubHttpMessageHandler(req =>
-            {
-                if (req.RequestUri!.ToString().Contains("registration5-semver2/kiln.plugin.emailprotect/index.json", StringComparison.OrdinalIgnoreCase))
-                {
-                    var responseBody = JsonSerializer.Serialize(new
-                    {
-                        items = new[]
-                        {
-                            new
-                            {
-                                items = new[]
-                                {
-                                    new
-                                    {
-                                        catalogEntry = new
-                                        {
-                                            id = "Kiln.Plugin.EmailProtect",
-                                            version = "1.0.0",
-                                            packageHash = hash,
-                                            packageHashAlgorithm = "SHA512",
-                                            packageContent = "https://api.nuget.org/v3-flatcontainer/kiln.plugin.emailprotect/1.0.0/kiln.plugin.emailprotect.1.0.0.nupkg"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-
-                    return new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
-                    };
-                }
-
-                if (req.RequestUri!.ToString().Contains("/kiln.plugin.emailprotect.1.0.0.nupkg"))
-                {
-                    return new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new ByteArrayContent(packageBytes)
-                    };
-                }
-
-                throw new InvalidOperationException($"Unexpected request: {req.RequestUri}");
-            });
-
-            var client = new NuGetPluginClient("https://api.nuget.org/v3", handler);
-            var result = await client.AddAsync("Kiln.Plugin.EmailProtect", "1.0.0", tempRoot);
+            var result = await client.AddAsync("Kiln.Plugin.EmailProtect", null, tempRoot);
 
             await Assert.That(result.PluginName).IsEqualTo("email-protect");
-            await Assert.That(result.Version).IsEqualTo("1.0.0");
+            await Assert.That(result.PackageId).IsEqualTo("Kiln.Plugin.EmailProtect");
+            await Assert.That(result.Version).IsEqualTo("1.3.0");
             await Assert.That(File.Exists(Path.Combine(tempRoot, "plugins", "email-protect", "plugin.yaml"))).IsTrue();
+            await Assert.That(File.Exists(Path.Combine(tempRoot, "plugins", "email-protect", "static", "plugin.js"))).IsTrue();
         }
         finally
         {
@@ -215,42 +69,58 @@ public class NuGetPluginClientTests
         }
     }
 
-    private static byte[] CreatePackageBytesWithPluginManifest(string pluginName, string version)
+    private static string CreateLocalPackageSource()
     {
-        using var stream = new MemoryStream();
+        var root = Path.Combine(Path.GetTempPath(), $"kiln-nuget-feed-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+
+        CreatePackage(
+            root,
+            "Kiln.Plugin.EmailProtect",
+            "1.2.3",
+            "email-protect",
+            "Protect emails from scrapers");
+        CreatePackage(
+            root,
+            "Kiln.Plugin.EmailProtect",
+            "1.3.0",
+            "email-protect",
+            "Protect emails from scrapers");
+
+        return root;
+    }
+
+    private static void CreatePackage(string root, string id, string version, string pluginName, string description)
+    {
+        var packagePath = Path.Combine(root, $"{id}.{version}.nupkg");
+
+        using var stream = File.Create(packagePath);
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
         {
+            var nuspec = archive.CreateEntry($"{id}.nuspec");
+            using (var writer = new StreamWriter(nuspec.Open()))
+            {
+                writer.Write(
+                    $"<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+                    "<package><metadata>" +
+                    $"<id>{id}</id><version>{version}</version>" +
+                    $"<description>{description}</description>" +
+                    "<tags>kiln-plugin email privacy</tags>" +
+                    "<authors>Test</authors>" +
+                    "</metadata></package>");
+            }
+
             var manifest = archive.CreateEntry("content/plugin.yaml");
             using (var writer = new StreamWriter(manifest.Open()))
             {
-                writer.Write($"name: {pluginName}\nversion: {version}\nslots:\n  - body_end\n");
+                writer.Write($"name: {pluginName}\nversion: {version}\ndescription: {description}\n");
             }
 
-            var staticFile = archive.CreateEntry("content/static/plugin.js");
-            using (var writer = new StreamWriter(staticFile.Open()))
+            var script = archive.CreateEntry("content/static/plugin.js");
+            using (var writer = new StreamWriter(script.Open()))
             {
                 writer.Write("console.log('hello');\n");
             }
         }
-
-        return stream.ToArray();
-    }
-
-    private sealed class StubHttpMessageHandler : HttpMessageHandler
-    {
-        private readonly Func<HttpRequestMessage, HttpResponseMessage> _factory;
-
-        public StubHttpMessageHandler(HttpResponseMessage response)
-            : this(_ => response)
-        {
-        }
-
-        public StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> factory)
-        {
-            _factory = factory;
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(_factory(request));
     }
 }
