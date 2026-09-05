@@ -6,9 +6,24 @@ on:
   pull_request:
     branches: [main, beta]
 
+# A push to a branch with an open PR fires BOTH the push and pull_request triggers above for the
+# same commit, producing two separate check runs of the same name. If either one hits a flake,
+# GitHub reports mergeStateStatus: BLOCKED even though the other run (same commit) is green. Group
+# both event types by branch name (github.head_ref is only set for pull_request; ref_name gives the
+# short branch name for push, matching head_ref's format) so the newer run cancels the older
+# in-progress one instead of both running to completion independently.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
+    # Safety net for hung runs (Mac/Windows runners have occasionally sat stuck for hours instead
+    # of the usual ~1-3 min) — TUnit's own per-test DefaultTestTimeout (see GlobalTestSetup.cs in
+    # each test project) should already fail a hanging test fast, but this bounds the whole job in
+    # case that doesn't fire (e.g. a hang outside test execution, like restore/build).
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +59,7 @@ jobs:
     name: InspectCode (advisory)
     runs-on: ubuntu-latest
     continue-on-error: true
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 

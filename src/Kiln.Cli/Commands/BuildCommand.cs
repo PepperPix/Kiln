@@ -34,6 +34,12 @@ public sealed class BuildCommand(
         [Description("Alias for --production.")]
         public bool Release { get; init; }
 
+#pragma warning disable S3996 // CLI validation requires the raw string so custom error output can be emitted before build starts.
+        [CommandOption("--base-url")]
+        [Description("Override the site's baseUrl for this build (for example, a GitHub Pages project URL).")]
+        public string? BaseUrl { get; init; }
+#pragma warning restore S3996
+
         [CommandOption("--no-search")]
         [Description("Skip building the search index even if search is enabled in site config.")]
         public bool NoSearch { get; init; }
@@ -42,13 +48,31 @@ public sealed class BuildCommand(
     protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = System.IO.Path.GetFullPath(settings.Path);
-
         var environment = ResolveEnvironment(settings);
 
-        var result = await console.Status()
-            .Spinner(Spinner.Known.Dots)
-            .StartAsync("Building site...", async _ =>
-                await siteBuilder.BuildAsync(projectPath, settings.IncludeDrafts, environment, cancellationToken).ConfigureAwait(false))
+        if (!string.IsNullOrWhiteSpace(settings.BaseUrl)
+            && (!Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var parsedBaseUrl) || !parsedBaseUrl.IsAbsoluteUri))
+        {
+            console.MarkupLine("[red]ERROR:[/] --base-url must be a valid absolute URL, for example https://example.com/reponame");
+            return 1;
+        }
+
+        Uri? baseUrlOverride = string.IsNullOrWhiteSpace(settings.BaseUrl)
+            ? null
+            : new Uri($"{settings.BaseUrl.TrimEnd('/')}/", UriKind.Absolute);
+
+        var result = await console.Progress()
+            .StartAsync(async ctx =>
+            {
+                var task = ctx.AddTask("Building site...", maxValue: 1);
+                var reporter = new Progress<BuildProgress>(p =>
+                {
+                    task.Description = p.Phase;
+                    task.MaxValue = p.Total > 0 ? p.Total : 1;
+                    task.Value = p.Completed;
+                });
+                return await siteBuilder.BuildAsync(projectPath, settings.IncludeDrafts, environment, reporter, baseUrlOverride, cancellationToken).ConfigureAwait(false);
+            })
             .ConfigureAwait(false);
 
         if (!result.Success)

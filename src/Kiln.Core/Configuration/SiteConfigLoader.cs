@@ -114,6 +114,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             Build = MapBuildOptions(dto.Build),
             Assets = new AssetsOptions { Minifier = dto.Assets?.Minifier ?? "nuglify" },
             Search = MapSearchOptions(dto.Search),
+            Images = MapImageOptions(dto.Images),
         };
     }
 
@@ -135,7 +136,8 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         return new ContentGroup
         {
             Name = name,
-            Directory = dto.Directory ?? $"content/{name}",
+            Directory = (dto.Directory ?? $"content/{name}")
+                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar),
             Permalink = dto.Permalink ?? "/:slug/",
             Sort = dto.Sort ?? "none",
             Feed = dto.Feed,
@@ -175,9 +177,20 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         };
     }
 
-    // DTOs for YAML deserialization — properties are assigned by YamlDotNet via reflection
+    private static ImageOptions MapImageOptions(ImageDto? dto)
+    {
+        if (dto is null) return new ImageOptions();
+        return new ImageOptions
+        {
+            Enabled = dto.Enabled ?? true,
+            MaxWidth = dto.MaxWidth ?? ImageOptions.DefaultMaxWidth,
+            Quality = dto.Quality ?? ImageOptions.DefaultQuality,
+            Webp = dto.Webp ?? false,
+            Exclude = dto.Exclude ?? [],
+        };
+    }
 
-#pragma warning disable S3459, S1144, S3996 // Properties are assigned/read by YamlDotNet via reflection
+    // DTOs for YAML deserialization — properties are assigned by YamlDotNet via reflection
 
     private sealed class SiteConfigDto
     {
@@ -200,6 +213,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public BuildDto? Build { get; set; }
         public AssetsDto? Assets { get; set; }
         public SearchDto? Search { get; set; }
+        public ImageDto? Images { get; set; }
     }
 
     private sealed class BuildDto
@@ -246,7 +260,6 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public bool Feed { get; set; }
         public int? Paginate { get; set; }
         public string? Layout { get; set; }
-        [YamlMember(Alias = "teaser_words")]
         public int? TeaserWords { get; set; }
         public List<string>? Taxonomies { get; set; }
         public Dictionary<string, string>? References { get; set; }
@@ -267,6 +280,13 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         public string? BinaryPath { get; set; }
     }
 
-#pragma warning restore S3459, S1144, S3996
-}
+    private sealed class ImageDto
+    {
+        public bool? Enabled { get; set; }
+        public int? MaxWidth { get; set; }
+        public int? Quality { get; set; }
+        public bool? Webp { get; set; }
+        public List<string>? Exclude { get; set; }
+    }
 
+}

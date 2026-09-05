@@ -30,9 +30,15 @@
     <PackageReference Include="AngleSharp" Version="1.*" />
     <PackageReference Include="Markdig" Version="1.*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
-    <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.*" />
-    <PackageReference Include="NUglify" Version="1.*" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.*" />
+    <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.31" />
+    <PackageReference Include="NuGet.Packaging" Version="7.*" />
+    <PackageReference Include="NuGet.Protocol" Version="7.*" />
+    <PackageReference Include="NUglify" Version="1.22.4" />
     <PackageReference Include="Scriban" Version="7.*" />
+    <PackageReference Include="SharpYaml" Version="2.1.5" />
+    <PackageReference Include="SkiaSharp" Version="4.151.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.1" />
     <PackageReference Include="YamlDotNet" Version="18.*" />
   </ItemGroup>
 

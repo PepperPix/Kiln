@@ -82,6 +82,34 @@ kiln search index
 
 Important: the `deploy` command expects a target argument, e.g. `github-pages` or `azure-swa`.
 
+## Plugins find & install
+
+Kiln can discover and install content plugins from NuGet packages marked with the `kiln-plugin` tag.
+
+> Security warning: content plugins can inject arbitrary HTML and JavaScript into pages, so install only packages from trusted sources.
+
+```bash
+# Search public NuGet packages for Kiln plugins
+kiln plugin search email-protect
+
+# Install a plugin into the current project
+kiln plugin add Kiln.Plugin.EmailProtect --version 1.0.0
+
+# Update a plugin that was installed through kiln plugin add
+kiln plugin update email-protect
+
+# Update all plugins recorded in .kiln/plugins.lock.json
+kiln plugin update --all
+
+# Remove a plugin folder and its lock entry
+kiln plugin remove email-protect --yes
+
+# List local plugins and their installation source
+kiln plugin list
+```
+
+Each installed plugin is recorded in `.kiln/plugins.lock.json` with the package ID, installed version, and source (`nuget`). This file is intentionally project-local and versioned so `kiln plugin update` can resolve the correct package without guessing names.
+
 ## Theme & Template Development
 
 Kiln uses Scriban templates for layouts, partials and helpers. Basic concepts:
@@ -92,13 +120,51 @@ Kiln uses Scriban templates for layouts, partials and helpers. Basic concepts:
 
 Refer to `templates/default` in the project for a minimal theme layout and examples.
 
+## Content Plugin Shortcodes
+
+Content plugins can declare optional `shortcodes:` entries in `plugin.yaml` and provide matching partials under `plugins/<name>/shortcodes/<shortcode-name>.html`.
+
+Example plugin manifest:
+
+```yaml
+name: email-protect
+version: "1.1.0"
+slots:
+  - body_end
+shortcodes:
+  - email
+```
+
+A shortcode partial for the `email` shortcode would live at:
+
+```text
+plugins/email-protect/shortcodes/email.html
+```
+
+Content authors then write inline calls in Markdown body content using the `{% ... %}` syntax:
+
+```md
+Contact {% email "hello@cscharf.de" %} today.
+```
+
+The shortcode partial receives its parsed arguments, a `plugin_asset_url` helper scoped to the active plugin, and the built-in `string.base64_encode` filter. The current v1 scope intentionally does not provide a full `page`/`collection` render context; the shortcode is resolved while content is read and before the main page-render pipeline starts.
+
+Shortcodes are not resolved inside fenced code blocks (` ``` ` / `~~~`), so example snippets remain literal text.
+
 Template data available to layouts and partials includes:
 
 - `page.ancestors` — the breadcrumb chain for the current page, ordered root → … → parent (the
   current page itself is not included). Each entry is `{title, url}`.
+- `page.no_index` — `true` when the current page has `noIndex: true` in front matter; the engine
+  injects the robots meta tag automatically and does not require theme logic to re-render it.
 - `navtree.<collection-name>` — the hierarchical navigation tree for a given collection. Each node
   is `{title, url, weight, is_active, is_ancestor, children}`, where `is_active`/`is_ancestor` are
   computed relative to the page currently being rendered.
+
+Front matter can also set `noIndex: true` on individual pages to keep them out of the generated
+`sitemap.xml` and force a `<meta name="robots" content="noindex, nofollow">` tag in the rendered
+HTML. This is intentionally separate from `robots.txt` generation; the engine handles the page-level
+no-index signal without creating a route-specific `Disallow` entry.
 
 ## Reference Documentation Generation
 

@@ -40,6 +40,20 @@ public sealed class ContentItem
     /// </summary>
     public string? AssetDirectory { get; init; }
 
+    /// <summary>
+    /// Opt-out for the production-only image optimization pipeline. Set from the
+    /// <c>image_optimization</c> front matter key; defaults to <c>true</c> (optimize).
+    /// </summary>
+    public bool ImageOptimization { get; init; } = true;
+
+    /// <summary>
+    /// Excludes this item from sitemap.xml when <c>true</c>. Set from the <c>no_index</c> front
+    /// matter key. The engine guarantees a <c>&lt;meta name="robots" content="noindex, nofollow"&gt;</c>
+    /// tag is injected into the rendered output regardless of theme (see ADR-066 amendment) — themes
+    /// do not need to (and should not) render this tag themselves.
+    /// </summary>
+    public bool NoIndex { get; init; }
+
     public ContentItem? Next { get; set; }
     public ContentItem? Prev { get; set; }
     public Dictionary<string, ContentItem> ResolvedReferences { get; } = [];

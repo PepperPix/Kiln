@@ -6,7 +6,7 @@ using Kiln.Models;
 
 public sealed class PermalinkGenerator : IPermalinkGenerator
 {
-    public Uri Generate(ContentItem item, ContentGroup collection)
+    public Uri Generate(ContentItem item, ContentGroup collection, string? basePath = null)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(collection);
@@ -16,7 +16,7 @@ public sealed class PermalinkGenerator : IPermalinkGenerator
             && overrideObj is string urlOverride
             && !string.IsNullOrEmpty(urlOverride))
         {
-            return BuildRelativeUri(urlOverride);
+            return BuildRelativeUri(urlOverride, basePath);
         }
 
         var effectiveSlug = string.IsNullOrEmpty(item.SectionPath)
@@ -37,10 +37,10 @@ public sealed class PermalinkGenerator : IPermalinkGenerator
                 .Replace(":day", item.Date.Value.Day.ToString("D2", CultureInfo.InvariantCulture), StringComparison.Ordinal);
         }
 
-        return BuildRelativeUri(result);
+        return BuildRelativeUri(result, basePath);
     }
 
-    private static Uri BuildRelativeUri(string path)
+    private static Uri BuildRelativeUri(string path, string? basePath)
     {
         var sep = Path.AltDirectorySeparatorChar;
         var segments = path.Split(sep, StringSplitOptions.RemoveEmptyEntries);
@@ -48,6 +48,9 @@ public sealed class PermalinkGenerator : IPermalinkGenerator
         sb.Append(sep);
         sb.AppendJoin(sep, segments);
         sb.Append(sep);
-        return new Uri(sb.ToString(), UriKind.Relative);
+
+        return new Uri(
+            SiteConfiguration.ApplyBasePath(basePath ?? string.Empty, new Uri(sb.ToString(), UriKind.Relative)),
+            UriKind.Relative);
     }
 }

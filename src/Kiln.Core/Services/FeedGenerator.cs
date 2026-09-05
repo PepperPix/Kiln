@@ -14,8 +14,8 @@ internal static class FeedGenerator
         IReadOnlyList<ContentItem> items,
         SiteConfiguration config)
     {
-        var baseUrl = config.BaseUrl.ToString().TrimEnd('/');
-        var indexUrl = collection.IndexUrl.OriginalString;
+        var baseUrl = config.Origin;
+        var indexUrl = SiteConfiguration.ApplyBasePath(config.BasePath, collection.IndexUrl);
 
         var feedItems = items
             .Where(static i => !i.Draft)

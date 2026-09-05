@@ -109,6 +109,61 @@ public class ContentReaderTests
     }
 
     [Test]
+    public async Task ReadCollection_MapsNoIndexFlag()
+    {
+        var tempDir = CreateTempContent(
+            "hidden.md",
+            """
+            ---
+            title: Hidden Post
+            noIndex: true
+            ---
+
+            hidden content
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].NoIndex).IsTrue();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_DefaultsNoIndexToFalseWhenUnset()
+    {
+        var tempDir = CreateTempContent(
+            "visible.md",
+            """
+            ---
+            title: Visible Post
+            ---
+
+            visible content
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].NoIndex).IsFalse();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
     public async Task ReadCollection_SortsDateDesc()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
@@ -623,6 +678,45 @@ public class ContentReaderTests
             await Assert.That(result).HasSingleItem();
             await Assert.That(result[0].Teaser).IsEqualTo("Just a short body with few words.");
             await Assert.That(result[0].Teaser).DoesNotEndWith("…");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_WithoutSort_PreservesDirectoryFileOrder()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        var fileNames = new[] { "post-05.md", "post-01.md", "post-13.md", "post-02.md" };
+        foreach (var fileName in fileNames)
+        {
+            await File.WriteAllTextAsync(Path.Combine(tempDir, fileName),
+                $"""
+                ---
+                title: {Path.GetFileNameWithoutExtension(fileName)}
+                ---
+                content
+                """).ConfigureAwait(false);
+        }
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            var expectedOrder = Directory.GetFiles(tempDir, "*.md", SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFileName)
+                .ToList();
+
+            await Assert.That(result.Count).IsEqualTo(expectedOrder.Count);
+            for (var i = 0; i < result.Count; i++)
+            {
+                await Assert.That(Path.GetFileName(result[i].SourcePath)).IsEqualTo(expectedOrder[i]);
+            }
         }
         finally
         {

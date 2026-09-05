@@ -20,7 +20,9 @@ public class SearchUiIntegrationTests
                 Path.Combine(dir, "_site", "index", "index.html"));
 
             await Assert.That(indexHtml).Contains("id=\"search\"");
-            await Assert.That(indexHtml).Contains("pagefind-ui.js");
+            await Assert.That(indexHtml).Contains("/pagefind/pagefind.js");
+            await Assert.That(indexHtml).DoesNotContain("/assets/pagefind/pagefind.js");
+            await Assert.That(indexHtml).Contains("js/kiln-search.js");
         }
         finally
         {
@@ -43,7 +45,8 @@ public class SearchUiIntegrationTests
             var indexHtml = await File.ReadAllTextAsync(
                 Path.Combine(dir, "_site", "index", "index.html"));
 
-            await Assert.That(indexHtml).DoesNotContain("pagefind-ui.js");
+            await Assert.That(indexHtml).DoesNotContain("pagefind/pagefind.js");
+            await Assert.That(indexHtml).DoesNotContain("js/kiln-search.js");
         }
         finally
         {
@@ -95,14 +98,9 @@ public class SearchUiIntegrationTests
         File.WriteAllText(Path.Combine(dir, "themes", "default", "partials", "search.html"),
             """
             {{ if site.search.enabled }}
-            <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
-            <div id="search" class="kiln-search"></div>
-            <script src="/pagefind/pagefind-ui.js"></script>
-            <script>
-              window.addEventListener("DOMContentLoaded", function () {
-                new PagefindUI({ element: "#search", showSubResults: true });
-              });
-            </script>
+            <link href="{{ site.base_path }}/pagefind/pagefind-ui.css" rel="stylesheet" />
+            <div id="search" class="kiln-search" data-pagefind-root data-pagefind-module="{{ site.base_path }}/pagefind/pagefind.js"></div>
+            <script src="{{ asset_url 'js/kiln-search.js' }}" defer></script>
             {{ end }}
             """);
 
@@ -117,6 +115,6 @@ public class SearchUiIntegrationTests
         var permalinkGenerator = new PermalinkGenerator();
         var configLoader = new SiteConfigLoader();
         var pluginLoader = new PluginLoader();
-        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, []);
+        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, [], new SkiaSharpImageOptimizer(), new AssetReferenceIndexBuilder());
     }
 }

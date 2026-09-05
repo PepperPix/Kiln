@@ -28,6 +28,18 @@ dotnet build
 dotnet test
 ```
 
+All test projects use TUnit. For targeted runs, use `--treenode-filter` and TUnit's tree-node
+paths:
+
+```bash
+dotnet test tests/Projekt.Tests
+dotnet test --treenode-filter "/*/*/ClassName/*"
+dotnet test --treenode-filter "/*/*/ClassName/TestName"
+```
+
+Do not use `dotnet test --filter "FullyQualifiedName~..."` here — that is VSTest syntax and does
+not work with TUnit.
+
 The build treats warnings as errors (`TreatWarningsAsErrors`), so a change with build warnings will
 fail CI. All tests must pass, including any new tests added for the change.
 
@@ -36,6 +48,13 @@ fail CI. All tests must pass, including any new tests added for the change.
 Before opening a pull request, the codebase is expected to be clean under static analysis
 (InspectCode). Please fix any findings reported for files you touch rather than suppressing them,
 unless there is a clear, documented reason not to (leave a short inline comment explaining why).
+
+### File Organization
+
+Every `.cs` file must contain exactly one top-level type (class, record, struct, interface, or
+enum). Nested types are allowed only as a deliberate encapsulation aid (for example,
+Spectre.Console.Cli `CommandSettings`). If a file currently contains multiple top-level types,
+split them into separate files rather than introducing new nested types.
 
 ## Dependency Lockfiles
 
@@ -88,3 +107,36 @@ feature/* → beta → main
   version-bump/changelog commits directly to `main`.
 - By convention (not GitHub-enforced), `main` should only ever receive pull requests from `beta`.
 
+### Keeping beta in sync with main
+
+Every stable release adds a `chore(release): x.y.z [skip ci]` commit (and tag) to `main` that
+`beta` never sees. If that commit never makes it back into `beta`'s history, semantic-release has
+no way of knowing a stable release already happened when it next runs on `beta` — it just keeps
+incrementing the prerelease counter off of `beta`'s own last tag (e.g. `1.1.0-beta.3` →
+`1.1.0-beta.4`). Per semver, `1.1.0-beta.4` still sorts **below** `1.1.0`, even though it was
+published later and contains newer commits — so NuGet (and anything else resolving "latest") keeps
+recommending the older stable release over the newer prerelease. This isn't a NuGet bug, it's a
+missing merge; this exact scenario happened once (`v1.1.0-beta.2`/`v1.1.0-beta.3` were both cut
+without `main`'s `v1.1.0` release commit ever being merged back into `beta`).
+
+To prevent it, the [release workflow](.github/workflows/release.yml) fast-forwards `beta` to
+`main`'s tip immediately after every `main` release ("Sync main back into beta" step). This only
+works as a plain fast-forward (no merge commit, so it doesn't trip `beta`'s "require linear
+history" rule) as long as `beta` has no commits ahead of the release that was just promoted, which
+is the normal case right after a `beta → main` promotion.
+
+If new commits already landed on `beta` before the sync step runs, the fast-forward is skipped and
+CI logs a `::warning::` instead of failing the release. In that case, sync manually:
+
+```bash
+git checkout beta
+git pull
+git merge origin/main
+```
+
+This produces a real merge commit, which violates `beta`'s linear-history branch protection, so it
+must be pushed by (or bypassed for) someone with bypass rights — this should be rare, not routine.
+Resolve any conflicts in `CHANGELOG.md`/`Directory.Build.props` by keeping `beta`'s side (`git
+checkout --ours CHANGELOG.md Directory.Build.props`): semantic-release recomputes both from git
+tags on the next release regardless of what's currently in those files, so `beta`'s more advanced
+prerelease content is the more accurate one to keep in the meantime.

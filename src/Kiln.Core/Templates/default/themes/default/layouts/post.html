@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ site.language }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +8,7 @@
     {{ include 'head' }}
     {{ slot 'head' }}
 </head>
+
 <body>
     {{ slot 'body_start' }}
     {{ include 'header' }}
@@ -15,10 +17,12 @@
         <article>
             <h1>{{ page.title }}</h1>
             <div class="post-meta">
-                {{ if page.date }}<time datetime="{{ page.date | date.to_string '%Y-%m-%d' }}">{{ page.date | date.to_string '%B %d, %Y' }}</time>{{ end }}
+                {{ if page.date }}<time datetime="{{ page.date | date.to_string '%Y-%m-%d' }}">{{ page.date |
+                    date.to_string '%B %d, %Y' }}</time>{{ end }}
                 {{ if page.tags && page.tags.size > 0 }}
                 <span class="tags">
-                    {{ for tag in page.tags }}<a href="/tags/{{ tag }}/" class="tag">{{ tag }}</a>{{ end }}
+                    {{ for tag in page.tags }}<a href="{{ site.base_path }}/tags/{{ tag }}/" class="tag">{{ tag }}</a>{{
+                    end }}
                 </span>
                 {{ end }}
             </div>
@@ -26,8 +30,10 @@
             {{ slot 'after_content' }}
             {{ if page.prev || page.next }}
             <nav class="post-nav">
-                {{ if page.next }}<a href="{{ page.next.url }}" class="post-nav-prev">&larr; {{ page.next.title }}</a>{{ end }}
-                {{ if page.prev }}<a href="{{ page.prev.url }}" class="post-nav-next">{{ page.prev.title }} &rarr;</a>{{ end }}
+                {{ if page.next }}<a href="{{ page.next.url }}" class="post-nav-prev">&larr; {{ page.next.title }}</a>{{
+                end }}
+                {{ if page.prev }}<a href="{{ page.prev.url }}" class="post-nav-next">{{ page.prev.title }} &rarr;</a>{{
+                end }}
             </nav>
             {{ end }}
         </article>
@@ -35,4 +41,5 @@
     {{ include 'footer' }}
     {{ slot 'body_end' }}
 </body>
+
 </html>

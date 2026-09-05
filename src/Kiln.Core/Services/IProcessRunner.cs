@@ -8,5 +8,3 @@ public interface IProcessRunner
         string? workingDirectory,
         CancellationToken ct);
 }
-
-public sealed record ProcessRunResult(int ExitCode, string StdOut, string StdErr);

@@ -48,19 +48,22 @@ public sealed class PluginLoader : IPluginLoader
                 foreach (var slot in dto.Slots)
                     definition.Slots.Add(slot);
 
+            if (dto.Shortcodes is not null)
+                foreach (var shortcode in dto.Shortcodes)
+                    definition.Shortcodes.Add(shortcode);
+
             result.Add(definition);
         }
 
         return result;
     }
 
-#pragma warning disable S3459, S1144 // Properties are assigned/read by YamlDotNet via reflection
     private sealed class PluginDefinitionDto
     {
         public string? Name { get; set; }
         public string? Version { get; set; }
         public string? Description { get; set; }
         public List<string>? Slots { get; set; }
+        public List<string>? Shortcodes { get; set; }
     }
-#pragma warning restore S3459, S1144
 }

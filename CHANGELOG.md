@@ -1,14 +1,104 @@
-# [1.1.0](https://github.com/PepperPix/Kiln/compare/v1.0.0...v1.1.0) (2026-07-07)
-
-
-### Bug Fixes
-
-* **core:** read taxonomies generically (PLAN-061, ADR-046) ([#3](https://github.com/PepperPix/Kiln/issues/3)) ([65b6d4a](https://github.com/PepperPix/Kiln/commit/65b6d4a0c2aee3aaabe2bbe9ca0aa6934bf776c1))
+# [1.2.0-beta.9](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.8...v1.2.0-beta.9) (2026-09-05)
 
 
 ### Features
 
-* **core:** content teaser fallback chain (description -> more-marker -> auto-truncate) ([#5](https://github.com/PepperPix/Kiln/issues/5)) ([3f86394](https://github.com/PepperPix/Kiln/commit/3f863944083f0a942c04a5be6e206a1595de6963))
+* add noIndex front matter field with guaranteed meta injection ([#27](https://github.com/PepperPix/Kiln/issues/27)) ([680eb87](https://github.com/PepperPix/Kiln/commit/680eb870c23d7a480cf90d22b88202435035b474))
+
+# [1.2.0-beta.8](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.7...v1.2.0-beta.8) (2026-09-05)
+
+
+### Features
+
+* kiln plugin search|add|update|remove|list + official NuGet SDK client ([#26](https://github.com/PepperPix/Kiln/issues/26)) ([ea86769](https://github.com/PepperPix/Kiln/commit/ea86769d8a21f7d4bbb1e0694d91639dfbc386a6))
+
+# [1.2.0-beta.7](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.6...v1.2.0-beta.7) (2026-09-05)
+
+
+### Features
+
+* add content plugin shortcodes ([#25](https://github.com/PepperPix/Kiln/issues/25)) ([f224eb1](https://github.com/PepperPix/Kiln/commit/f224eb1fd2f86b21a395a14dc85153d344e83b4d))
+
+# [1.2.0-beta.6](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.5...v1.2.0-beta.6) (2026-08-16)
+
+
+### Bug Fixes
+
+* ensure pagefind indexes during kiln serve rebuilds ([a6f328f](https://github.com/PepperPix/Kiln/commit/a6f328f1c619edefa04f28cb2af86b6be1cf8865))
+* migrate default theme search to component ui ([4b77263](https://github.com/PepperPix/Kiln/commit/4b7726392be99a830b59cc6497109e657e93ea53))
+* run generated deploy workflows via dotnet tool run ([c354233](https://github.com/PepperPix/Kiln/commit/c354233ad1ac248d7534f0a430de605deec3d586))
+* support base-url override and subfolder base-path for internal links ([11f9168](https://github.com/PepperPix/Kiln/commit/11f91681cd6d7790f2f384e7671b6bcc7c095433))
+
+# [1.2.0-beta.5](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.4...v1.2.0-beta.5) (2026-08-16)
+
+
+### Bug Fixes
+
+* **cli:** use build metadata for CLI version ([e4fce35](https://github.com/PepperPix/Kiln/commit/e4fce35cdd0a639e6a7d861ca9f0d55a2d818e2b))
+
+# [1.2.0-beta.4](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.3...v1.2.0-beta.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* **core:** prevent parallel-execution race in PagefindBinaryProviderTests ([0595816](https://github.com/PepperPix/Kiln/commit/0595816755cc20561f3ce6e796fc202a35245d2c))
+
+# [1.2.0-beta.3](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.2...v1.2.0-beta.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **core:** align SkiaSharp version with Avalonia.Skia 12.1 ([bcae5cb](https://github.com/PepperPix/Kiln/commit/bcae5cb97172f20af20a4570500877d074110534))
+
+# [1.2.0-beta.2](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2026-07-19)
+
+
+### Features
+
+* **cli:** report live progress during kiln build ([d7f5fc7](https://github.com/PepperPix/Kiln/commit/d7f5fc7fc3780c882578f2c7489d4e4641ded046))
+* **core:** extract shared asset reference index service ([a7b0a05](https://github.com/PepperPix/Kiln/commit/a7b0a05690575f7326340d192695dd32a910fee1))
+
+
+### Performance Improvements
+
+* **core:** parallelize content file reads within a section ([24bca59](https://github.com/PepperPix/Kiln/commit/24bca5904ca92ced99afe5e883570b71e1a2e6ad))
+* **core:** use O(1) slug index for cross-collection reference resolution ([a7d4139](https://github.com/PepperPix/Kiln/commit/a7d41396f763c344a0c46ef747b8e890fd3a0dfa))
+
+# [1.2.0-beta.1](https://github.com/PepperPix/Kiln/compare/v1.1.0...v1.2.0-beta.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* **core:** encode spaces in link/image destinations before Markdig parsing ([ae27e40](https://github.com/PepperPix/Kiln/commit/ae27e402f5dd5f4a77a53c83a31c4e63ec596ecc))
+* **core:** normalize collection directory separators for cross-platform path equality ([201c16d](https://github.com/PepperPix/Kiln/commit/201c16dee675aea3b603629ad51532f41b6db299))
+* **core:** use camelCase for image_optimization/teaser_words keys ([9c0b426](https://github.com/PepperPix/Kiln/commit/9c0b426f5ddb58345985fdad93c31f91b8c25a27))
+* **core:** use SkiaSharp.NativeAssets.Linux.NoDependencies ([2ce4008](https://github.com/PepperPix/Kiln/commit/2ce40083bad74277327997ed6d30bf57976539ef))
+
+
+### Features
+
+* **core:** image optimization pipeline for content images (ADR-051) ([b3f8ce0](https://github.com/PepperPix/Kiln/commit/b3f8ce0fb10ffa2da673cd716e3b7cb15389b521))
+
+# [1.1.0-beta.3](https://github.com/PepperPix/Kiln/compare/v1.1.0-beta.2...v1.1.0-beta.3) (2026-07-12)
+
+
+### Bug Fixes
+
+* **core:** use camelCase for image_optimization/teaser_words keys ([9c0b426](https://github.com/PepperPix/Kiln/commit/9c0b426f5ddb58345985fdad93c31f91b8c25a27))
+* **core:** use SkiaSharp.NativeAssets.Linux.NoDependencies ([2ce4008](https://github.com/PepperPix/Kiln/commit/2ce40083bad74277327997ed6d30bf57976539ef))
+
+
+### Features
+
+* **core:** image optimization pipeline for content images (ADR-051) ([b3f8ce0](https://github.com/PepperPix/Kiln/commit/b3f8ce0fb10ffa2da673cd716e3b7cb15389b521))
+
+# [1.1.0-beta.2](https://github.com/PepperPix/Kiln/compare/v1.1.0-beta.1...v1.1.0-beta.2) (2026-07-10)
+
+
+### Bug Fixes
+
+* **core:** encode spaces in link/image destinations before Markdig parsing ([ae27e40](https://github.com/PepperPix/Kiln/commit/ae27e402f5dd5f4a77a53c83a31c4e63ec596ecc))
+* **core:** normalize collection directory separators for cross-platform path equality ([201c16d](https://github.com/PepperPix/Kiln/commit/201c16dee675aea3b603629ad51532f41b6db299))
 
 # [1.1.0-beta.1](https://github.com/PepperPix/Kiln/compare/v1.0.1-beta.1...v1.1.0-beta.1) (2026-07-07)
 

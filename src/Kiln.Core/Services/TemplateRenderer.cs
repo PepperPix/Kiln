@@ -1,6 +1,8 @@
 namespace Kiln.Services;
 
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Kiln.Models;
 using Scriban;
@@ -45,12 +47,20 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         return RenderTemplate(layoutPath, ctx =>
         {
+            var collectionIndexUri = new Uri(collection.IndexUrl.OriginalString, UriKind.Relative);
             var indexUrl = paginator.Page == 1
-                ? collection.IndexUrl.OriginalString
-                : $"{collection.IndexUrl.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
-            var so = BuildCommonScriptObject(sharedContext, site, themePath, ctx, indexUrl, plugins, collection.Plugins);
-            so.Add("collection", SharedRenderContext.BuildCollectionObject(collection));
-            so.Add("paginator", BuildPaginatorObject(paginator));
+                ? SiteConfiguration.ApplyBasePath(site.BasePath, collectionIndexUri)
+                : $"{SiteConfiguration.ApplyBasePath(site.BasePath, new Uri(collection.IndexUrl.OriginalString.TrimEnd('/'), UriKind.Relative))}/page/{paginator.Page}/";
+            var so = BuildCommonScriptObject(
+                sharedContext,
+                site,
+                themePath,
+                ctx,
+                indexUrl,
+                plugins,
+                collection.Plugins);
+            so.Add("collection", SharedRenderContext.BuildCollectionObject(collection, site.BasePath));
+            so.Add("paginator", BuildPaginatorObject(paginator, site.BasePath));
             return so;
         });
     }
@@ -76,18 +86,19 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         return RenderTemplate(layoutPath, ctx =>
         {
+            var termUri = new Uri(term.Url.OriginalString, UriKind.Relative);
             var termPageUrl = paginator.Page == 1
-                ? term.Url.OriginalString
-                : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
+                ? SiteConfiguration.ApplyBasePath(site.BasePath, termUri)
+                : $"{SiteConfiguration.ApplyBasePath(site.BasePath, new Uri(term.Url.OriginalString.TrimEnd('/'), UriKind.Relative))}/page/{paginator.Page}/";
             var so = BuildCommonScriptObject(sharedContext, site, themePath, ctx, termPageUrl, plugins, null);
             so.Add("taxonomy", new
             {
                 name = term.Taxonomy.Name,
                 term = term.Name,
-                url = term.Url.OriginalString,
-                items = term.Items.Select(SharedRenderContext.BuildItemSummary).ToList()
+                url = SiteConfiguration.ApplyBasePath(site.BasePath, termUri),
+                items = term.Items.Select(item => SharedRenderContext.BuildItemSummary(item, site.BasePath)).ToList()
             });
-            so.Add("paginator", BuildPaginatorObject(paginator));
+            so.Add("paginator", BuildPaginatorObject(paginator, site.BasePath));
             return so;
         });
     }
@@ -115,16 +126,24 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
         return RenderTemplate(layoutPath, ctx =>
         {
-            var so = BuildCommonScriptObject(sharedContext, site, themePath, ctx, overviewUrl.OriginalString, plugins, null);
+            var overviewUri = new Uri(overviewUrl.OriginalString, UriKind.Relative);
+            var so = BuildCommonScriptObject(
+                sharedContext,
+                site,
+                themePath,
+                ctx,
+                SiteConfiguration.ApplyBasePath(site.BasePath, overviewUri),
+                plugins,
+                null);
             so.Add("taxonomy", new
             {
                 name = taxonomy.Name,
-                url = overviewUrl.OriginalString,
+                url = SiteConfiguration.ApplyBasePath(site.BasePath, overviewUri),
                 terms = terms.Select(t => new
                 {
                     name = t.Name,
                     slug = t.Slug,
-                    url = t.Url.OriginalString,
+                    url = SiteConfiguration.ApplyBasePath(site.BasePath, new Uri(t.Url.OriginalString, UriKind.Relative)),
                     count = t.Count
                 }).ToList()
             });
@@ -163,6 +182,29 @@ public sealed class TemplateRenderer : ITemplateRenderer
         return template.Render(context);
     }
 
+    private static string CombineBasePathAndRelativePath(SiteConfiguration site, string relativePath)
+    {
+        var normalizedRelativePath = relativePath.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedRelativePath))
+            return GetSiteBasePath(site.BaseUrl);
+
+        var basePath = GetSiteBasePath(site.BaseUrl);
+        var relative = normalizedRelativePath.TrimStart('/');
+
+        return string.IsNullOrEmpty(basePath)
+            ? $"/{relative}"
+            : $"{basePath}/{relative}";
+    }
+
+    private static string GetSiteBasePath(Uri baseUrl)
+    {
+        var path = baseUrl.AbsolutePath;
+        if (string.IsNullOrWhiteSpace(path) || path == "/")
+            return string.Empty;
+
+        return path.TrimEnd('/');
+    }
+
     private static ScriptObject BuildItemScriptObject(
         ContentItem item,
         SharedRenderContext shared,
@@ -171,33 +213,48 @@ public sealed class TemplateRenderer : ITemplateRenderer
         TemplateContext context,
         IReadOnlyList<PluginDefinition> plugins)
     {
-        var so = BuildCommonScriptObject(shared, site, themePath, context, item.Url.OriginalString, plugins, item.Collection.Plugins);
+        var itemUrl = new Uri(item.Url.OriginalString, UriKind.Relative);
+        var so = BuildCommonScriptObject(
+            shared,
+            site,
+            themePath,
+            context,
+            SiteConfiguration.ApplyBasePath(site.BasePath, itemUrl),
+            plugins,
+            item.Collection.Plugins);
 
         var pageObj = new ScriptObject();
         pageObj.Add("id", item.Id);
         pageObj.Add("title", item.Title);
         pageObj.Add("date", item.Date);
         pageObj.Add("content", item.HtmlContent);
-        pageObj.Add("url", item.Url.OriginalString);
+        pageObj.Add("url", SiteConfiguration.ApplyBasePath(site.BasePath, itemUrl));
         pageObj.Add("slug", item.Slug);
         pageObj.Add("description", item.Description);
         pageObj.Add("teaser", item.Teaser);
         pageObj.Add("draft", item.Draft);
+        pageObj.Add("no_index", item.NoIndex);
         pageObj.Add("weight", item.Weight);
         pageObj.Add("extra", item.Extra);
         pageObj.Add("tags", item.Taxonomies.GetValueOrDefault("tags"));
         pageObj.Add("categories", item.Taxonomies.GetValueOrDefault("categories"));
         pageObj.Add("taxonomies", item.Taxonomies);
-        pageObj.Add("collection", new { name = item.Collection.Name, url = item.Collection.IndexUrl.OriginalString, feed = item.Collection.Feed, plugins = item.Collection.Plugins });
+        pageObj.Add("collection", new
+        {
+            name = item.Collection.Name,
+            url = SiteConfiguration.ApplyBasePath(site.BasePath, new Uri(item.Collection.IndexUrl.OriginalString, UriKind.Relative)),
+            feed = item.Collection.Feed,
+            plugins = item.Collection.Plugins
+        });
         pageObj.Add("next", item.Next is null ? null : (object)new
         {
             title = item.Next.Title,
-            url = item.Next.Url.OriginalString
+            url = SiteConfiguration.ApplyBasePath(site.BasePath, new Uri(item.Next.Url.OriginalString, UriKind.Relative))
         });
         pageObj.Add("prev", item.Prev is null ? null : (object)new
         {
             title = item.Prev.Title,
-            url = item.Prev.Url.OriginalString
+            url = SiteConfiguration.ApplyBasePath(site.BasePath, new Uri(item.Prev.Url.OriginalString, UriKind.Relative))
         });
 
         // Breadcrumb ancestors
@@ -208,7 +265,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             pageObj.Add(refKey, new
             {
                 title = refItem.Title,
-                url = refItem.Url.OriginalString,
+                url = SiteConfiguration.ApplyBasePath(site.BasePath, new Uri(refItem.Url.OriginalString, UriKind.Relative)),
                 slug = refItem.Slug,
                 extra = refItem.Extra
             });
@@ -220,7 +277,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
         var assetPrefix = site.AssetPrefix.TrimEnd('/');
         var effectiveSlug = string.IsNullOrEmpty(item.SectionPath) ? item.Slug : $"{item.SectionPath}/{item.Slug}";
         so.Import("page_asset_url", new Func<string, string>(
-            filename => $"{assetPrefix}/content/{item.Collection.Name}/{effectiveSlug}/{filename.TrimStart('/')}"));
+            filename => CombineBasePathAndRelativePath(site, $"{assetPrefix}/content/{item.Collection.Name}/{effectiveSlug}/{filename.TrimStart('/')}")));
 
         return so;
     }
@@ -274,13 +331,13 @@ public sealed class TemplateRenderer : ITemplateRenderer
         // menus — active flag computed from currentUrl
         var menusObj = new ScriptObject();
         foreach (var (name, menu) in site.Menus)
-            menusObj.Add(name, menu.Items.Select(i => BuildMenuItemObject(i, currentUrl)).ToList());
+            menusObj.Add(name, menu.Items.Select(i => BuildMenuItemObject(i, currentUrl, site.BasePath)).ToList());
         so.Add("menus", menusObj);
 
         // navtree — per-collection navigation tree with is_active/is_ancestor per currentUrl
         var navObj = new ScriptObject();
         foreach (var (name, roots) in shared.NavTree)
-            navObj.Add(name, roots.Select(n => ProjectNavNode(n, currentUrl)).ToList());
+            navObj.Add(name, roots.Select(n => ProjectNavNode(n, currentUrl, site.BasePath)).ToList());
         so.Add("navtree", navObj);
 
         // include partial
@@ -297,11 +354,19 @@ public sealed class TemplateRenderer : ITemplateRenderer
         // asset_url
         var assetPrefix = site.AssetPrefix.TrimEnd('/');
         so.Import("asset_url", new Func<string, string>(
-            path => $"{assetPrefix}/{path.TrimStart('/')}"));
+            path => CombineBasePathAndRelativePath(site, $"{assetPrefix}/{path.TrimStart('/')}")));
+
+        var stringFunctions = new ScriptObject();
+        stringFunctions.Import("base64_encode", new Func<object?, string>(value =>
+        {
+            var raw = value is null ? string.Empty : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
+        }));
+        so.Add("string", stringFunctions);
 
         // plugin_asset_url
         so.Import("plugin_asset_url", new Func<string, string, string>(
-            (pluginName, path) => $"{assetPrefix}/plugins/{pluginName}/{path.TrimStart('/')}"));
+            (pluginName, path) => CombineBasePathAndRelativePath(site, $"{assetPrefix}/plugins/{pluginName}/{path.TrimStart('/')}")));
 
         // limit helper for concise list widgets: collections.posts.items | limit 5
         so.Import("limit", new Func<object?, int, object>((source, n) =>
@@ -357,9 +422,9 @@ public sealed class TemplateRenderer : ITemplateRenderer
         return so;
     }
 
-    private static object ProjectNavNode(NavigationNode node, string? currentUrl)
+    private static object ProjectNavNode(NavigationNode node, string? currentUrl, string basePath)
     {
-        var nodeUrl = node.Url.OriginalString;
+        var nodeUrl = SiteConfiguration.ApplyBasePath(basePath, new Uri(node.Url.OriginalString, UriKind.Relative));
         var isActive = currentUrl is not null &&
             string.Equals(nodeUrl, currentUrl, StringComparison.OrdinalIgnoreCase);
         var isAncestor = !isActive && currentUrl is not null &&
@@ -372,7 +437,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             weight = node.Weight,
             is_active = isActive,
             is_ancestor = isAncestor,
-            children = node.Children.Select(c => ProjectNavNode(c, currentUrl)).ToList()
+            children = node.Children.Select(c => ProjectNavNode(c, currentUrl, basePath)).ToList()
         };
     }
 
@@ -408,43 +473,44 @@ public sealed class TemplateRenderer : ITemplateRenderer
         return int.TryParse(priorityVal?.ToString(), out var p) ? p : int.MaxValue;
     }
 
-    private static object BuildMenuItemObject(MenuItem item, string? currentUrl)
+    private static object BuildMenuItemObject(MenuItem item, string? currentUrl, string basePath)
     {
-        var children = item.Children.Select(c => BuildMenuItemObject(c, currentUrl)).ToList();
-        var active = IsMenuItemActive(item, currentUrl);
+        var children = item.Children.Select(c => BuildMenuItemObject(c, currentUrl, basePath)).ToList();
+        var active = IsMenuItemActive(item, currentUrl, basePath);
         return new
         {
             title = item.Title,
-            url = item.Url?.OriginalString,
+            url = item.Url is null ? null : SiteConfiguration.ApplyBasePath(basePath, item.Url),
             external = item.External,
             active,
             children
         };
     }
 
-    private static bool IsMenuItemActive(MenuItem item, string? currentUrl)
+    private static bool IsMenuItemActive(MenuItem item, string? currentUrl, string basePath)
     {
         if (currentUrl is null) return false;
-        var selfActive = item.Url is not null &&
-            string.Equals(item.Url.OriginalString, currentUrl, StringComparison.OrdinalIgnoreCase);
+        var resolvedUrl = item.Url is null ? null : SiteConfiguration.ApplyBasePath(basePath, item.Url);
+        var selfActive = resolvedUrl is not null &&
+            string.Equals(resolvedUrl, currentUrl, StringComparison.OrdinalIgnoreCase);
         if (selfActive) return true;
         foreach (var child in item.Children)
         {
-            if (IsMenuItemActive(child, currentUrl)) return true;
+            if (IsMenuItemActive(child, currentUrl, basePath)) return true;
         }
         return false;
     }
 
-    private static object BuildPaginatorObject(Paginator paginator)
+    private static object BuildPaginatorObject(Paginator paginator, string basePath)
     {
         return new
         {
-            items = paginator.Items.Select(SharedRenderContext.BuildItemSummary).ToList(),
+            items = paginator.Items.Select(item => SharedRenderContext.BuildItemSummary(item, basePath)).ToList(),
             page = paginator.Page,
             total_pages = paginator.TotalPages,
             total_items = paginator.TotalItems,
-            next_url = paginator.NextUrl?.OriginalString,
-            prev_url = paginator.PrevUrl?.OriginalString
+            next_url = paginator.NextUrl is null ? null : SiteConfiguration.ApplyBasePath(basePath, new Uri(paginator.NextUrl.OriginalString, UriKind.Relative)),
+            prev_url = paginator.PrevUrl is null ? null : SiteConfiguration.ApplyBasePath(basePath, new Uri(paginator.PrevUrl.OriginalString, UriKind.Relative))
         };
     }
 
