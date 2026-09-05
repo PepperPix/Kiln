@@ -76,6 +76,54 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public async Task LoadPlugins_ParsesShortcodes_WhenPresent()
+    {
+        var dir = await CreateProjectWithPluginAsync(
+            pluginName: "email-protect",
+            yamlContent: """
+                name: Email Protect
+                shortcodes:
+                  - email
+                  - share
+                """,
+            slotFiles: []);
+        try
+        {
+            var plugins = _loader.LoadPlugins(dir);
+            await Assert.That(plugins.Count).IsEqualTo(1);
+            await Assert.That(plugins[0].Shortcodes).Contains("email");
+            await Assert.That(plugins[0].Shortcodes).Contains("share");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task LoadPlugins_UsesEmptyShortcodes_WhenMissing()
+    {
+        var dir = await CreateProjectWithPluginAsync(
+            pluginName: "plain-plugin",
+            yamlContent: """
+                name: Plain Plugin
+                slots:
+                  - after_content
+                """,
+            slotFiles: []);
+        try
+        {
+            var plugins = _loader.LoadPlugins(dir);
+            await Assert.That(plugins.Count).IsEqualTo(1);
+            await Assert.That(plugins[0].Shortcodes).IsEmpty();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
     public async Task LoadPlugins_FallsBackToDirectoryNameWhenNameMissing()
     {
         var dir = await CreateProjectWithPluginAsync(

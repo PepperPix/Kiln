@@ -51,7 +51,7 @@ public sealed class SiteBuilder(
         var plugins = pluginLoader.LoadPlugins(projectPath);
 
         // Read all collections and assign URLs
-        var allItems = ReadAllContent(config, projectPath, errors);
+        var allItems = ReadAllContent(config, projectPath, plugins, warnings, errors);
 
         if (errors.Count > 0)
             return MakeResult(allItems.Count, 0, 0, stopwatch.Elapsed, outputDir, warnings, errors);
@@ -151,12 +151,17 @@ public sealed class SiteBuilder(
         return true;
     }
 
-    private List<ContentItem> ReadAllContent(SiteConfiguration config, string projectPath, Collection<string> errors)
+    private List<ContentItem> ReadAllContent(
+        SiteConfiguration config,
+        string projectPath,
+        IReadOnlyList<PluginDefinition> plugins,
+        Collection<string> warnings,
+        Collection<string> errors)
     {
         var allItems = new List<ContentItem>();
         foreach (var collection in config.Collections.Values)
         {
-            var items = contentReader.ReadCollection(collection, projectPath);
+            var items = contentReader.ReadCollection(collection, projectPath, plugins, warnings);
             foreach (var item in items)
             {
                 item.Url = permalinkGenerator.Generate(item, collection, config.BasePath);
@@ -187,7 +192,7 @@ public sealed class SiteBuilder(
                 try
                 {
                     var homeCollection = new ContentGroup { Name = "home", Layout = "home" };
-                    var homeItem = contentReader.ReadSingleFile(homePageAbsolute, homeCollection);
+                    var homeItem = contentReader.ReadSingleFile(homePageAbsolute, homeCollection, plugins, warnings);
                     homeItem.Url = new Uri(SiteConfiguration.ApplyBasePath(config.BasePath, new Uri("/", UriKind.Relative)), UriKind.Relative);
                     homeItem.OutputPath = ToOutputPath(homeItem.Url, config.BasePath);
                     homeCollection.Items.Add(homeItem);

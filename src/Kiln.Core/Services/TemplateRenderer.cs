@@ -1,6 +1,8 @@
 namespace Kiln.Services;
 
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Kiln.Models;
 using Scriban;
@@ -352,6 +354,14 @@ public sealed class TemplateRenderer : ITemplateRenderer
         var assetPrefix = site.AssetPrefix.TrimEnd('/');
         so.Import("asset_url", new Func<string, string>(
             path => CombineBasePathAndRelativePath(site, $"{assetPrefix}/{path.TrimStart('/')}")));
+
+        var stringFunctions = new ScriptObject();
+        stringFunctions.Import("base64_encode", new Func<object?, string>(value =>
+        {
+            var raw = value is null ? string.Empty : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
+        }));
+        so.Add("string", stringFunctions);
 
         // plugin_asset_url
         so.Import("plugin_asset_url", new Func<string, string, string>(

@@ -1,10 +1,11 @@
 namespace Kiln.Services;
 
+using System.Collections.ObjectModel;
 using Kiln.Models;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IContentReader
+public sealed class ContentReader(IMarkdownProcessor markdownProcessor, IShortcodeProcessor? shortcodeProcessor = null) : IContentReader
 {
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -21,7 +22,13 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         "url", "weight", "extra", "imageOptimization"
     };
 
-    public IReadOnlyList<ContentItem> ReadCollection(ContentGroup collection, string projectPath)
+    private readonly IShortcodeProcessor _shortcodeProcessor = shortcodeProcessor ?? new ShortcodeProcessor();
+
+    public IReadOnlyList<ContentItem> ReadCollection(
+        ContentGroup collection,
+        string projectPath,
+        IReadOnlyList<PluginDefinition>? plugins = null,
+        Collection<string>? warnings = null)
     {
         ArgumentNullException.ThrowIfNull(collection);
         var contentDirectory = Path.IsPathRooted(collection.Directory)
@@ -32,11 +39,11 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             return [];
 
         var items = new List<ContentItem>();
-        ReadSection(contentDirectory, contentDirectory, collection, items);
+        ReadSection(contentDirectory, contentDirectory, collection, items, plugins, warnings);
         return ApplySort(items, collection.Sort);
     }
 
-    private void ReadSection(string dir, string contentDirectory, ContentGroup collection, List<ContentItem> items)
+    private void ReadSection(string dir, string contentDirectory, ContentGroup collection, List<ContentItem> items, IReadOnlyList<PluginDefinition>? plugins, Collection<string>? warnings)
     {
         var sectionPath = ToSectionPath(contentDirectory, dir);
 
@@ -44,7 +51,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         var fileResults = new ContentItem?[files.Length];
         Parallel.For(0, files.Length, i =>
         {
-            fileResults[i] = ReadFile(files[i], contentDirectory, collection, assetDirectory: null, sectionPath);
+            fileResults[i] = ReadFile(files[i], contentDirectory, collection, assetDirectory: null, sectionPath, plugins, warnings);
         });
         foreach (var item in fileResults)
         {
@@ -57,13 +64,13 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             var indexFile = Path.Combine(subDir, "index.md");
             if (File.Exists(indexFile))
             {
-                var item = ReadFile(indexFile, contentDirectory, collection, assetDirectory: subDir, sectionPath);
+                var item = ReadFile(indexFile, contentDirectory, collection, assetDirectory: subDir, sectionPath, plugins, warnings);
                 if (item is not null)
                     items.Add(item);
             }
             else
             {
-                ReadSection(subDir, contentDirectory, collection, items);
+                ReadSection(subDir, contentDirectory, collection, items, plugins, warnings);
             }
         }
     }
@@ -76,7 +83,11 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         return rel.Replace(Path.DirectorySeparatorChar, '/');
     }
 
-    public ContentItem ReadSingleFile(string absoluteFilePath, ContentGroup owningCollection)
+    public ContentItem ReadSingleFile(
+        string absoluteFilePath,
+        ContentGroup owningCollection,
+        IReadOnlyList<PluginDefinition>? plugins = null,
+        Collection<string>? warnings = null)
     {
         ArgumentNullException.ThrowIfNull(absoluteFilePath);
         ArgumentNullException.ThrowIfNull(owningCollection);
@@ -87,13 +98,27 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
         var contentDirectory = Path.GetDirectoryName(absoluteFilePath)
             ?? throw new InvalidOperationException($"Could not resolve content directory for: {absoluteFilePath}");
 
-        var item = ReadFile(absoluteFilePath, contentDirectory, owningCollection, assetDirectory: null, sectionPath: "")
+        var item = ReadFile(
+            absoluteFilePath,
+            contentDirectory,
+            owningCollection,
+            assetDirectory: null,
+            sectionPath: string.Empty,
+            plugins,
+            warnings)
             ?? throw new InvalidOperationException($"Content file '{absoluteFilePath}' is missing valid front matter.");
 
         return item;
     }
 
-    private ContentItem? ReadFile(string filePath, string contentDirectory, ContentGroup collection, string? assetDirectory, string sectionPath)
+    private ContentItem? ReadFile(
+        string filePath,
+        string contentDirectory,
+        ContentGroup collection,
+        string? assetDirectory,
+        string sectionPath,
+        IReadOnlyList<PluginDefinition>? plugins,
+        Collection<string>? warnings)
     {
         var content = File.ReadAllText(filePath);
         var (frontMatter, body, extraFromFrontMatter, rawAll) = ParseFrontMatter(content, collection);
@@ -127,17 +152,20 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             ? $"/assets/content/{collection.Name}/{effectiveSlugForAssets}/"
             : null;
 
-        var moreMarkerIndex = body.IndexOf(MoreMarker, StringComparison.Ordinal);
+        var shortcodeWarnings = warnings ?? new Collection<string>();
+        var processedBody = _shortcodeProcessor.Process(body, plugins ?? [], shortcodeWarnings);
+
+        var moreMarkerIndex = processedBody.IndexOf(MoreMarker, StringComparison.Ordinal);
         var htmlBody = moreMarkerIndex >= 0
-            ? body.Replace(MoreMarker, "", StringComparison.Ordinal)
-            : body;
+            ? processedBody.Replace(MoreMarker, "", StringComparison.Ordinal)
+            : processedBody;
 
         string? teaser = frontMatter.Description;
         if (string.IsNullOrEmpty(teaser))
         {
             teaser = moreMarkerIndex >= 0
-                ? markdownProcessor.ToPlainText(body[..moreMarkerIndex])
-                : TruncateToWords(markdownProcessor.ToPlainText(body), collection.TeaserWords);
+                ? markdownProcessor.ToPlainText(processedBody[..moreMarkerIndex])
+                : TruncateToWords(markdownProcessor.ToPlainText(processedBody), collection.TeaserWords);
         }
 
         return new ContentItem
@@ -154,7 +182,7 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor) : IConte
             Weight = frontMatter.Weight,
             SourcePath = filePath,
             RelativePath = relativePath,
-            RawContent = body,
+            RawContent = processedBody,
             HtmlContent = markdownProcessor.ToHtml(htmlBody, assetBasePath),
             Url = collection.Url,
             OutputPath = "",
