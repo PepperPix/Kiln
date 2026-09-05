@@ -48,6 +48,10 @@ public sealed class PluginLoader : IPluginLoader
                 foreach (var slot in dto.Slots)
                     definition.Slots.Add(slot);
 
+            if (dto.Shortcodes is not null)
+                foreach (var shortcode in dto.Shortcodes)
+                    definition.Shortcodes.Add(shortcode);
+
             result.Add(definition);
         }
 
@@ -60,5 +64,6 @@ public sealed class PluginLoader : IPluginLoader
         public string? Version { get; set; }
         public string? Description { get; set; }
         public List<string>? Slots { get; set; }
+        public List<string>? Shortcodes { get; set; }
     }
 }

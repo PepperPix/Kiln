@@ -92,6 +92,37 @@ Kiln uses Scriban templates for layouts, partials and helpers. Basic concepts:
 
 Refer to `templates/default` in the project for a minimal theme layout and examples.
 
+## Content Plugin Shortcodes
+
+Content plugins can declare optional `shortcodes:` entries in `plugin.yaml` and provide matching partials under `plugins/<name>/shortcodes/<shortcode-name>.html`.
+
+Example plugin manifest:
+
+```yaml
+name: email-protect
+version: "1.1.0"
+slots:
+  - body_end
+shortcodes:
+  - email
+```
+
+A shortcode partial for the `email` shortcode would live at:
+
+```text
+plugins/email-protect/shortcodes/email.html
+```
+
+Content authors then write inline calls in Markdown body content using the `{% ... %}` syntax:
+
+```md
+Contact {% email "hello@cscharf.de" %} today.
+```
+
+The shortcode partial receives its parsed arguments, a `plugin_asset_url` helper scoped to the active plugin, and the built-in `string.base64_encode` filter. The current v1 scope intentionally does not provide a full `page`/`collection` render context; the shortcode is resolved while content is read and before the main page-render pipeline starts.
+
+Shortcodes are not resolved inside fenced code blocks (` ``` ` / `~~~`), so example snippets remain literal text.
+
 Template data available to layouts and partials includes:
 
 - `page.ancestors` — the breadcrumb chain for the current page, ordered root → … → parent (the

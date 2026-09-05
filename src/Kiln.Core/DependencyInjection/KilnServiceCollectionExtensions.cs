@@ -16,6 +16,7 @@ public static class KilnServiceCollectionExtensions
         services.AddSingleton<IPermalinkGenerator, PermalinkGenerator>();
         services.AddSingleton<ISiteConfigLoader, SiteConfigLoader>();
         services.AddSingleton<IPluginLoader, PluginLoader>();
+        services.AddSingleton<IShortcodeProcessor, ShortcodeProcessor>();
         services.AddSingleton<IAssetReferenceIndexBuilder, AssetReferenceIndexBuilder>();
         services.AddSingleton<ISiteBuilder, SiteBuilder>();
         services.AddSingleton<IDevServer, DevServer>();
