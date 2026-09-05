@@ -1,3 +1,10 @@
+# [1.2.0-beta.9](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.8...v1.2.0-beta.9) (2026-09-05)
+
+
+### Features
+
+* add noIndex front matter field with guaranteed meta injection ([#27](https://github.com/PepperPix/Kiln/issues/27)) ([680eb87](https://github.com/PepperPix/Kiln/commit/680eb870c23d7a480cf90d22b88202435035b474))
+
 # [1.2.0-beta.8](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.7...v1.2.0-beta.8) (2026-09-05)
 
 
