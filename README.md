@@ -155,9 +155,16 @@ Template data available to layouts and partials includes:
 
 - `page.ancestors` — the breadcrumb chain for the current page, ordered root → … → parent (the
   current page itself is not included). Each entry is `{title, url}`.
+- `page.no_index` — `true` when the current page has `no_index: true` in front matter; the engine
+  injects the robots meta tag automatically and does not require theme logic to re-render it.
 - `navtree.<collection-name>` — the hierarchical navigation tree for a given collection. Each node
   is `{title, url, weight, is_active, is_ancestor, children}`, where `is_active`/`is_ancestor` are
   computed relative to the page currently being rendered.
+
+Front matter can also set `no_index: true` on individual pages to keep them out of the generated
+`sitemap.xml` and force a `<meta name="robots" content="noindex, nofollow">` tag in the rendered
+HTML. This is intentionally separate from `robots.txt` generation; the engine handles the page-level
+no-index signal without creating a route-specific `Disallow` entry.
 
 ## Reference Documentation Generation
 

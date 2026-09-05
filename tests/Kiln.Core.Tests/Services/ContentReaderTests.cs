@@ -109,6 +109,61 @@ public class ContentReaderTests
     }
 
     [Test]
+    public async Task ReadCollection_MapsNoIndexFlag()
+    {
+        var tempDir = CreateTempContent(
+            "hidden.md",
+            """
+            ---
+            title: Hidden Post
+            no_index: true
+            ---
+
+            hidden content
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].NoIndex).IsTrue();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task ReadCollection_DefaultsNoIndexToFalseWhenUnset()
+    {
+        var tempDir = CreateTempContent(
+            "visible.md",
+            """
+            ---
+            title: Visible Post
+            ---
+
+            visible content
+            """);
+
+        try
+        {
+            var collection = MakeCollection("posts", tempDir);
+            var result = _reader.ReadCollection(collection, tempDir);
+
+            await Assert.That(result).HasSingleItem();
+            await Assert.That(result[0].NoIndex).IsFalse();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
     public async Task ReadCollection_SortsDateDesc()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");

@@ -1,25 +1,22 @@
 namespace Kiln.Services;
 
 using System.Collections.ObjectModel;
+using System.Globalization;
 using Kiln.Models;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 public sealed class ContentReader(IMarkdownProcessor markdownProcessor, IShortcodeProcessor? shortcodeProcessor = null) : IContentReader
 {
-    private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .IgnoreUnmatchedProperties()
-        .Build();
-
     private static readonly IDeserializer RawYamlDeserializer = new DeserializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .IgnoreUnmatchedProperties()
         .Build();
 
     private static readonly HashSet<string> KnownFrontMatterKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "id", "title", "date", "draft", "layout", "slug", "description",
-        "url", "weight", "extra", "imageOptimization"
+        "url", "weight", "extra",
+        "image_optimization", "imageOptimization",
+        "no_index", "noIndex"
     };
 
     private readonly IShortcodeProcessor _shortcodeProcessor = shortcodeProcessor ?? new ShortcodeProcessor();
@@ -190,7 +187,8 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor, IShortco
             Extra = extra,
             Taxonomies = taxonomies,
             AssetDirectory = assetDirectory,
-            ImageOptimization = frontMatter.ImageOptimization ?? true
+            ImageOptimization = frontMatter.ImageOptimization ?? true,
+            NoIndex = frontMatter.NoIndex
         };
     }
 
@@ -233,9 +231,9 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor, IShortco
         var yamlBlock = content[3..endIndex].Trim();
         var body = content[(endIndex + 3)..].Trim();
 
-        var frontMatter = YamlDeserializer.Deserialize<FrontMatter>(yamlBlock);
-
         var rawAll = RawYamlDeserializer.Deserialize<Dictionary<string, object>>(yamlBlock);
+        var frontMatter = DeserializeFrontMatter(rawAll);
+
         var excludedKeys = new HashSet<string>(KnownFrontMatterKeys, StringComparer.OrdinalIgnoreCase);
         foreach (var taxName in collection.Taxonomies)
             excludedKeys.Add(taxName);
@@ -244,6 +242,114 @@ public sealed class ContentReader(IMarkdownProcessor markdownProcessor, IShortco
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
         return (frontMatter, body, extraFromFrontMatter, rawAll);
+    }
+
+    private static FrontMatter DeserializeFrontMatter(Dictionary<string, object> rawAll)
+    {
+        var title = GetString(rawAll, "title")
+            ?? throw new InvalidOperationException("Front matter is missing the required 'title' field.");
+
+        return new FrontMatter
+        {
+            Id = GetString(rawAll, "id"),
+            Title = title,
+            Date = GetNullableDate(rawAll, "date"),
+            Draft = GetBool(rawAll, false, "draft"),
+            Layout = GetString(rawAll, "layout"),
+            Slug = GetString(rawAll, "slug"),
+            Description = GetString(rawAll, "description"),
+            PermalinkOverride = GetString(rawAll, "url", "permalink_override", "permalinkOverride"),
+            Weight = GetInt(rawAll, "weight", 0),
+            NoIndex = GetBool(rawAll, false, "no_index", "noIndex"),
+            ImageOptimization = GetNullableBool(rawAll, "image_optimization", "imageOptimization"),
+            Extra = []
+        };
+    }
+
+    private static string? GetString(Dictionary<string, object> rawAll, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (!rawAll.TryGetValue(key, out var value))
+                continue;
+
+            return value switch
+            {
+                null => null,
+                string s => s,
+                _ => value.ToString()
+            };
+        }
+
+        return null;
+    }
+
+    private static bool GetBool(Dictionary<string, object> rawAll, bool defaultValue, params string[] keys)
+        => ToBool(GetValue(rawAll, keys), defaultValue);
+
+    private static bool? GetNullableBool(Dictionary<string, object> rawAll, params string[] keys)
+    {
+        var value = GetValue(rawAll, keys);
+        if (value is null)
+            return null;
+
+        return Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+    }
+
+    private static int GetInt(Dictionary<string, object> rawAll, string key, int defaultValue)
+        => ToInt(GetValue(rawAll, key), defaultValue);
+
+    private static DateTime? GetNullableDate(Dictionary<string, object> rawAll, string key)
+    {
+        var value = GetValue(rawAll, key);
+        if (value is null)
+            return null;
+
+        return value switch
+        {
+            DateTime dateTime => dateTime,
+            DateOnly dateOnly => dateOnly.ToDateTime(TimeOnly.MinValue),
+            _ => DateTime.TryParse(value.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsed)
+                ? parsed
+                : null
+        };
+    }
+
+    private static object? GetValue(Dictionary<string, object> rawAll, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (rawAll.TryGetValue(key, out var value))
+                return value;
+        }
+
+        return null;
+    }
+
+    private static bool ToBool(object? value, bool defaultValue)
+    {
+        if (value is null)
+            return defaultValue;
+
+        if (value is bool boolValue)
+            return boolValue;
+
+        return bool.TryParse(value.ToString(), out var parsed)
+            ? parsed
+            : defaultValue;
+    }
+
+    private static int ToInt(object? value, int defaultValue)
+    {
+        if (value is null)
+            return defaultValue;
+
+        if (value is int intValue)
+            return intValue;
+
+        return int.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : defaultValue;
     }
 
     /// <summary>

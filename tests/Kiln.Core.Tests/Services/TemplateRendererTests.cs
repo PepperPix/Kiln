@@ -73,6 +73,46 @@ public class TemplateRendererTests
     }
 
     [Test]
+    public async Task Render_ProvidesNoIndexFlagOnPageObject()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html><head>{{ page.no_index }}</head></html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var noIndexItem = new ContentItem
+            {
+                SourcePath = item.SourcePath,
+                RelativePath = item.RelativePath,
+                Title = item.Title,
+                Date = item.Date,
+                Slug = item.Slug,
+                SectionPath = item.SectionPath,
+                Layout = item.Layout,
+                RawContent = item.RawContent,
+                HtmlContent = item.HtmlContent,
+                Url = item.Url,
+                OutputPath = item.OutputPath,
+                Collection = item.Collection,
+                NoIndex = true
+            };
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(noIndexItem, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("true");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
     public async Task Render_AssetUrlFunctionResolvesPath()
     {
         var tempTheme = CreateTempTheme(
