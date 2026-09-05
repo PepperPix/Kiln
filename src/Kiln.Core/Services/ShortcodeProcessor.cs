@@ -56,6 +56,14 @@ public sealed partial class ShortcodeProcessor : IShortcodeProcessor
         return output.ToString();
     }
 
+    // Path.GetFileName never returns null for a non-null input, only possibly an empty string
+    // (e.g. a directory path ending in a separator) — check for that instead of a redundant '??'.
+    private static string PathFileNameOrFallback(string directory, string fallback)
+    {
+        var fileName = Path.GetFileName(directory);
+        return string.IsNullOrEmpty(fileName) ? fallback : fileName;
+    }
+
     private static bool TryRenderShortcode(string shortcodeName, string rawArguments, IReadOnlyList<PluginDefinition> plugins, Collection<string> warnings, out string rendered)
     {
         rendered = string.Empty;
@@ -68,7 +76,9 @@ public sealed partial class ShortcodeProcessor : IShortcodeProcessor
             return false;
         }
 
-        var pluginKey = Path.GetFileName(plugin.Directory) ?? plugin.Name;
+        var pluginKey = string.IsNullOrWhiteSpace(plugin.Directory)
+            ? plugin.Name
+            : PathFileNameOrFallback(plugin.Directory, plugin.Name);
         var shortcodePath = Path.Combine(plugin.Directory, "shortcodes", $"{shortcodeName}.html");
         if (!File.Exists(shortcodePath))
         {
