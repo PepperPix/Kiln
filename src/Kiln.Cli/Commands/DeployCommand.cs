@@ -17,6 +17,10 @@ public sealed class DeployCommand(IDeploymentInitializer deploymentInitializer, 
         [CommandOption("-p|--path")]
         [Description("Path to the site project directory. Defaults to current directory.")]
         public string Path { get; init; } = ".";
+
+        [CommandOption("--force")]
+        [Description("Overwrite deployment files that already exist.")]
+        public bool Force { get; init; }
     }
 
     public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -30,11 +34,17 @@ public sealed class DeployCommand(IDeploymentInitializer deploymentInitializer, 
 
         try
         {
-            var result = deploymentInitializer.Initialize(target, projectPath, cancellationToken);
+            var result = deploymentInitializer.Initialize(target, projectPath, new DeploymentInitOptions(settings.Force), cancellationToken);
             foreach (var createdFile in result.CreatedFiles)
             {
                 var fullPath = Path.Combine(projectPath, Path.Combine(createdFile.Split('/')));
                 console.MarkupLine($"[green]Created[/] [blue]{fullPath}[/]");
+            }
+
+            foreach (var skippedFile in result.SkippedFiles)
+            {
+                var fullPath = Path.Combine(projectPath, Path.Combine(skippedFile.Split('/')));
+                console.MarkupLine($"[yellow]Skipped (exists)[/] [blue]{fullPath}[/] - use --force to overwrite");
             }
 
             return 0;
