@@ -27,6 +27,7 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         var config = siteConfigLoader.Load(projectPath);
         var outputDir = Path.Combine(projectPath, config.OutputDir);
         var outputDirFullPath = Path.GetFullPath(outputDir);
+        var serveRoot = PathContainment.Normalize(outputDirFullPath);
         var outputRelativePath = config.OutputDir
             .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
             .Trim(Path.DirectorySeparatorChar);
@@ -84,7 +85,7 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
             try
             {
                 var context = await listener.GetContextAsync().WaitAsync(ct).ConfigureAwait(false);
-                _ = Task.Run(() => ServeRequestAsync(context, outputDir, ct), CancellationToken.None);
+                _ = Task.Run(() => ServeRequestAsync(context, serveRoot, ct), CancellationToken.None);
             }
             catch (OperationCanceledException)
             {
@@ -217,6 +218,17 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
     private async Task ServeRequestAsync(HttpListenerContext context, string outputDir, CancellationToken ct)
     {
         const int httpNotFound = 404;
+        const int httpForbidden = 403;
+
+        if (!IsAllowedHost(context.Request.Headers["Host"]))
+        {
+            context.Response.StatusCode = httpForbidden;
+            var forbidden = Utf8NoBom.GetBytes("403 - Forbidden");
+            await context.Response.OutputStream.WriteAsync(forbidden, ct).ConfigureAwait(false);
+            context.Response.Close();
+            return;
+        }
+
         var requestPath = context.Request.Url?.LocalPath ?? "/";
 
         if (string.Equals(requestPath, LiveReloadEndpoint, StringComparison.Ordinal))
@@ -228,11 +240,9 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         if (requestPath == "/")
             requestPath = "/index.html";
 
-        var filePath = Path.Combine(outputDir, requestPath.TrimStart('/'));
-        if (!File.Exists(filePath))
-            filePath = Path.Combine(outputDir, requestPath.TrimStart('/'), "index.html");
+        var filePath = ResolveFilePath(outputDir, requestPath);
 
-        if (File.Exists(filePath))
+        if (filePath is not null)
         {
             var contentType = GetMimeType(filePath);
             var content = await File.ReadAllBytesAsync(filePath, ct).ConfigureAwait(false);
@@ -255,6 +265,52 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         }
 
         context.Response.Close();
+    }
+
+    private static string? ResolveFilePath(string outputDirFullPath, string requestPath)
+    {
+        var relative = requestPath.TrimStart('/');
+        try
+        {
+            var candidate = Path.GetFullPath(Path.Combine(outputDirFullPath, relative));
+            if (PathContainment.IsSameOrDescendant(outputDirFullPath, candidate) && File.Exists(candidate))
+                return candidate;
+
+            var indexCandidate = Path.GetFullPath(Path.Combine(outputDirFullPath, relative, "index.html"));
+            if (PathContainment.IsSameOrDescendant(outputDirFullPath, indexCandidate) && File.Exists(indexCandidate))
+                return indexCandidate;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static bool IsAllowedHost(string? hostHeader)
+    {
+        if (string.IsNullOrWhiteSpace(hostHeader))
+            return false;
+
+        var host = hostHeader.Trim();
+        if (host.StartsWith('['))
+        {
+            var end = host.IndexOf(']', StringComparison.Ordinal);
+            if (end < 0)
+                return false;
+            host = host[..(end + 1)];
+        }
+        else
+        {
+            var colon = host.LastIndexOf(':');
+            if (colon >= 0)
+                host = host[..colon];
+        }
+
+        return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || host.Equals("127.0.0.1", StringComparison.Ordinal)
+            || host.Equals("[::1]", StringComparison.Ordinal);
     }
 
     private static bool ShouldSendCssEvent(IEnumerable<string> changedPaths, string projectPath)
