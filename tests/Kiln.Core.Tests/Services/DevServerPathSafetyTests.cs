@@ -17,6 +17,7 @@ public class DevServerPathSafetyTests
     private const string ProjectSecret = "PROJECT-SECRET-CONTENT";
     private const string OuterSecret = "OUTER-SECRET-CONTENT";
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(8);
+    private static readonly HttpClient ReadinessClient = new() { Timeout = TimeSpan.FromSeconds(4) };
 
     [Test]
     [Arguments("/..%2fsecret.txt")]
@@ -159,13 +160,12 @@ public class DevServerPathSafetyTests
 
         private async Task WaitUntilReadyAsync()
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
             var deadline = DateTimeOffset.UtcNow + DefaultTimeout;
             while (DateTimeOffset.UtcNow < deadline)
             {
                 try
                 {
-                    using var response = await client.GetAsync($"http://localhost:{Port}/");
+                    using var response = await ReadinessClient.GetAsync($"http://localhost:{Port}/");
                     return;
                 }
                 catch (HttpRequestException)
