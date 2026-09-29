@@ -128,6 +128,51 @@ public class PluginCommandAppTests
     }
 
     [Test]
+    [Arguments("..")]
+    [Arguments(".")]
+    [Arguments("../x")]
+    [Arguments("a/b")]
+    [Arguments("a\\b")]
+    [Arguments("{victim}")]
+    [Arguments("Upper")]
+    [Arguments("with space")]
+    public async Task PluginRemoveCommand_WithInvalidName_FailsAndLeavesFileSystemUntouched(string nameArgument)
+    {
+        var container = Path.Combine(Path.GetTempPath(), $"kiln-plugin-remove-unsafe-{Guid.NewGuid():N}");
+        var projectDir = Path.Combine(container, "project");
+        var victim = Path.Combine(container, "victim");
+
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(projectDir, "plugins", "email-protect"));
+            Directory.CreateDirectory(Path.Combine(projectDir, "plugins", "a", "b"));
+            Directory.CreateDirectory(Path.Combine(projectDir, "x"));
+            Directory.CreateDirectory(victim);
+            await File.WriteAllTextAsync(Path.Combine(projectDir, "site.yaml"), "title: precious");
+            await File.WriteAllTextAsync(Path.Combine(projectDir, "plugins", "email-protect", "plugin.yaml"), "name: email-protect");
+            await File.WriteAllTextAsync(Path.Combine(projectDir, "plugins", "a", "b", "file.txt"), "keep");
+            await File.WriteAllTextAsync(Path.Combine(projectDir, "x", "file.txt"), "keep");
+            await File.WriteAllTextAsync(Path.Combine(victim, "file.txt"), "keep");
+            var lockFile = new PluginLockFile();
+            await lockFile.SetAsync(projectDir, "email-protect", new PluginLockEntry("Kiln.Plugin.EmailProtect", "1.2.3", "nuget"));
+            var before = SnapshotPaths(container);
+
+            var (app, _) = CreateApp(new FakeNuGetPluginClient(), lockFile);
+            var name = nameArgument.Replace("{victim}", victim, StringComparison.Ordinal);
+            var result = await app.RunAsync(["plugin", "remove", name, projectDir, "--yes"]);
+
+            await Assert.That(result.ExitCode).IsNotEqualTo(0);
+            await Assert.That(SnapshotPaths(container)).IsEquivalentTo(before);
+            var entries = await lockFile.ReadAsync(projectDir);
+            await Assert.That(entries).ContainsKey("email-protect");
+        }
+        finally
+        {
+            Directory.Delete(container, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task PluginListCommand_ShowsSourceColumn()
     {
         var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-plugin-list-{Guid.NewGuid():N}");
@@ -145,6 +190,15 @@ public class PluginCommandAppTests
         await Assert.That(console.Output).Contains("nuget");
 
         Directory.Delete(projectDir, recursive: true);
+    }
+
+    private static List<string> SnapshotPaths(string root)
+    {
+        var paths = Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories)
+            .Select(path => Path.GetRelativePath(root, path))
+            .ToList();
+        paths.Sort(StringComparer.Ordinal);
+        return paths;
     }
 
     private static (CommandAppTester App, TestConsole Console) CreateApp(

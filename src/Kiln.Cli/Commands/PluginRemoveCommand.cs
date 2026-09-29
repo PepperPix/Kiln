@@ -27,7 +27,20 @@ public sealed class PluginRemoveCommand(
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = Path.GetFullPath(settings.Path);
-        var pluginDir = Path.Combine(projectPath, "plugins", settings.Name);
+
+        if (!PluginNames.IsValid(settings.Name))
+        {
+            console.MarkupLine($"[red]ERROR:[/] '{Markup.Escape(settings.Name)}' is not a valid plugin name.");
+            return 1;
+        }
+
+        var pluginsRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine(projectPath, "plugins")));
+        var pluginDir = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine(pluginsRoot, settings.Name)));
+        if (!string.Equals(Path.GetDirectoryName(pluginDir), pluginsRoot, StringComparison.Ordinal))
+        {
+            console.MarkupLine($"[red]ERROR:[/] Plugin '{Markup.Escape(settings.Name)}' does not resolve to a directory directly below 'plugins'.");
+            return 1;
+        }
 
         if (Directory.Exists(pluginDir) && !settings.Yes)
         {
