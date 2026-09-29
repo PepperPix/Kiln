@@ -1,6 +1,7 @@
 namespace Kiln.Cli.Tests;
 
 using Kiln.Cli.Commands;
+using Kiln.Cli.Tests.Fakes;
 using Kiln.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
@@ -517,6 +518,7 @@ public class PluginCommandAppTests
             config.AddBranch("plugin", p =>
             {
                 p.AddCommand<PluginSearchCommand>("search");
+                p.AddCommand<PluginInfoCommand>("info");
                 p.AddCommand<PluginAddCommand>("add");
                 p.AddCommand<PluginUpdateCommand>("update");
                 p.AddCommand<PluginRemoveCommand>("remove");
@@ -525,48 +527,5 @@ public class PluginCommandAppTests
         });
 
         return (app, console);
-    }
-
-    private sealed class FakeNuGetPluginClient : INuGetPluginClient
-    {
-        public IReadOnlyList<PluginSearchResult> SearchResults { get; set; } = [];
-
-        public string? LatestVersion { get; set; }
-
-        public PluginPackageInstallResult? InstallResult { get; set; }
-
-        public int AddCallCount { get; private set; }
-
-        public PluginInstallOptions? LastOptions { get; private set; }
-
-        public Exception? AddException { get; set; }
-
-        public Task<IReadOnlyList<PluginSearchResult>> SearchAsync(string query, CancellationToken ct = default)
-            => Task.FromResult(SearchResults);
-
-        public Task<string?> GetLatestVersionAsync(string packageId, CancellationToken ct = default)
-            => Task.FromResult(LatestVersion);
-
-        public Task<bool> IsUpdateAvailableAsync(string packageId, string currentVersion, CancellationToken ct = default)
-            => Task.FromResult(!string.Equals(LatestVersion, currentVersion, StringComparison.OrdinalIgnoreCase));
-
-        public Task<PluginPackageInstallResult> AddAsync(string packageId, string? version, string projectPath, PluginInstallOptions options, CancellationToken ct = default)
-        {
-            LastOptions = options;
-            return AddAsync(packageId, version, projectPath, ct);
-        }
-
-        public Task<PluginPackageInstallResult> AddAsync(string packageId, string? version, string projectPath, CancellationToken ct = default)
-        {
-            AddCallCount++;
-            if (AddException is not null)
-                throw AddException;
-
-            var pluginName = packageId.Split('.').Last();
-            var installPath = Path.Combine(projectPath, "plugins", pluginName);
-
-            return Task.FromResult(
-                InstallResult ?? new PluginPackageInstallResult(packageId, version ?? "1.0.0", pluginName, installPath));
-        }
     }
 }

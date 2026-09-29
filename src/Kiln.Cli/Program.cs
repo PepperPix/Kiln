@@ -55,6 +55,8 @@ app.Configure(config =>
     {
         p.AddCommand<PluginSearchCommand>("search")
             .WithDescription("Search public NuGet packages tagged with kiln-plugin.");
+        p.AddCommand<PluginInfoCommand>("info")
+            .WithDescription("Show trust level, contents and external hosts of a plugin package without installing it.");
         p.AddCommand<PluginAddCommand>("add")
             .WithDescription("Download and install a NuGet plugin into the project.");
         p.AddCommand<PluginUpdateCommand>("update")
