@@ -1,3 +1,11 @@
+# [1.2.0-beta.10](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.9...v1.2.0-beta.10) (2026-09-29)
+
+
+### Bug Fixes
+
+* **cli:** reject unknown options ([b8bcafd](https://github.com/PepperPix/Kiln/commit/b8bcafd50fcf90e016ba2de92725d226bc5c621e))
+* **core:** lift scriban loop and string limits for templates ([2cd733a](https://github.com/PepperPix/Kiln/commit/2cd733ac22a87bd5a915ae248511cf8f29799fa3))
+
 # [1.2.0-beta.9](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.8...v1.2.0-beta.9) (2026-09-05)
 
 
