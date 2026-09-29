@@ -6,15 +6,9 @@ namespace Kiln.Services;
 public sealed record PluginInstallOptions
 {
     /// <summary>
-    /// Gets the options used when none are supplied: trust checks enabled, no lock information, no forced overwrite.
+    /// Gets the options used when none are supplied: no lock information, no forced overwrite.
     /// </summary>
     public static PluginInstallOptions Default { get; } = new();
-
-    /// <summary>
-    /// Gets a value indicating whether packages that do not follow the <c>Kiln.Plugin.*</c> naming convention
-    /// or lack the <c>kiln-plugin</c> tag may be installed.
-    /// </summary>
-    public bool AllowAnyPackage { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether an existing plugin directory is replaced even if it has local changes

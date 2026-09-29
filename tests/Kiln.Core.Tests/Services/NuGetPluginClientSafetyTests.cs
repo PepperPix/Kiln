@@ -164,66 +164,55 @@ public class NuGetPluginClientSafetyTests
     }
 
     [Test]
-    public async Task AddAsync_WithNonConventionPackageId_ThrowsAndInstallsNothing()
-    {
-        using var env = new TestEnvironment();
-        env.AddPackage("Contoso.Widget", "name: widget\n", []);
-        var before = env.Snapshot();
-
-        var error = await TryAddAsync(env, "Contoso.Widget");
-
-        await Assert.That(error).IsTypeOf<InvalidOperationException>();
-        await Assert.That(error!.Message).Contains("naming convention");
-        await Assert.That(env.Snapshot()).IsEquivalentTo(before);
-    }
-
-    [Test]
-    public async Task AddAsync_WithNonConventionPackageId_AndAllowAnyPackage_InstallsAsUnverified()
+    public async Task AddAsync_WithoutKilnPluginPrefix_ButWithTag_Installs()
     {
         using var env = new TestEnvironment();
         env.AddPackage("Contoso.Widget", "name: widget\n", []);
 
-        var result = await env.Client.AddAsync("Contoso.Widget", null, env.ProjectDir, new PluginInstallOptions { AllowAnyPackage = true });
+        var result = await env.Client.AddAsync("Contoso.Widget", null, env.ProjectDir);
 
-        await Assert.That(result.Unverified).IsTrue();
+        await Assert.That(result.PluginName).IsEqualTo("widget");
         await Assert.That(Directory.Exists(Path.Combine(env.ProjectDir, "plugins", "widget"))).IsTrue();
     }
 
     [Test]
-    public async Task AddAsync_WithoutPluginTag_ThrowsAndInstallsNothing()
+    public async Task AddAsync_WithoutKilnPluginPrefix_AndWithoutManifestName_UsesLastIdSegment()
     {
         using var env = new TestEnvironment();
-        env.AddPackage("Kiln.Plugin.Untagged", "name: untagged\n", [], tags: "email privacy");
+        env.AddPackage("Contoso.Widget", "version: 1.0.0\n", []);
+
+        var result = await env.Client.AddAsync("Contoso.Widget", null, env.ProjectDir);
+
+        await Assert.That(result.PluginName).IsEqualTo("widget");
+    }
+
+    [Test]
+    [Arguments("Kiln.Plugin.Untagged", "email privacy")]
+    [Arguments("Kiln.Plugin.Untagged", null)]
+    [Arguments("Contoso.Widget", "email privacy")]
+    [Arguments("Contoso.Widget", null)]
+    public async Task AddAsync_WithoutPluginTag_ThrowsAndInstallsNothing(string packageId, string? tags)
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage(packageId, "name: untagged\n", [], tags: tags);
         var before = env.Snapshot();
 
-        var error = await TryAddAsync(env, "Kiln.Plugin.Untagged");
+        var error = await TryAddAsync(env, packageId);
 
         await Assert.That(error).IsTypeOf<InvalidOperationException>();
         await Assert.That(error!.Message).Contains("kiln-plugin");
+        await Assert.That(error.Message).DoesNotContain("Use --");
         await Assert.That(env.Snapshot()).IsEquivalentTo(before);
     }
 
     [Test]
-    public async Task AddAsync_WithoutPluginTag_AndAllowAnyPackage_InstallsAsUnverified()
-    {
-        using var env = new TestEnvironment();
-        env.AddPackage("Kiln.Plugin.Untagged", "name: untagged\n", [], tags: null);
-
-        var result = await env.Client.AddAsync("Kiln.Plugin.Untagged", null, env.ProjectDir, new PluginInstallOptions { AllowAnyPackage = true });
-
-        await Assert.That(result.Unverified).IsTrue();
-        await Assert.That(Directory.Exists(Path.Combine(env.ProjectDir, "plugins", "untagged"))).IsTrue();
-    }
-
-    [Test]
-    public async Task AddAsync_WithConventionAndTag_IsVerifiedAndReportsContentHash()
+    public async Task AddAsync_WithTag_ReportsContentHash()
     {
         using var env = new TestEnvironment();
         env.AddPackage("Kiln.Plugin.Good", "name: good\n", [new ArchiveEntry("content/static/a.js", "a")], tags: "Seo KILN-PLUGIN");
 
         var result = await env.Client.AddAsync("Kiln.Plugin.Good", null, env.ProjectDir);
 
-        await Assert.That(result.Unverified).IsFalse();
         await Assert.That(result.ContentHash).IsNotNull();
         await Assert.That(result.ContentHash).IsEqualTo(PluginContentHasher.ComputeDirectoryHash(result.InstallPath));
     }
