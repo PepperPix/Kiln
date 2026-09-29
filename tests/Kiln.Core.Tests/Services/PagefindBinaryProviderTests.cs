@@ -259,6 +259,92 @@ public class PagefindBinaryProviderTests
     }
 
     [Test]
+    public async Task GetBinaryPath_Download_TruncatedArchive_LeavesNoBinaryOrTempFileBehind()
+    {
+        var fakeHome = Path.Combine(Path.GetTempPath(), $"kiln-test-home-{Guid.NewGuid():N}");
+        try
+        {
+            var binaryFileName = ExpectedBinaryFileName(extended: false);
+            var content = new byte[512 * 1024];
+            new Random(42).NextBytes(content);
+            var fullArchive = BuildTarGz(binaryFileName, content);
+            var truncatedArchive = fullArchive[..(fullArchive.Length / 2)];
+            var hashOfTruncated = Convert.ToHexString(SHA256.HashData(truncatedArchive));
+
+            using var handler = new FakeHttpMessageHandler(hashOfTruncated, truncatedArchive);
+            var provider = new PagefindBinaryProvider(fakeHome, handler, pathOverride: string.Empty);
+
+            Func<Task> act = async () => await provider.GetBinaryPathAsync(extended: false, allowDownload: true, CancellationToken.None);
+
+            await Assert.That(act).Throws<Exception>();
+
+            var cachePath = provider.GetCacheBinaryPath(extended: false);
+            await Assert.That(File.Exists(cachePath)).IsFalse();
+            var leftovers = Directory.Exists(Path.GetDirectoryName(cachePath)!)
+                ? Directory.GetFiles(Path.GetDirectoryName(cachePath)!)
+                : [];
+            await Assert.That(leftovers.Length).IsEqualTo(0);
+        }
+        finally
+        {
+            if (Directory.Exists(fakeHome))
+                Directory.Delete(fakeHome, true);
+        }
+    }
+
+    [Test]
+    public async Task GetBinaryPath_Download_BinaryMissingFromArchive_LeavesNoFilesBehind()
+    {
+        var fakeHome = Path.Combine(Path.GetTempPath(), $"kiln-test-home-{Guid.NewGuid():N}");
+        try
+        {
+            var tarGzBytes = BuildTarGz("not-the-expected-binary", "irrelevant"u8.ToArray());
+            var expectedHash = Convert.ToHexString(SHA256.HashData(tarGzBytes));
+
+            using var handler = new FakeHttpMessageHandler(expectedHash, tarGzBytes);
+            var provider = new PagefindBinaryProvider(fakeHome, handler, pathOverride: string.Empty);
+
+            Func<Task> act = async () => await provider.GetBinaryPathAsync(extended: false, allowDownload: true, CancellationToken.None);
+
+            await Assert.That(act).ThrowsExactly<InvalidOperationException>();
+
+            var cacheDir = Path.GetDirectoryName(provider.GetCacheBinaryPath(extended: false))!;
+            await Assert.That(Directory.GetFiles(cacheDir).Length).IsEqualTo(0);
+        }
+        finally
+        {
+            if (Directory.Exists(fakeHome))
+                Directory.Delete(fakeHome, true);
+        }
+    }
+
+    [Test]
+    public async Task GetBinaryPath_Download_Success_LeavesOnlyTheBinaryInCacheDirectory()
+    {
+        var fakeHome = Path.Combine(Path.GetTempPath(), $"kiln-test-home-{Guid.NewGuid():N}");
+        try
+        {
+            var binaryFileName = ExpectedBinaryFileName(extended: false);
+            var tarGzBytes = BuildTarGz(binaryFileName, "fake-pagefind"u8.ToArray());
+            var expectedHash = Convert.ToHexString(SHA256.HashData(tarGzBytes));
+
+            using var handler = new FakeHttpMessageHandler(expectedHash, tarGzBytes);
+            var provider = new PagefindBinaryProvider(fakeHome, handler, pathOverride: string.Empty);
+
+            var path = await provider.GetBinaryPathAsync(extended: false, allowDownload: true, CancellationToken.None);
+
+            var files = Directory.GetFiles(Path.GetDirectoryName(path)!);
+            await Assert.That(files.Length).IsEqualTo(1);
+            await Assert.That(files[0]).IsEqualTo(path);
+        }
+        finally
+        {
+            if (Directory.Exists(fakeHome))
+                Directory.Delete(fakeHome, true);
+        }
+    }
+
+    [Test]
     public async Task GetBinaryPath_PathOverrideInjected_ReturnsBinaryFoundInOverriddenPathDirectory()
     {
         var fakeHome = Path.Combine(Path.GetTempPath(), $"kiln-test-home-{Guid.NewGuid():N}");
