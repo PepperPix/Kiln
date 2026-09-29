@@ -2,8 +2,6 @@ namespace Kiln.Services;
 
 using System.IO.Compression;
 using System.Text;
-using System.Xml;
-using System.Xml.Linq;
 using NuGet.Common;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
@@ -22,7 +20,6 @@ public sealed class NuGetPluginClient : INuGetPluginClient
     private const int CopyBufferSize = 81920;
     private const string PluginIdPrefix = "Kiln.Plugin.";
     private const string PluginTag = "kiln-plugin";
-    private const long MaxNuspecBytes = 1024 * 1024;
     private static readonly IDeserializer ManifestDeserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .IgnoreUnmatchedProperties()
@@ -83,7 +80,10 @@ public sealed class NuGetPluginClient : INuGetPluginClient
                 continue;
 
             var versionText = identity.Version.OriginalVersion ?? string.Empty;
-            results.Add(new PluginSearchResult(identity.Id, versionText, item.Description ?? string.Empty));
+            results.Add(new PluginSearchResult(identity.Id, versionText, item.Description ?? string.Empty)
+            {
+                Trust = PluginTrust.Classify(identity.Id, item.PrefixReserved),
+            });
         }
 
         return results;
@@ -148,7 +148,113 @@ public sealed class NuGetPluginClient : INuGetPluginClient
         return latestVersion > installedVersion;
     }
 
+    public Task<PluginPackageInfo> GetInfoAsync(string packageId, string? version, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(packageId);
+        return GetInfoCoreAsync(NormalizePackageId(packageId), version, ct);
+    }
+
+    private async Task<PluginPackageInfo> GetInfoCoreAsync(string normalizedPackageId, string? version, CancellationToken ct)
+    {
+        using var package = await PreparePackageAsync(normalizedPackageId, version, ct).ConfigureAwait(false);
+        var feedMetadata = await TryGetFeedMetadataAsync(normalizedPackageId, ct).ConfigureAwait(false);
+        var scan = PluginContentInspector.Scan(package.ContentRoot);
+        var nuspec = package.Nuspec;
+
+        return new PluginPackageInfo(
+            normalizedPackageId,
+            package.Version,
+            PluginTrust.Classify(normalizedPackageId, feedMetadata?.PrefixReserved ?? false),
+            feedMetadata?.Owners ?? [],
+            nuspec.Authors,
+            nuspec.Description,
+            nuspec.License,
+            nuspec.ProjectUrl,
+            package.PluginName,
+            ReadStringList(package.Manifest, "slots"),
+            ReadStringList(package.Manifest, "shortcodes"),
+            scan.Files,
+            scan.Inventory,
+            scan.ExternalHosts,
+            PluginContentHasher.ComputeDirectoryHash(package.ContentRoot),
+            feedMetadata is not null);
+    }
+
+    private async Task<FeedMetadata?> TryGetFeedMetadataAsync(string packageId, CancellationToken ct)
+    {
+        try
+        {
+            var packageSearch = await _sourceRepository.GetResourceAsync<PackageSearchResource>(ct).ConfigureAwait(false);
+            if (packageSearch is null)
+                return null;
+
+            var results = await packageSearch.SearchAsync(
+                $"packageid:{packageId}",
+                new SearchFilter(includePrerelease: true),
+                skip: 0,
+                take: 5,
+                NullLogger.Instance,
+                ct).ConfigureAwait(false);
+
+            var match = results.FirstOrDefault(r => string.Equals(r.Identity?.Id, packageId, StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+                return null;
+
+            var owners = (match.Owners ?? string.Empty).Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return new FeedMetadata(match.PrefixReserved, owners);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
     private async Task<PluginPackageInstallResult> AddCoreAsync(string normalizedPackageId, string? version, string projectPath, PluginInstallOptions options, CancellationToken ct)
+    {
+        using var package = await PreparePackageAsync(normalizedPackageId, version, ct).ConfigureAwait(false);
+        var feedMetadata = await TryGetFeedMetadataAsync(normalizedPackageId, ct).ConfigureAwait(false);
+        var pluginName = package.PluginName;
+        var contentRoot = package.ContentRoot;
+
+        var projectRoot = Path.GetFullPath(projectPath);
+        var pluginsRoot = PathContainment.Normalize(Path.Combine(projectRoot, "plugins"));
+        var destinationDir = PathContainment.Normalize(Path.Combine(pluginsRoot, pluginName));
+        if (!PathContainment.AreSame(pluginsRoot, Path.GetDirectoryName(destinationDir) ?? string.Empty))
+            throw new InvalidOperationException($"Plugin name '{pluginName}' from package '{normalizedPackageId}' is not a valid plugin directory name.");
+
+        if (Directory.Exists(destinationDir))
+        {
+            if (!options.Force)
+                EnsureExistingInstallIsUnmodified(options, pluginName, destinationDir);
+
+            Directory.Delete(destinationDir, recursive: true);
+        }
+
+        Directory.CreateDirectory(destinationDir);
+
+        foreach (var file in Directory.EnumerateFiles(contentRoot, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(contentRoot, file);
+            var targetPath = Path.Combine(destinationDir, relativePath);
+            var targetDirectory = Path.GetDirectoryName(targetPath);
+            if (!string.IsNullOrEmpty(targetDirectory))
+                Directory.CreateDirectory(targetDirectory);
+
+            File.Copy(file, targetPath, overwrite: true);
+        }
+
+        return new PluginPackageInstallResult(
+            normalizedPackageId,
+            package.Version,
+            pluginName,
+            destinationDir)
+        {
+            ContentHash = PluginContentHasher.ComputeDirectoryHash(destinationDir),
+            Trust = PluginTrust.Classify(normalizedPackageId, feedMetadata?.PrefixReserved ?? false),
+        };
+    }
+
+    private async Task<PreparedPackage> PreparePackageAsync(string normalizedPackageId, string? version, CancellationToken ct)
     {
         var resolvedVersion = string.IsNullOrWhiteSpace(version)
             ? await GetLatestVersionCoreAsync(normalizedPackageId, ct).ConfigureAwait(false)
@@ -180,11 +286,13 @@ public sealed class NuGetPluginClient : INuGetPluginClient
         var tempRoot = Path.Combine(Path.GetTempPath(), $"kiln-plugin-{Guid.NewGuid():N}");
         var contentRoot = Path.Combine(tempRoot, "content");
         Directory.CreateDirectory(contentRoot);
+        var prepared = false;
 
         try
         {
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
-            if (!HasPluginTag(archive))
+            var nuspec = PluginNuspecInfo.Read(archive);
+            if (nuspec is null || !nuspec.HasTag(PluginTag))
                 throw new InvalidOperationException($"Package '{normalizedPackageId}' does not carry the '{PluginTag}' tag and cannot be installed as a Kiln plugin.");
 
             var contentEntries = archive.Entries
@@ -222,71 +330,16 @@ public sealed class NuGetPluginClient : INuGetPluginClient
             if (pluginManifestPath is null)
                 throw new InvalidOperationException($"Package '{normalizedPackageId}' does not contain a plugin.yaml manifest.");
 
-            var pluginName = ReadPluginName(pluginManifestPath, normalizedPackageId);
-            var projectRoot = Path.GetFullPath(projectPath);
-            var pluginsRoot = PathContainment.Normalize(Path.Combine(projectRoot, "plugins"));
-            var destinationDir = PathContainment.Normalize(Path.Combine(pluginsRoot, pluginName));
-            if (!PathContainment.AreSame(pluginsRoot, Path.GetDirectoryName(destinationDir) ?? string.Empty))
-                throw new InvalidOperationException($"Plugin name '{pluginName}' from package '{normalizedPackageId}' is not a valid plugin directory name.");
+            var manifest = ReadManifest(pluginManifestPath, normalizedPackageId);
+            var pluginName = ReadPluginName(manifest, normalizedPackageId);
 
-            if (Directory.Exists(destinationDir))
-            {
-                if (!options.Force)
-                    EnsureExistingInstallIsUnmodified(options, pluginName, destinationDir);
-
-                Directory.Delete(destinationDir, recursive: true);
-            }
-
-            Directory.CreateDirectory(destinationDir);
-
-            foreach (var file in Directory.EnumerateFiles(contentRoot, "*", SearchOption.AllDirectories))
-            {
-                var relativePath = Path.GetRelativePath(contentRoot, file);
-                var targetPath = Path.Combine(destinationDir, relativePath);
-                var targetDirectory = Path.GetDirectoryName(targetPath);
-                if (!string.IsNullOrEmpty(targetDirectory))
-                    Directory.CreateDirectory(targetDirectory);
-
-                File.Copy(file, targetPath, overwrite: true);
-            }
-
-            return new PluginPackageInstallResult(
-                normalizedPackageId,
-                resolvedVersion,
-                pluginName,
-                destinationDir)
-            {
-                ContentHash = PluginContentHasher.ComputeDirectoryHash(destinationDir),
-            };
+            prepared = true;
+            return new PreparedPackage(tempRoot, contentRoot, resolvedVersion, pluginName, manifest, nuspec);
         }
         finally
         {
-            if (Directory.Exists(tempRoot))
+            if (!prepared && Directory.Exists(tempRoot))
                 Directory.Delete(tempRoot, recursive: true);
-        }
-    }
-
-    private static bool HasPluginTag(ZipArchive archive)
-    {
-        var nuspec = archive.Entries.FirstOrDefault(e =>
-            e.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase) && !e.FullName.Contains('/', StringComparison.Ordinal));
-        if (nuspec is null || nuspec.Length > MaxNuspecBytes)
-            return false;
-
-        try
-        {
-            using var stream = nuspec.Open();
-            using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, MaxCharactersInDocument = MaxNuspecBytes });
-            var tags = XDocument.Load(reader).Descendants().FirstOrDefault(e => e.Name.LocalName == "tags")?.Value;
-            if (tags is null)
-                return false;
-
-            var tagNames = tags.Split([' ', ',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            return Array.Exists(tagNames, tag => string.Equals(tag, PluginTag, StringComparison.OrdinalIgnoreCase));
-        }
-        catch (XmlException)
-        {
-            return false;
         }
     }
 
@@ -363,20 +416,35 @@ public sealed class NuGetPluginClient : INuGetPluginClient
         => new(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, CopyBufferSize, useAsync: true);
 #pragma warning restore CA5389
 
-    private static string ReadPluginName(string manifestPath, string packageId)
+    private static Dictionary<string, object?>? ReadManifest(string manifestPath, string packageId)
     {
-        string? name;
         try
         {
-            var manifest = ManifestDeserializer.Deserialize<Dictionary<string, object?>?>(File.ReadAllText(manifestPath));
-            name = manifest is not null && manifest.TryGetValue("name", out var rawName)
-                ? Convert.ToString(rawName, System.Globalization.CultureInfo.InvariantCulture)?.Trim()
-                : null;
+            return ManifestDeserializer.Deserialize<Dictionary<string, object?>?>(File.ReadAllText(manifestPath));
         }
         catch (YamlException ex)
         {
             throw new InvalidOperationException($"The plugin manifest of package '{packageId}' is not valid YAML: {ex.Message}", ex);
         }
+    }
+
+    private static List<string> ReadStringList(Dictionary<string, object?>? manifest, string key)
+    {
+        if (manifest is null || !manifest.TryGetValue(key, out var raw) || raw is not IEnumerable<object?> items)
+            return [];
+
+        return items
+            .Select(item => Convert.ToString(item, System.Globalization.CultureInfo.InvariantCulture)?.Trim())
+            .Where(text => !string.IsNullOrEmpty(text))
+            .Select(text => text!)
+            .ToList();
+    }
+
+    private static string ReadPluginName(Dictionary<string, object?>? manifest, string packageId)
+    {
+        var name = manifest is not null && manifest.TryGetValue("name", out var rawName)
+            ? Convert.ToString(rawName, System.Globalization.CultureInfo.InvariantCulture)?.Trim()
+            : null;
 
         if (string.IsNullOrEmpty(name))
             name = ToKebabCase(ShortNameFromPackageId(packageId));
@@ -428,5 +496,32 @@ public sealed class NuGetPluginClient : INuGetPluginClient
             throw new ArgumentException("Package ID cannot be empty.", nameof(packageId));
 
         return value;
+    }
+
+    private sealed record FeedMetadata(bool PrefixReserved, IReadOnlyList<string> Owners);
+
+    private sealed class PreparedPackage(
+        string tempRoot,
+        string contentRoot,
+        string version,
+        string pluginName,
+        Dictionary<string, object?>? manifest,
+        PluginNuspecInfo nuspec) : IDisposable
+    {
+        public string ContentRoot { get; } = contentRoot;
+
+        public string Version { get; } = version;
+
+        public string PluginName { get; } = pluginName;
+
+        public Dictionary<string, object?>? Manifest { get; } = manifest;
+
+        public PluginNuspecInfo Nuspec { get; } = nuspec;
+
+        public void Dispose()
+        {
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
+        }
     }
 }

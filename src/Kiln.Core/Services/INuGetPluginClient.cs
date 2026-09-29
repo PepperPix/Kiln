@@ -13,4 +13,11 @@ public interface INuGetPluginClient
     /// </summary>
     Task<PluginPackageInstallResult> AddAsync(string packageId, string? version, string projectPath, PluginInstallOptions options, CancellationToken ct = default)
         => AddAsync(packageId, version, projectPath, ct);
+
+    /// <summary>
+    /// Describes a package (trust level, publisher, contents, external hosts) without installing it.
+    /// Implementations that predate this member do not support it.
+    /// </summary>
+    Task<PluginPackageInfo> GetInfoAsync(string packageId, string? version, CancellationToken ct = default)
+        => throw new NotSupportedException($"{GetType().Name} does not support package inspection.");
 }

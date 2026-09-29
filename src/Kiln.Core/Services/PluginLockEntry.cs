@@ -1,6 +1,7 @@
 namespace Kiln.Services;
 
 using System.Text.Json.Serialization;
+using Kiln.Models;
 
 public sealed record PluginLockEntry(
     [property: JsonPropertyName("packageId")] string PackageId,
@@ -13,4 +14,11 @@ public sealed record PluginLockEntry(
     [JsonPropertyName("contentHash")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ContentHash { get; init; }
+
+    /// <summary>
+    /// Gets the trust level recorded at install time; <c>null</c> for lock files written before trust levels were recorded (treated as community).
+    /// </summary>
+    [JsonPropertyName("trust")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PluginTrustLevel? Trust { get; init; }
 }
