@@ -1,5 +1,6 @@
 namespace Kiln.Services;
 
+using System.ComponentModel;
 using System.Diagnostics;
 
 public sealed class SystemProcessRunner : IProcessRunner
@@ -24,11 +25,56 @@ public sealed class SystemProcessRunner : IProcessRunner
         var stdOutTask = process.StandardOutput.ReadToEndAsync(ct);
         var stdErrTask = process.StandardError.ReadToEndAsync(ct);
 
-        await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await process.WaitForExitAsync(ct).ConfigureAwait(false);
 
-        var stdOut = await stdOutTask.ConfigureAwait(false);
-        var stdErr = await stdErrTask.ConfigureAwait(false);
+            var stdOut = await stdOutTask.ConfigureAwait(false);
+            var stdErr = await stdErrTask.ConfigureAwait(false);
 
-        return new ProcessRunResult(process.ExitCode, stdOut, stdErr);
+            return new ProcessRunResult(process.ExitCode, stdOut, stdErr);
+        }
+        catch (OperationCanceledException)
+        {
+            KillProcessTree(process);
+            await ObserveAsync(stdOutTask, stdErrTask).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private static void KillProcessTree(Process process)
+    {
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            // Process already exited.
+        }
+        catch (Win32Exception)
+        {
+            // Process is terminating or access was denied; nothing more to do.
+        }
+    }
+
+    // The read tasks are cancelled together with the run; observe them so no exception goes unobserved.
+    private static async Task ObserveAsync(Task stdOutTask, Task stdErrTask)
+    {
+        foreach (var task in new[] { stdOutTask, stdErrTask })
+        {
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected after cancellation.
+            }
+            catch (IOException)
+            {
+                // Pipe closed while the process was being killed.
+            }
+        }
     }
 }

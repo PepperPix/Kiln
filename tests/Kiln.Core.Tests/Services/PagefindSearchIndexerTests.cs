@@ -76,6 +76,22 @@ public class PagefindSearchIndexerTests
     }
 
     [Test]
+    public async Task IndexAsync_OutputDirWithSpacesAndQuotes_IsQuotedSafely()
+    {
+        var provider = new FakeBinaryProvider("/fake/pagefind");
+        var runner = new RecordingProcessRunner(new ProcessRunResult(0, string.Empty, string.Empty));
+        var indexer = new PagefindSearchIndexer(provider, runner);
+
+        await indexer.IndexAsync(
+            "C:\\my dir\\\"weird\"\\",
+            new SearchOptions { Enabled = true },
+            allowDownload: false,
+            CancellationToken.None);
+
+        await Assert.That(runner.LastArguments).IsEqualTo("--site \"C:\\my dir\\\\\\\"weird\\\"\\\\\"");
+    }
+
+    [Test]
     public async Task IndexAsync_ProviderThrows_ReturnsError()
     {
         var provider = new ThrowingBinaryProvider("binary not found");

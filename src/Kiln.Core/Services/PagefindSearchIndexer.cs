@@ -42,7 +42,7 @@ public sealed class PagefindSearchIndexer(
         try
         {
             result = await processRunner
-                .RunAsync(binaryPath, $"--site \"{outputDir}\"", null, ct)
+                .RunAsync(binaryPath, $"--site {ProcessArguments.Quote(outputDir)}", null, ct)
                 .ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
