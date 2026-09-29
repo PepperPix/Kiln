@@ -41,9 +41,25 @@ public class ShortcodeProcessorCodeRegionTests
     }
 
     [Test]
-    public async Task Process_ManyShortcodesAndLines_RunsInLinearTime()
+    public async Task Process_ManyShortcodesAndLines_ScalesLinearly()
     {
-        const int count = 5000;
+        const int small = 2500;
+        const int large = 10000;
+
+        Run(BuildInput(small));
+
+        var smallTime = Measure(small, out _);
+        var largeTime = Measure(large, out var result);
+
+        await Assert.That(result).DoesNotContain("{% email");
+        await Assert.That(result.Split(Rendered).Length - 1).IsEqualTo(large);
+
+        // 4x input: linear is ~4x, quadratic ~16x; absolute times vary too much between CI runners.
+        await Assert.That(largeTime.TotalMilliseconds).IsLessThan(Math.Max(smallTime.TotalMilliseconds, 50) * 10);
+    }
+
+    private static string BuildInput(int count)
+    {
         var lines = new List<string>(count * 2);
         for (var i = 0; i < count; i++)
         {
@@ -51,15 +67,15 @@ public class ShortcodeProcessorCodeRegionTests
             lines.Add("plain filler line");
         }
 
-        var input = string.Join('\n', lines);
+        return string.Join('\n', lines);
+    }
 
+    private static TimeSpan Measure(int count, out string result)
+    {
+        var input = BuildInput(count);
         var stopwatch = Stopwatch.StartNew();
-        var result = Run(input);
-        stopwatch.Stop();
-
-        await Assert.That(result).DoesNotContain("{% email");
-        await Assert.That(result.Split(Rendered).Length - 1).IsEqualTo(count);
-        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(2));
+        result = Run(input);
+        return stopwatch.Elapsed;
     }
 
     private static string Run(string markdown)
