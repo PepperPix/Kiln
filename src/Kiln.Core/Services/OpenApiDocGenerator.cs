@@ -2,8 +2,8 @@ namespace Kiln.Services;
 
 using System.Text;
 using Kiln.Models;
-using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi.Readers;
+using Microsoft.OpenApi;
+using Microsoft.OpenApi.Reader;
 
 public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenApiDocGenerator
 {
@@ -20,15 +20,27 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
         try
         {
             using var stream = File.OpenRead(specPath);
-            var reader = new OpenApiStreamReader();
-            doc = reader.Read(stream, out var diagnostic);
+            using var memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            memoryStream.Position = 0;
 
-            foreach (var error in diagnostic.Errors)
+            var settings = new OpenApiReaderSettings();
+            settings.AddYamlReader();
+
+            var result = OpenApiDocument.Load(memoryStream, settings: settings);
+            doc = result.Document;
+
+            foreach (var error in result.Diagnostic?.Errors ?? [])
                 warnings.Add($"OpenAPI parse error: {error.Message}");
         }
         catch (FileNotFoundException)
         {
             throw;
+        }
+        catch (OpenApiReaderException ex)
+        {
+            warnings.Add($"Failed to load OpenAPI spec: {ex.Message}");
+            return new DocGenReport([], [], [], warnings);
         }
         catch (IOException ex)
         {
@@ -56,7 +68,9 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
             if (pathItem.Operations is not { Count: > 0 })
                 continue;
 
-            var sortedOps = pathItem.Operations.OrderBy(op => (int)op.Key);
+            var sortedOps = pathItem.Operations
+                .OrderBy(op => GetOperationOrder(op.Key))
+                .ThenBy(op => op.Key.Method, StringComparer.OrdinalIgnoreCase);
 
             foreach (var (operationType, operation) in sortedOps)
             {
@@ -66,7 +80,7 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
                 var opSlug = GetOperationSlug(operation, operationType, path);
                 var relativePath = $"{tagSlug}/{opSlug}.md";
 
-                var method = operationType.ToString().ToUpperInvariant();
+                var method = operationType.Method.ToUpperInvariant();
                 var title = operation.Summary ?? operation.OperationId ?? $"{method} {path}";
 
                 var frontMatter = new List<(string Key, object Value)>
@@ -104,9 +118,9 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
         return new DocGenReport(written, skipped, conflicts, warnings);
     }
 
-    private static string BuildBody(OpenApiOperation operation, OperationType operationType, string path)
+    private static string BuildBody(OpenApiOperation operation, HttpMethod operationType, string path)
     {
-        var method = operationType.ToString().ToUpperInvariant();
+        var method = operationType.Method.ToUpperInvariant();
         var title = operation.Summary ?? operation.OperationId ?? $"{method} {path}";
         var sb = new StringBuilder();
 
@@ -135,7 +149,7 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
             {
                 var paramIn = ParameterLocationToString(param.In);
                 var required = param.Required ? "yes" : "no";
-                var type = param.Schema?.Type ?? "";
+                var type = FormatSchemaType(param.Schema);
                 sb.Append("| ").Append(param.Name)
                   .Append(" | ").Append(paramIn)
                   .Append(" | ").Append(required)
@@ -156,8 +170,12 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
                 sb.Append('\n');
             }
 
-            foreach (var (contentType, mediaType) in operation.RequestBody.Content
-                .OrderBy(c => c.Key, StringComparer.Ordinal))
+            IEnumerable<KeyValuePair<string, IOpenApiMediaType>> contentEntries =
+                operation.RequestBody.Content is { } content
+                    ? content.OrderBy(c => c.Key, StringComparer.Ordinal)
+                    : [];
+
+            foreach (var (contentType, mediaType) in contentEntries)
             {
                 sb.Append('\n');
                 sb.Append("**Content-Type:** `").Append(contentType).Append("`\n");
@@ -172,7 +190,7 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
                         .OrderBy(p => p.Key, StringComparer.Ordinal))
                     {
                         sb.Append("| ").Append(propName)
-                          .Append(" | ").Append(propSchema.Type ?? "")
+                          .Append(" | ").Append(FormatSchemaType(propSchema))
                           .Append(" |\n");
                     }
                 }
@@ -212,12 +230,12 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
         return "misc";
     }
 
-    private static string GetOperationSlug(OpenApiOperation operation, OperationType operationType, string path)
+    private static string GetOperationSlug(OpenApiOperation operation, HttpMethod operationType, string path)
     {
         if (!string.IsNullOrWhiteSpace(operation.OperationId))
             return Slugify(operation.OperationId);
 
-        var method = operationType.ToString();
+        var method = operationType.Method;
         var pathSlug = path
             .Replace('{', '-')
             .Replace('}', '-')
@@ -226,7 +244,43 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
         return Slugify($"{method}-{pathSlug}");
     }
 
-    private static string Slugify(string input)    {
+    // Keeps the pre-3.x OperationType enum order so generated output stays stable.
+    private static readonly string[] MethodOrder =
+        ["GET", "PUT", "POST", "DELETE", "OPTIONS", "HEAD", "PATCH", "TRACE"];
+
+    private static int GetOperationOrder(HttpMethod method)
+    {
+        var index = Array.IndexOf(MethodOrder, method.Method.ToUpperInvariant());
+        return index < 0 ? MethodOrder.Length : index;
+    }
+
+    private static string FormatSchemaType(IOpenApiSchema? schema)
+    {
+        if (schema is null)
+            return string.Empty;
+
+        var schemaType = schema.Type;
+        if (!schemaType.HasValue)
+            return string.Empty;
+
+        var type = schemaType.Value;
+        if (type.HasFlag(JsonSchemaType.Null))
+            type &= ~JsonSchemaType.Null;
+
+        return type switch
+        {
+            JsonSchemaType.String => "string",
+            JsonSchemaType.Integer => "integer",
+            JsonSchemaType.Number => "number",
+            JsonSchemaType.Boolean => "boolean",
+            JsonSchemaType.Array => "array",
+            JsonSchemaType.Object => "object",
+            _ => string.Empty,
+        };
+    }
+
+    private static string Slugify(string input)
+    {
         if (string.IsNullOrWhiteSpace(input))
             return "misc";
 
