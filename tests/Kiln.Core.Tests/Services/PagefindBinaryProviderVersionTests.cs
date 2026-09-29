@@ -162,9 +162,10 @@ public class PagefindBinaryProviderVersionTests
         var newerBinary = Path.Combine(newerDir, TestEnvironment.BinaryName);
         await File.WriteAllTextAsync(newerBinary, "fake");
         var separator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ';' : ':';
+        var oldBinaryPath = env.PathBinaryPath;
         var runner = new VersionRunner(request => new ProcessRunResult(
             0,
-            request == env.PathBinaryPath ? "pagefind 1.4.0" : "pagefind 1.5.2",
+            request == oldBinaryPath ? "pagefind 1.4.0" : "pagefind 1.5.2",
             string.Empty));
         var provider = new PagefindBinaryProvider(env.Home, null, $"{env.PathDir}{separator}{newerDir}", runner);
 

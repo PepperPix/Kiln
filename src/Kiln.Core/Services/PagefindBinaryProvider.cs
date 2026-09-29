@@ -168,7 +168,7 @@ public sealed partial class PagefindBinaryProvider : IPagefindBinaryProvider
 
         foreach (var output in new[] { result.StdOut, result.StdErr })
         {
-            var match = VersionNumberRegex().Match(output ?? string.Empty);
+            var match = VersionNumberRegex().Match(output);
             if (match.Success && System.Version.TryParse(match.Value, out var parsed))
                 return parsed;
         }
