@@ -1,3 +1,13 @@
+# [1.2.0-beta.11](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.10...v1.2.0-beta.11) (2026-09-29)
+
+
+### Bug Fixes
+
+* **core:** confine dev server requests to output dir ([5f1022d](https://github.com/PepperPix/Kiln/commit/5f1022d4acf726a204d8e107c065c3789897d30a))
+* **core:** reject unsafe output directories ([9453845](https://github.com/PepperPix/Kiln/commit/94538454d51b71f55770b3058efe4a09dcbc472d))
+* **core:** write pagefind binary atomically ([c4435ec](https://github.com/PepperPix/Kiln/commit/c4435ec77d1faca2475d57ec1b92b14f01f612fa))
+* **plugins:** validate plugin names and archive paths ([7b64ce4](https://github.com/PepperPix/Kiln/commit/7b64ce4ce27bfc93454555d06b557c6103f99441))
+
 # [1.2.0-beta.10](https://github.com/PepperPix/Kiln/compare/v1.2.0-beta.9...v1.2.0-beta.10) (2026-09-29)
 
 
