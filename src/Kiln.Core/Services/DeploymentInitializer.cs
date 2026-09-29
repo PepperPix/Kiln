@@ -1,26 +1,106 @@
 namespace Kiln.Services;
 
 using System.Text;
+using System.Text.RegularExpressions;
 using Kiln.Models;
+using YamlDotNet.Core;
 
-public sealed class DeploymentInitializer : IDeploymentInitializer
+public sealed partial class DeploymentInitializer : IDeploymentInitializer
 {
-    public DeploymentInitResult Initialize(DeploymentTarget target, string projectPath, CancellationToken cancellationToken = default)
+    private const string DefaultOutputDir = "_site";
+    private const string OutputDirPlaceholder = "@@OUTPUT_DIR@@";
+
+    private readonly ISiteConfigLoader? _siteConfigLoader;
+
+    public DeploymentInitializer()
     {
+    }
+
+    public DeploymentInitializer(ISiteConfigLoader siteConfigLoader)
+    {
+        _siteConfigLoader = siteConfigLoader;
+    }
+
+    [GeneratedRegex(@"^[A-Za-z0-9._/-]+$", RegexOptions.CultureInvariant)]
+    private static partial Regex SafeOutputDirRegex();
+
+    public DeploymentInitResult Initialize(DeploymentTarget target, string projectPath, CancellationToken cancellationToken = default)
+        => Initialize(target, projectPath, new DeploymentInitOptions(), cancellationToken);
+
+    public DeploymentInitResult Initialize(
+        DeploymentTarget target,
+        string projectPath,
+        DeploymentInitOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
 
         return target switch
         {
-            DeploymentTarget.GitHubPages => InitGitHubPages(projectPath),
-            DeploymentTarget.AzureStaticWebApps => InitAzureSwa(projectPath),
+            DeploymentTarget.GitHubPages => InitGitHubPages(projectPath, options),
+            DeploymentTarget.AzureStaticWebApps => InitAzureSwa(projectPath, options),
             _ => throw new InvalidOperationException($"Unsupported deployment target: {target}"),
         };
     }
 
-    private static DeploymentInitResult InitGitHubPages(string projectPath)
+    private string ResolveOutputDir(string projectPath)
     {
-        var workflowPath = Path.Combine(projectPath, ".github", "workflows", "deploy.yml");
-        Directory.CreateDirectory(Path.GetDirectoryName(workflowPath)!);
+        if (_siteConfigLoader is null)
+            return DefaultOutputDir;
+
+        string configured;
+        try
+        {
+            configured = _siteConfigLoader.Load(projectPath).OutputDir;
+        }
+        catch (FileNotFoundException)
+        {
+            return DefaultOutputDir;
+        }
+        catch (InvalidOperationException)
+        {
+            return DefaultOutputDir;
+        }
+        catch (YamlException)
+        {
+            return DefaultOutputDir;
+        }
+
+        var normalized = configured.Replace('\\', '/').Trim().TrimEnd('/');
+        if (normalized.Length == 0)
+            return DefaultOutputDir;
+
+        if (!SafeOutputDirRegex().IsMatch(normalized))
+            throw new InvalidOperationException(
+                $"site.yaml 'outputDir' value '{configured}' contains characters that are not allowed in a deployment workflow (allowed: letters, digits, '.', '_', '-', '/').");
+
+        return normalized;
+    }
+
+    private static void WriteFile(
+        string projectPath,
+        string relativePath,
+        string content,
+        bool force,
+        List<string> created,
+        List<string> skipped)
+    {
+        var fullPath = Path.Combine(projectPath, Path.Combine(relativePath.Split('/')));
+        if (File.Exists(fullPath) && !force)
+        {
+            skipped.Add(relativePath);
+            return;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        File.WriteAllText(fullPath, content, Encoding.UTF8);
+        created.Add(relativePath);
+    }
+
+    private DeploymentInitResult InitGitHubPages(string projectPath, DeploymentInitOptions options)
+    {
+        var outputDir = ResolveOutputDir(projectPath);
 
         const string workflow = """
 name: Deploy to GitHub Pages
@@ -57,23 +137,23 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: @@OUTPUT_DIR@@
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 """;
 
-        File.WriteAllText(workflowPath, workflow, Encoding.UTF8);
+        var created = new List<string>();
+        var skipped = new List<string>();
+        WriteFile(projectPath, ".github/workflows/deploy.yml", workflow.Replace(OutputDirPlaceholder, outputDir, StringComparison.Ordinal), options.Force, created, skipped);
 
-        return new DeploymentInitResult(DeploymentTarget.GitHubPages, [".github/workflows/deploy.yml"]);
+        return new DeploymentInitResult(DeploymentTarget.GitHubPages, created) { SkippedFiles = skipped };
     }
 
-    private static DeploymentInitResult InitAzureSwa(string projectPath)
+    private DeploymentInitResult InitAzureSwa(string projectPath, DeploymentInitOptions options)
     {
-        var workflowPath = Path.Combine(projectPath, ".github", "workflows", "azure-swa.yml");
-        var configPath = Path.Combine(projectPath, "staticwebapp.config.json");
-        Directory.CreateDirectory(Path.GetDirectoryName(workflowPath)!);
+        var outputDir = ResolveOutputDir(projectPath);
 
         const string workflow = """
 name: Deploy to Azure Static Web Apps
@@ -100,7 +180,7 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           app_location: "/"
-          output_location: "_site"
+          output_location: "@@OUTPUT_DIR@@"
           app_build_command: "dotnet tool restore && dotnet tool run kiln build --release"
           skip_api_build: true
 """;
@@ -121,12 +201,11 @@ jobs:
 }
 """;
 
-        File.WriteAllText(workflowPath, workflow, Encoding.UTF8);
-        File.WriteAllText(configPath, config, Encoding.UTF8);
+        var created = new List<string>();
+        var skipped = new List<string>();
+        WriteFile(projectPath, ".github/workflows/azure-swa.yml", workflow.Replace(OutputDirPlaceholder, outputDir, StringComparison.Ordinal), options.Force, created, skipped);
+        WriteFile(projectPath, "staticwebapp.config.json", config, options.Force, created, skipped);
 
-        return new DeploymentInitResult(DeploymentTarget.AzureStaticWebApps, [
-            ".github/workflows/azure-swa.yml",
-            "staticwebapp.config.json",
-        ]);
+        return new DeploymentInitResult(DeploymentTarget.AzureStaticWebApps, created) { SkippedFiles = skipped };
     }
 }
