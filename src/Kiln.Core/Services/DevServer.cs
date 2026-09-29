@@ -57,7 +57,7 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
 
         using var debounceTimer = new Timer(static state =>
         {
-            _ = ExecuteRebuildAsync((RebuildContext)state!);
+            _ = RunRebuildObservedAsync((RebuildContext)state!);
         }, rebuildContext, Timeout.Infinite, Timeout.Infinite);
         rebuildContext.DebounceTimer = debounceTimer;
 
@@ -146,6 +146,24 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
             {
                 pendingChanges.Add(changedPath);
                 rebuildContext.DebounceTimer!.Change(DebounceMilliseconds, Timeout.Infinite);
+            }
+        }
+
+        static async Task RunRebuildObservedAsync(RebuildContext state)
+        {
+            try
+            {
+                await ExecuteRebuildAsync(state).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+            {
+                // Shutdown: the token was cancelled or the semaphore/timer is already disposed.
+            }
+#pragma warning disable CA1031 // intentional: this task is fire-and-forget, so no exception may escape unobserved
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                await state.Server.BroadcastEventAsync("error", ex.Message, CancellationToken.None).ConfigureAwait(false);
             }
         }
 
