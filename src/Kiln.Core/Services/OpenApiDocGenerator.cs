@@ -1,6 +1,5 @@
 namespace Kiln.Services;
 
-using System.Net.Http;
 using System.Text;
 using Kiln.Models;
 using Microsoft.OpenApi;
@@ -159,7 +158,7 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
             }
         }
 
-        if (operation.RequestBody is not null && operation.RequestBody.Content is { Count: > 0 } requestBodyContent)
+        if (operation.RequestBody is not null)
         {
             sb.Append('\n');
             sb.Append("## Request Body\n");
@@ -171,8 +170,12 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
                 sb.Append('\n');
             }
 
-            foreach (var (contentType, mediaType) in requestBodyContent
-                .OrderBy(c => c.Key, StringComparer.Ordinal))
+            IEnumerable<KeyValuePair<string, IOpenApiMediaType>> contentEntries =
+                operation.RequestBody.Content is { } content
+                    ? content.OrderBy(c => c.Key, StringComparer.Ordinal)
+                    : [];
+
+            foreach (var (contentType, mediaType) in contentEntries)
             {
                 sb.Append('\n');
                 sb.Append("**Content-Type:** `").Append(contentType).Append("`\n");
@@ -241,30 +244,14 @@ public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenA
         return Slugify($"{method}-{pathSlug}");
     }
 
-    private const int GetOperationOrderGet = 0;
-    private const int GetOperationOrderPut = 1;
-    private const int GetOperationOrderPost = 2;
-    private const int GetOperationOrderDelete = 3;
-    private const int GetOperationOrderOptions = 4;
-    private const int GetOperationOrderHead = 5;
-    private const int GetOperationOrderPatch = 6;
-    private const int GetOperationOrderTrace = 7;
-    private const int GetOperationOrderFallback = 8;
+    // Keeps the pre-3.x OperationType enum order so generated output stays stable.
+    private static readonly string[] MethodOrder =
+        ["GET", "PUT", "POST", "DELETE", "OPTIONS", "HEAD", "PATCH", "TRACE"];
 
     private static int GetOperationOrder(HttpMethod method)
     {
-        return method.Method.ToUpperInvariant() switch
-        {
-            "GET" => GetOperationOrderGet,
-            "PUT" => GetOperationOrderPut,
-            "POST" => GetOperationOrderPost,
-            "DELETE" => GetOperationOrderDelete,
-            "OPTIONS" => GetOperationOrderOptions,
-            "HEAD" => GetOperationOrderHead,
-            "PATCH" => GetOperationOrderPatch,
-            "TRACE" => GetOperationOrderTrace,
-            _ => GetOperationOrderFallback,
-        };
+        var index = Array.IndexOf(MethodOrder, method.Method.ToUpperInvariant());
+        return index < 0 ? MethodOrder.Length : index;
     }
 
     private static string FormatSchemaType(IOpenApiSchema? schema)

@@ -218,6 +218,49 @@ public class OpenApiDocGeneratorTests
     }
 
     [Test]
+    public async Task Generate_RequestBodyWithEmptyContent_KeepsSectionAndDescription()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-gen-emptybody-{Guid.NewGuid():N}");
+        var specPath = Path.Combine(Path.GetTempPath(), $"kiln-spec-{Guid.NewGuid():N}.json");
+        const string jsonSpec = """
+            {
+              "openapi": "3.0.0",
+              "info": { "title": "Body API", "version": "1.0.0" },
+              "paths": {
+                "/pets": {
+                  "put": {
+                    "operationId": "replacePets",
+                    "requestBody": { "description": "Only a description", "content": {} },
+                    "responses": { "200": { "description": "OK" } }
+                  }
+                }
+              }
+            }
+            """;
+
+        try
+        {
+            await File.WriteAllTextAsync(specPath, jsonSpec);
+            Directory.CreateDirectory(tempDir);
+
+            var generator = new OpenApiDocGenerator(new GeneratedContentWriter());
+            var report = generator.Generate(specPath, tempDir);
+            await Assert.That(report.Warnings).IsEmpty();
+
+            var content = await File.ReadAllTextAsync(Path.Combine(tempDir, "pets", "replacepets.md"));
+            await Assert.That(content).Contains("## Request Body");
+            await Assert.That(content).Contains("Only a description");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+            if (File.Exists(specPath))
+                File.Delete(specPath);
+        }
+    }
+
+    [Test]
     public async Task Generate_WithNullableSchema_OmitsNullTypeFlag()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-gen-nullable-{Guid.NewGuid():N}");
