@@ -89,11 +89,17 @@ Kiln can discover and install content plugins from NuGet packages marked with th
 > Security warning: content plugins can inject arbitrary HTML and JavaScript into pages, so install only packages from trusted sources.
 
 ```bash
-# Search public NuGet packages for Kiln plugins
+# Search public NuGet packages for Kiln plugins (shows the trust level)
 kiln plugin search email-protect
+
+# Inspect a package without installing it
+kiln plugin info Kiln.Plugin.EmailProtect
 
 # Install a plugin into the current project
 kiln plugin add Kiln.Plugin.EmailProtect --version 1.0.0
+
+# Skip the confirmation for community plugins (scripts, CI)
+kiln plugin add Contoso.Widget --yes
 
 # Update a plugin that was installed through kiln plugin add
 kiln plugin update email-protect
@@ -104,11 +110,26 @@ kiln plugin update --all
 # Remove a plugin folder and its lock entry
 kiln plugin remove email-protect --yes
 
-# List local plugins and their installation source
+# List local plugins, their installation source and trust level
 kiln plugin list
 ```
 
-Each installed plugin is recorded in `.kiln/plugins.lock.json` with the package ID, installed version, and source (`nuget`). This file is intentionally project-local and versioned so `kiln plugin update` can resolve the correct package without guessing names.
+Each installed plugin is recorded in `.kiln/plugins.lock.json` with the package ID, installed version, source (`nuget`), trust level and a content hash. This file is intentionally project-local and versioned so `kiln plugin update` can resolve the correct package without guessing names.
+
+### Trust model
+
+- The `kiln-plugin` tag is required: packages without it are never installed, and there is no override.
+- **First-party** plugins use the `Kiln.Plugin.` package ID prefix, which is reserved on nuget.org. `kiln plugin search` and `kiln plugin info` show a package as first-party only if the ID has the prefix and nuget.org reports the reservation. Without feed metadata (local feed, offline) a package counts as community.
+- **Community** plugins are any other tagged package. `kiln plugin add` shows the package information and asks for confirmation (default: no). Without an interactive console, pass `--yes`.
+- `kiln plugin info` lists publisher, license, slots, shortcodes, file inventory and the external hosts referenced by the plugin's scripts, styles and markup. The host list is a heuristic; URLs that a script builds at runtime are not detected.
+- `kiln plugin update` asks only when the new version references additional external hosts or a first-party plugin has become a community package. `--yes` skips the question.
+- An existing plugin directory is only replaced if it is tracked in the lock file and unmodified; use `--force` to overwrite it.
+
+### Writing a plugin package
+
+- Add the tag `kiln-plugin` to the package's `.nuspec`.
+- Put `plugin.yaml` and all assets under `content/` in the package; ship built assets, Kiln does not run npm or resolve dependencies at install time.
+- The `Kiln.Plugin.` ID prefix is reserved for first-party plugins; choose a different ID for your own package.
 
 ## Theme & Template Development
 
