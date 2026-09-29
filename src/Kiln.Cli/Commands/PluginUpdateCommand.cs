@@ -25,7 +25,7 @@ public sealed class PluginUpdateCommand(
         public string Path { get; init; } = ".";
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = Path.GetFullPath(settings.Path);
         var entries = await pluginLockFile.ReadAsync(projectPath, cancellationToken).ConfigureAwait(false);

@@ -45,7 +45,7 @@ public sealed class BuildCommand(
         public bool NoSearch { get; init; }
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = System.IO.Path.GetFullPath(settings.Path);
         var environment = ResolveEnvironment(settings);

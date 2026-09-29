@@ -24,7 +24,7 @@ public sealed class PluginRemoveCommand(
         public bool Yes { get; init; }
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = Path.GetFullPath(settings.Path);
         var pluginDir = Path.Combine(projectPath, "plugins", settings.Name);

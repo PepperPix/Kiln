@@ -16,7 +16,7 @@ public sealed class PluginSearchCommand(
         public string Query { get; init; } = string.Empty;
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var results = await pluginClient.SearchAsync(settings.Query, cancellationToken).ConfigureAwait(false);
 

@@ -14,12 +14,12 @@
       },
       "Spectre.Console.Cli.Testing": {
         "type": "Direct",
-        "requested": "[0.55.*, )",
-        "resolved": "0.55.0",
-        "contentHash": "gbuyr86XB6m+rBGQ/bNU3a0LdLS44mmwVIT6bSKttBX9g/wU8f6FCSPKBnKpa1GM9DgS6RQ/NfDEwntl95uIaA==",
+        "requested": "[0.56.*, )",
+        "resolved": "0.56.1",
+        "contentHash": "35+AXoemYp6ORA26dZqTiUWy+W5eOzgHyL4WeKSuUxKr4Yv1eLPEsdGasxeCpXclOCIbP5OUq6/WHHAlIwPDfA==",
         "dependencies": {
-          "Spectre.Console.Cli": "0.55.0",
-          "Spectre.Console.Testing": "0.55.0"
+          "Spectre.Console.Cli": "0.56.1",
+          "Spectre.Console.Testing": "0.57.2"
         }
       },
       "TUnit": {
@@ -252,31 +252,31 @@
       },
       "Spectre.Console": {
         "type": "Transitive",
-        "resolved": "0.55.0",
-        "contentHash": "2TVhUHFsDux0Z+y2Hv4bFsOMuON4SuotEEKkMparFkp5Rm259naaaEQrN4Sv6C1cbsiGKPjfkJDGgUp+hZPjTw==",
+        "resolved": "0.57.2",
+        "contentHash": "wzsB+P9i6F9G+cFOJxRotCiQWNSzZVAMxi8YMiHlGXXU1JLMXGp7zSSqBMmROZS2bzpK5jk+Saa7Evp8HwqhKg==",
         "dependencies": {
-          "Spectre.Console.Ansi": "0.55.0"
+          "Spectre.Console.Ansi": "0.57.2"
         }
       },
       "Spectre.Console.Ansi": {
         "type": "Transitive",
-        "resolved": "0.55.0",
-        "contentHash": "GIfgOvuF8MpU52bprhwtDEtx0gmVIGOepM8bw0lH/TSMD0rg1Xp+5Y53kPG8rFVdcpbNANlhDQ5mEVVPO3/2Tg=="
+        "resolved": "0.57.2",
+        "contentHash": "Y1+u73shwP+JYHmrkdN6bSt2kaGBEAafhi2nrecczbXdFRey+k7J/WF9YPfcB0rqivv2S8fmif6FSBq9m/AFvw=="
       },
       "Spectre.Console.Cli": {
         "type": "Transitive",
-        "resolved": "0.55.0",
-        "contentHash": "cFJTB1te4eaAICd4Zp+8T/kiRn1ikQxgGqmoNarb1qoQ/7LzHAvVQ62x5U9GW3E0QI7sZLcXIIoq4CpqgTx42Q==",
+        "resolved": "0.56.1",
+        "contentHash": "/WMs0XnyYQDvgw5ib0XnVM5PHy8MyQvQLS2VULuXmgmw2ZS188XoT4MYCHw+FDZ3JJ8BiIE5uXzuHk83ts6I2w==",
         "dependencies": {
-          "Spectre.Console": "0.55.0"
+          "Spectre.Console": "0.57.2"
         }
       },
       "Spectre.Console.Testing": {
         "type": "Transitive",
-        "resolved": "0.55.0",
-        "contentHash": "QL2DGnnS85j4Scc2M6Tw+ABNCf8mN/VfvK06uTcMA0jTAv0E5mrN90Aik4jIWw2p23SaQfn0TfP51qz6pEE6cA==",
+        "resolved": "0.57.2",
+        "contentHash": "X9d6yEgamanA2F+OU28l8c00WZW36ZWeeIzHJLuCFFI1aK+uieG4O4KbYlGfGpnB4jPF+EsTTdEeTSk1ril0MA==",
         "dependencies": {
-          "Spectre.Console": "0.55.0"
+          "Spectre.Console": "0.57.2"
         }
       },
       "System.Security.Cryptography.Pkcs": {
@@ -320,7 +320,7 @@
         "dependencies": {
           "Kiln.Core": "[1.2.0-beta.9, )",
           "Microsoft.Extensions.DependencyInjection": "[10.*, )",
-          "Spectre.Console.Cli": "[0.55.*, )"
+          "Spectre.Console.Cli": "[0.56.*, )"
         }
       },
       "kiln.abstractions": {

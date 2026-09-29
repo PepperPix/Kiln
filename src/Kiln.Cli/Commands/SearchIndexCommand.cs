@@ -30,7 +30,7 @@ public sealed class SearchIndexCommand(
         public bool Extended { get; init; }
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = System.IO.Path.GetFullPath(settings.Path);
         var config = configLoader.Load(projectPath);
