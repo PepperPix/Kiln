@@ -262,9 +262,6 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         var hasChanges = false;
         foreach (var path in changedPaths)
         {
-            if (Directory.Exists(path))
-                continue;
-
             hasChanges = true;
             if (!Path.GetExtension(path).Equals(".css", StringComparison.OrdinalIgnoreCase))
                 return false;
