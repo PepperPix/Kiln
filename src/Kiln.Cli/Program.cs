@@ -23,6 +23,7 @@ app.Configure(config =>
 {
     config.SetApplicationName("kiln");
     config.SetApplicationVersion(appVersion);
+    config.Settings.StrictParsing = true;
 
     config.AddCommand<BuildCommand>("build")
         .WithDescription("Build the static site.");
