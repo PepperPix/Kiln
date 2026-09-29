@@ -5,10 +5,22 @@ using NuGet.Common;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 public sealed class NuGetPluginClient : INuGetPluginClient
 {
+    private const int MaxContentEntries = 2000;
+    private const long MaxEntryBytes = 10L * 1024 * 1024;
+    private const long MaxTotalBytes = 50L * 1024 * 1024;
     private const string DefaultServiceIndexUrl = "https://api.nuget.org/v3/index.json";
+    private const string ContentPrefix = "content/";
+    private const int CopyBufferSize = 81920;
+    private static readonly IDeserializer ManifestDeserializer = new DeserializerBuilder()
+        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .IgnoreUnmatchedProperties()
+        .Build();
     private readonly SourceRepository _sourceRepository;
 
     public NuGetPluginClient()
@@ -171,31 +183,50 @@ public sealed class NuGetPluginClient : INuGetPluginClient
         try
         {
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
-            foreach (var entry in archive.Entries.Where(e => e.FullName.StartsWith("content/", StringComparison.OrdinalIgnoreCase)))
+            var contentEntries = archive.Entries
+                .Where(e => e.FullName.StartsWith(ContentPrefix, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (contentEntries.Count > MaxContentEntries)
+                throw new InvalidOperationException($"Package '{normalizedPackageId}' contains more than {MaxContentEntries} content entries.");
+
+            var destinationRoot = PathContainment.Normalize(contentRoot);
+            long totalBytes = 0;
+            foreach (var entry in contentEntries)
             {
-                var relativePath = entry.FullName["content/".Length..];
-                if (string.IsNullOrWhiteSpace(relativePath) || relativePath.Equals(".", StringComparison.Ordinal))
+                var relativePath = entry.FullName[ContentPrefix.Length..];
+                if (string.IsNullOrWhiteSpace(relativePath) || relativePath.Equals(".", StringComparison.Ordinal) || relativePath.EndsWith('/'))
                     continue;
 
-                var destinationPath = Path.GetFullPath(Path.Combine(contentRoot, relativePath));
-                var destinationRoot = Path.GetFullPath(contentRoot);
-                if (!destinationPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
+                if (Path.IsPathRooted(relativePath) || relativePath.Split(['/', '\\']).Contains(".."))
                     throw new InvalidOperationException($"Archive entry '{entry.FullName}' is outside the plugin content directory.");
+
+                var destinationPath = Path.GetFullPath(Path.Combine(contentRoot, relativePath));
+                if (!PathContainment.IsDescendant(destinationRoot, destinationPath))
+                    throw new InvalidOperationException($"Archive entry '{entry.FullName}' is outside the plugin content directory.");
+
+                if (entry.Length > MaxEntryBytes)
+                    throw new InvalidOperationException($"Archive entry '{entry.FullName}' exceeds the maximum size of {MaxEntryBytes} bytes.");
 
                 var destinationDirectory = Path.GetDirectoryName(destinationPath);
                 if (!string.IsNullOrEmpty(destinationDirectory))
                     Directory.CreateDirectory(destinationDirectory);
 
-                await entry.ExtractToFileAsync(destinationPath, overwrite: true, ct).ConfigureAwait(false);
+                totalBytes += await CopyEntryAsync(entry, destinationPath, MaxTotalBytes - totalBytes, ct).ConfigureAwait(false);
             }
 
             var pluginManifestPath = FindManifestPath(contentRoot);
             if (pluginManifestPath is null)
                 throw new InvalidOperationException($"Package '{normalizedPackageId}' does not contain a plugin.yaml manifest.");
 
-            var pluginName = ReadPluginName(pluginManifestPath);
+            var pluginName = ReadPluginName(pluginManifestPath, normalizedPackageId);
             var projectRoot = Path.GetFullPath(projectPath);
-            var destinationDir = Path.Combine(projectRoot, "plugins", pluginName);
+            var pluginsRoot = PathContainment.Normalize(Path.Combine(projectRoot, "plugins"));
+            var destinationDir = PathContainment.Normalize(Path.Combine(pluginsRoot, pluginName));
+            if (!PathContainment.AreSame(pluginsRoot, Path.GetDirectoryName(destinationDir) ?? string.Empty))
+                throw new InvalidOperationException($"Plugin name '{pluginName}' from package '{normalizedPackageId}' is not a valid plugin directory name.");
+
+            if (Directory.Exists(destinationDir))
+                Directory.Delete(destinationDir, recursive: true);
             Directory.CreateDirectory(destinationDir);
 
             foreach (var file in Directory.EnumerateFiles(contentRoot, "*", SearchOption.AllDirectories))
@@ -232,20 +263,61 @@ public sealed class NuGetPluginClient : INuGetPluginClient
         return File.Exists(ymlPath) ? ymlPath : null;
     }
 
-    private static string ReadPluginName(string manifestPath)
+    private static async Task<long> CopyEntryAsync(ZipArchiveEntry entry, string destinationPath, long remainingTotalBytes, CancellationToken ct)
     {
-        var contents = File.ReadAllText(manifestPath);
-        foreach (var line in contents.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
-        {
-            var trimmed = line.Trim();
-            if (!trimmed.StartsWith("name:", StringComparison.OrdinalIgnoreCase))
-                continue;
+        var limit = Math.Min(MaxEntryBytes, remainingTotalBytes);
+        long written = 0;
+        var buffer = new byte[CopyBufferSize];
 
-            return trimmed["name:".Length..].Trim();
+        var source = await entry.OpenAsync(ct).ConfigureAwait(false);
+        await using (source.ConfigureAwait(false))
+        {
+            var target = CreateExtractionStream(destinationPath);
+            await using (target.ConfigureAwait(false))
+            {
+                int read;
+                while ((read = await source.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+                {
+                    written += read;
+                    if (written > limit)
+                        throw new InvalidOperationException($"Archive entry '{entry.FullName}' exceeds the plugin package size limits.");
+
+                    await target.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+                }
+            }
         }
 
-        var directory = Path.GetFileName(Path.GetDirectoryName(manifestPath));
-        return string.IsNullOrWhiteSpace(directory) ? "plugin" : directory;
+        return written;
+    }
+
+    // The caller has verified that destinationPath lies inside the extraction root (no '..' segments, not rooted).
+#pragma warning disable CA5389 // Zip-slip: path sanitized by the caller before this stream is created
+    private static FileStream CreateExtractionStream(string destinationPath)
+        => new(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, CopyBufferSize, useAsync: true);
+#pragma warning restore CA5389
+
+    private static string ReadPluginName(string manifestPath, string packageId)
+    {
+        string? name;
+        try
+        {
+            var manifest = ManifestDeserializer.Deserialize<Dictionary<string, object?>?>(File.ReadAllText(manifestPath));
+            name = manifest is not null && manifest.TryGetValue("name", out var rawName)
+                ? Convert.ToString(rawName, System.Globalization.CultureInfo.InvariantCulture)?.Trim()
+                : null;
+        }
+        catch (YamlException ex)
+        {
+            throw new InvalidOperationException($"The plugin manifest of package '{packageId}' is not valid YAML: {ex.Message}", ex);
+        }
+
+        if (string.IsNullOrEmpty(name))
+            name = packageId.Split('.')[^1];
+
+        if (!PluginNames.IsValid(name))
+            throw new InvalidOperationException($"Plugin name '{name}' from package '{packageId}' is not a valid plugin directory name.");
+
+        return name;
     }
 
     private static string NormalizePackageId(string packageId)
