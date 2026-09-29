@@ -78,7 +78,7 @@ public class DevServerPathSafetyTests
     private static async Task<RawResponse> SendRawAsync(int port, string target, string hostHeader)
     {
         using var client = new TcpClient();
-        await client.ConnectAsync(IPAddress.Loopback, port);
+        await client.ConnectAsync("localhost", port);
         await using var stream = client.GetStream();
 
         var request = $"GET {target} HTTP/1.1\r\nHost: {hostHeader}\r\nConnection: close\r\n\r\n";
