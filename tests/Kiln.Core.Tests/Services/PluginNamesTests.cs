@@ -46,4 +46,43 @@ public class PluginNamesTests
     {
         await Assert.That(PluginNames.IsValid(name)).IsFalse();
     }
+
+    [Test]
+    [Arguments("Legacy_Name")]
+    [Arguments("My Plugin")]
+    [Arguments("Upper")]
+    [Arguments("-leading")]
+    [Arguments("ümlaut")]
+    [Arguments("a[red]b")]
+    [Arguments("...")]
+    public async Task IsSafeDirectoryName_WithSingleSafeName_ReturnsTrue(string name)
+    {
+        await Assert.That(PluginNames.IsSafeDirectoryName(name)).IsTrue();
+    }
+
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    [Arguments(".")]
+    [Arguments("..")]
+    [Arguments("../x")]
+    [Arguments("..\\x")]
+    [Arguments("a/b")]
+    [Arguments("a\\b")]
+    [Arguments("/abs")]
+    [Arguments("C:\\abs")]
+    [Arguments("trailing\n")]
+    [Arguments("nul\0char")]
+    public async Task IsSafeDirectoryName_WithUnsafeName_ReturnsFalse(string? name)
+    {
+        await Assert.That(PluginNames.IsSafeDirectoryName(name)).IsFalse();
+    }
+
+    [Test]
+    public async Task IsSafeDirectoryName_WithMaximumLength_ReturnsTrue()
+    {
+        await Assert.That(PluginNames.IsSafeDirectoryName(new string('a', 128))).IsTrue();
+        await Assert.That(PluginNames.IsSafeDirectoryName(new string('a', 129))).IsFalse();
+    }
 }

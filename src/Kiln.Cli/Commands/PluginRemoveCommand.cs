@@ -28,7 +28,7 @@ public sealed class PluginRemoveCommand(
     {
         var projectPath = Path.GetFullPath(settings.Path);
 
-        if (!PluginNames.IsValid(settings.Name))
+        if (!PluginNames.IsSafeDirectoryName(settings.Name))
         {
             console.MarkupLine($"[red]ERROR:[/] '{Markup.Escape(settings.Name)}' is not a valid plugin name.");
             return 1;
@@ -42,10 +42,17 @@ public sealed class PluginRemoveCommand(
             return 1;
         }
 
+        var lockEntries = await pluginLockFile.ReadAsync(projectPath, cancellationToken).ConfigureAwait(false);
+        if (!Directory.Exists(pluginDir) && !lockEntries.ContainsKey(settings.Name))
+        {
+            console.MarkupLine($"[red]ERROR:[/] Plugin '{Markup.Escape(settings.Name)}' was not found.");
+            return 1;
+        }
+
         if (Directory.Exists(pluginDir) && !settings.Yes)
         {
             var confirmed = await console.ConfirmAsync(
-                prompt: $"Remove plugin '{settings.Name}' and its lock entry?",
+                prompt: $"Remove plugin '{Markup.Escape(settings.Name)}' and its lock entry?",
                 defaultValue: false,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             if (!confirmed)
@@ -57,7 +64,7 @@ public sealed class PluginRemoveCommand(
 
         await pluginLockFile.RemoveAsync(projectPath, settings.Name, cancellationToken).ConfigureAwait(false);
 
-        console.MarkupLine($"[green]Removed plugin:[/] {settings.Name}");
+        console.MarkupLine($"[green]Removed plugin:[/] {Markup.Escape(settings.Name)}");
         console.MarkupLine("[dim]If the plugin is enabled in site.yaml, remove the matching plugin entry manually.[/]");
         return 0;
     }
