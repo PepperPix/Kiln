@@ -91,6 +91,7 @@ public sealed class SiteBuilder(
             : null;
 
         // For development builds, write-then-prune avoids transient 404 windows during serve.
+        OutputDirectoryGuard.EnsureNotProjectRootOrAncestor(projectPath, outputDir);
         if (!useWriteThenPrune && Directory.Exists(outputDir))
             Directory.Delete(outputDir, recursive: true);
         Directory.CreateDirectory(outputDir);
@@ -123,7 +124,7 @@ public sealed class SiteBuilder(
             return earlyResult;
 
         if (generatedFiles is not null)
-            PruneStaleOutputs(outputDir, generatedFiles);
+            PruneStaleOutputs(projectPath, outputDir, generatedFiles);
 
         stopwatch.Stop();
         return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);
@@ -141,6 +142,12 @@ public sealed class SiteBuilder(
         config = configLoader.Load(projectPath);
         outputDir = Path.Combine(projectPath, config.OutputDir);
         themePath = Path.Combine(projectPath, config.ThemesDir, config.Theme);
+
+        if (OutputDirectoryGuard.Validate(projectPath, config) is { } outputDirError)
+        {
+            errors.Add(outputDirError);
+            return false;
+        }
 
         if (!Directory.Exists(themePath))
         {
@@ -1015,8 +1022,10 @@ public sealed class SiteBuilder(
         }
     }
 
-    private static void PruneStaleOutputs(string outputDir, HashSet<string> generatedFiles)
+    private static void PruneStaleOutputs(string projectPath, string outputDir, HashSet<string> generatedFiles)
     {
+        OutputDirectoryGuard.EnsureNotProjectRootOrAncestor(projectPath, outputDir);
+
         if (!Directory.Exists(outputDir))
             return;
 
