@@ -29,11 +29,12 @@ public sealed class PluginSearchCommand(
         var table = new Table();
         table.AddColumn("Package ID");
         table.AddColumn("Version");
+        table.AddColumn("Trust");
         table.AddColumn("Description");
 
         foreach (var result in results)
         {
-            table.AddRow(Markup.Escape(result.Id), Markup.Escape(result.Version), Markup.Escape(result.Description));
+            table.AddRow(Markup.Escape(result.Id), Markup.Escape(result.Version), PluginTrustDisplay.Markup(result.Trust), Markup.Escape(result.Description));
         }
 
         console.Write(table);
