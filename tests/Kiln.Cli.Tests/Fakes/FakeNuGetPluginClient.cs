@@ -28,6 +28,11 @@ public sealed class FakeNuGetPluginClient : INuGetPluginClient
 
     public Exception? InfoException { get; set; }
 
+    /// <summary>
+    /// Gets or sets a factory that builds the info per package ID and version; used when <see cref="InfoResult"/> is not set.
+    /// </summary>
+    public Func<string, string, PluginPackageInfo>? InfoFactory { get; set; }
+
     public int InfoCallCount { get; private set; }
 
     public string? LastInfoVersion { get; private set; }
@@ -39,7 +44,8 @@ public sealed class FakeNuGetPluginClient : INuGetPluginClient
         if (InfoException is not null)
             throw InfoException;
 
-        return Task.FromResult(InfoResult ?? PluginInfoFactory.Create(packageId, version ?? "1.0.0", DefaultTrust));
+        var resolvedVersion = version ?? "1.0.0";
+        return Task.FromResult(InfoResult ?? InfoFactory?.Invoke(packageId, resolvedVersion) ?? PluginInfoFactory.Create(packageId, resolvedVersion, DefaultTrust));
     }
 
     public Task<IReadOnlyList<PluginSearchResult>> SearchAsync(string query, CancellationToken ct = default)
