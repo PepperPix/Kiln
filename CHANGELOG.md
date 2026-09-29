@@ -1,3 +1,28 @@
+# [1.3.0-beta.1](https://github.com/PepperPix/Kiln/compare/v1.2.0...v1.3.0-beta.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* **plugins:** allow removing legacy plugin directories ([b69328a](https://github.com/PepperPix/Kiln/commit/b69328a3b6e9a3519bb18f6845cf077d311c7f43))
+* **plugins:** keep ignored-handler constructors as obsolete instead of removing them ([476d3c2](https://github.com/PepperPix/Kiln/commit/476d3c29bf1f998fa1c6f8d18a9246eca1d4ffa3))
+* **plugins:** require only the kiln-plugin tag and drop the id prefix requirement ([a813483](https://github.com/PepperPix/Kiln/commit/a813483c437d22df1a94208b59654b31492386f8))
+
+
+### Features
+
+* **plugins:** add allow-any-package and force options and escape markup output ([efa9577](https://github.com/PepperPix/Kiln/commit/efa95779f684f674b581adad232df0fdf9428fdf))
+* **plugins:** add plugin info command ([fd96005](https://github.com/PepperPix/Kiln/commit/fd960057e0de6b97ede991507ccf0d56bdafa1ca))
+* **plugins:** classify plugin trust level and add package inspection ([4e8b11f](https://github.com/PepperPix/Kiln/commit/4e8b11ffb14c07f7e1fb1fc337c11f4783623c23))
+* **plugins:** confirm community plugin installs ([0152105](https://github.com/PepperPix/Kiln/commit/015210593f7d204f34f7e166a7c1653aded40a66))
+* **plugins:** confirm significant plugin updates ([8c615bb](https://github.com/PepperPix/Kiln/commit/8c615bb68f33f548ac9fbcf43d6a62733f132de8))
+* **plugins:** enforce plugin convention, record content hash and protect local changes ([fb10d8d](https://github.com/PepperPix/Kiln/commit/fb10d8d43a3eef0cdee8daa5aefef1f294d1b675))
+* **plugins:** show trust level in plugin search and list ([e25c8e7](https://github.com/PepperPix/Kiln/commit/e25c8e758bfcc4e2b20b5139fd89668dbc2704a5))
+
+
+### Reverts
+
+* remove unused http handler constructors from nuget plugin client ([df89e61](https://github.com/PepperPix/Kiln/commit/df89e61529f24d8ee6d10da83422e264d0c3985a))
+
 # [1.2.0](https://github.com/PepperPix/Kiln/compare/v1.1.0...v1.2.0) (2026-09-29)
 
 
