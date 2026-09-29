@@ -20,6 +20,10 @@ public sealed class PluginUpdateCommand(
         [Description("Update all plugins recorded in .kiln/plugins.lock.json.")]
         public bool All { get; init; }
 
+        [CommandOption("--force")]
+        [Description("Overwrite a plugin directory even if it has local changes.")]
+        public bool Force { get; init; }
+
         [CommandArgument(1, "[path]")]
         [Description("Project path. Defaults to the current directory.")]
         public string Path { get; init; } = ".";
@@ -38,11 +42,13 @@ public sealed class PluginUpdateCommand(
                 return 0;
             }
 
+            var exitCode = 0;
             foreach (var plugin in entries)
             {
-                await UpdateSingleEntryAsync(projectPath, plugin.Key, plugin.Value, cancellationToken).ConfigureAwait(false);
+                if (!await UpdateSingleEntryAsync(projectPath, plugin.Key, plugin.Value, settings.Force, cancellationToken).ConfigureAwait(false))
+                    exitCode = 1;
             }
-            return 0;
+            return exitCode;
         }
 
         if (string.IsNullOrWhiteSpace(settings.Name))
@@ -53,40 +59,61 @@ public sealed class PluginUpdateCommand(
 
         if (!entries.TryGetValue(settings.Name, out var entry))
         {
-            console.MarkupLine($"[red]ERROR:[/] Plugin '{settings.Name}' has no lock entry and cannot be updated automatically — kein Lock-Eintrag.");
+            console.MarkupLine($"[red]ERROR:[/] Plugin '{Markup.Escape(settings.Name)}' has no lock entry and cannot be updated automatically — kein Lock-Eintrag.");
             return 1;
         }
 
-        await UpdateSingleEntryAsync(projectPath, settings.Name, entry, cancellationToken).ConfigureAwait(false);
-        return 0;
+        return await UpdateSingleEntryAsync(projectPath, settings.Name, entry, settings.Force, cancellationToken).ConfigureAwait(false) ? 0 : 1;
     }
 
-    private async Task UpdateSingleEntryAsync(string projectPath, string name, PluginLockEntry entry, CancellationToken cancellationToken)
+    private async Task<bool> UpdateSingleEntryAsync(string projectPath, string name, PluginLockEntry entry, bool force, CancellationToken cancellationToken)
     {
-        console.MarkupLine($"[dim]Checking {name} ({entry.PackageId} {entry.Version})...[/]");
+        var displayName = Markup.Escape(name);
+        var packageId = Markup.Escape(entry.PackageId);
+        console.MarkupLine($"[dim]Checking {displayName} ({packageId} {Markup.Escape(entry.Version)})...[/]");
 
         var latestVersion = await nuGetPluginClient.GetLatestVersionAsync(entry.PackageId, cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(latestVersion))
         {
-            console.MarkupLine($"[yellow]WARN:[/] No upstream version information available for {entry.PackageId}.");
-            return;
+            console.MarkupLine($"[yellow]WARN:[/] No upstream version information available for {packageId}.");
+            return true;
         }
 
         if (!await nuGetPluginClient.IsUpdateAvailableAsync(entry.PackageId, entry.Version, cancellationToken).ConfigureAwait(false))
         {
-            console.MarkupLine($"[green]Plugin '{name}' ist bereits aktuell.[/]");
-            return;
+            console.MarkupLine($"[green]Plugin '{displayName}' ist bereits aktuell.[/]");
+            return true;
         }
 
         console.MarkupLine("[yellow]IMPORTANT:[/] This plugin can inject arbitrary HTML/JavaScript into pages. Install only plugins from trusted sources.");
 
-        var result = await nuGetPluginClient.AddAsync(entry.PackageId, latestVersion, projectPath, cancellationToken).ConfigureAwait(false);
+        PluginPackageInstallResult result;
+        try
+        {
+            var options = new PluginInstallOptions
+            {
+                AllowAnyPackage = entry.Unverified,
+                Force = force,
+                ExistingLockEntries = await pluginLockFile.ReadAsync(projectPath, cancellationToken).ConfigureAwait(false),
+            };
+            result = await nuGetPluginClient.AddAsync(entry.PackageId, latestVersion, projectPath, options, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            console.MarkupLine($"[red]ERROR:[/] Could not update '{displayName}': {Markup.Escape(ex.Message)}");
+            return false;
+        }
 
         await pluginLockFile.SetAsync(projectPath, result.PluginName, new PluginLockEntry(
             result.PackageId,
             result.Version,
-            "nuget"), cancellationToken).ConfigureAwait(false);
+            "nuget")
+        {
+            ContentHash = result.ContentHash,
+            Unverified = result.Unverified,
+        }, cancellationToken).ConfigureAwait(false);
 
-        console.MarkupLine($"[green]Updated plugin:[/] {result.PluginName} ({result.PackageId} {result.Version}) at {result.InstallPath}");
+        console.MarkupLine($"[green]Updated plugin:[/] {Markup.Escape(result.PluginName)} ({Markup.Escape(result.PackageId)} {Markup.Escape(result.Version)}) at {Markup.Escape(result.InstallPath)}");
+        return true;
     }
 }

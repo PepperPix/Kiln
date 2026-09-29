@@ -38,9 +38,17 @@ public sealed class PluginListCommand(
                 lockEntries.TryGetValue(plugin.Name, out entry))
             {
                 source = $"{entry.PackageId} {entry.Version} ({entry.Source})";
+                if (entry.Unverified)
+                    source += " unverified";
+                if (entry.ContentHash is not null && !string.Equals(entry.ContentHash, PluginContentHasher.ComputeDirectoryHash(plugin.Directory), StringComparison.OrdinalIgnoreCase))
+                    source += " modified";
             }
 
-            table.AddRow(plugin.Name, plugin.Version ?? "unknown", plugin.Description ?? string.Empty, source);
+            table.AddRow(
+                Markup.Escape(plugin.Name),
+                Markup.Escape(plugin.Version ?? "unknown"),
+                Markup.Escape(plugin.Description ?? string.Empty),
+                Markup.Escape(source));
         }
 
         if (plugins.Count == 0)

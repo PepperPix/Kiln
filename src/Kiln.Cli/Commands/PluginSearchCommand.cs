@@ -33,7 +33,7 @@ public sealed class PluginSearchCommand(
 
         foreach (var result in results)
         {
-            table.AddRow(result.Id, result.Version, result.Description);
+            table.AddRow(Markup.Escape(result.Id), Markup.Escape(result.Version), Markup.Escape(result.Description));
         }
 
         console.Write(table);
