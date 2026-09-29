@@ -19,7 +19,7 @@ public sealed class DeployCommand(IDeploymentInitializer deploymentInitializer, 
         public string Path { get; init; } = ".";
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var projectPath = System.IO.Path.GetFullPath(settings.Path);
         if (!TryParseTarget(settings.Target, out var target))

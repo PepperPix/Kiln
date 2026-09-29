@@ -10,6 +10,7 @@ public sealed class Scaffolder : IScaffolder
     private static readonly (string Resource, string Target)[] TemplateEntries =
     [
         (".config/dotnet-tools.json", ".config/dotnet-tools.json"),
+        (".gitignore.template", ".gitignore"),
         ("site.yaml.template", "site.yaml"),
         ("content/posts/hello-world.md.template", "content/posts/hello-world.md"),
         ("content/posts/01-welcome-to-kiln.md.template", "content/posts/01-welcome-to-kiln.md"),

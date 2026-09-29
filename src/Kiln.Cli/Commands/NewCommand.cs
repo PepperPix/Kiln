@@ -14,7 +14,7 @@ public sealed class NewCommand(IScaffolder scaffolder, IAnsiConsole console) : C
         public required string Name { get; init; }
     }
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {

@@ -196,6 +196,44 @@ pre code {
 	font-size: inherit;
 }
 
+.kiln-search {
+	position: relative;
+	margin-block: 1rem 1.5rem;
+}
+
+.kiln-search input {
+	width: 100%;
+	padding: 0.8rem 1rem;
+	border: 1px solid var(--color-border);
+	border-radius: 0.75rem;
+	background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+	color: var(--color-text);
+	font: inherit;
+}
+
+.kiln-search input:focus {
+	outline: 2px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+	outline-offset: 2px;
+}
+
+.kiln-search .pagefind-results {
+	margin-top: 0.75rem;
+	padding: 1rem;
+	border: 1px solid var(--color-border);
+	border-radius: 0.75rem;
+	background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+}
+
+.kiln-search .pagefind-results a {
+	display: block;
+	padding: 0.5rem 0.25rem;
+	text-decoration: none;
+}
+
+.kiln-search .pagefind-results a:hover {
+	text-decoration: underline;
+}
+
 /* Post meta */
 .post-meta {
 	display: flex;

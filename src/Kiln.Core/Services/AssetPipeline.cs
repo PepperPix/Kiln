@@ -101,7 +101,7 @@ internal sealed partial class AssetPipeline
         {
             minified = minifier.Minify(original, assetType);
         }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // intentional graceful failure: one minifier must not block emitting the original asset
         catch (Exception ex)
 #pragma warning restore CA1031
         {
@@ -173,11 +173,32 @@ internal sealed partial class AssetPipeline
         return Convert.ToHexStringLower(hash)[..HashLength];
     }
 
-    private static string ToWebPath(string outputDir, string fullPath)
+    internal static string ToWebPath(string outputDir, string fullPath)
     {
-#pragma warning disable S1075 // URL paths use '/' by spec, independent of the OS path separator
-        return "/" + Path.GetRelativePath(outputDir, fullPath).Replace(Path.DirectorySeparatorChar, '/');
-#pragma warning restore S1075
+        var relativePath = Path.GetRelativePath(outputDir, fullPath)
+            .Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return $"{Path.AltDirectorySeparatorChar}{relativePath}";
+    }
+
+    /// <summary>
+    /// Rewrites HTML/CSS references for a rename manifest produced outside the fingerprint
+    /// stage (e.g. image optimization changing an extension to <c>.webp</c>). Must run before
+    /// <see cref="RunAsync"/>'s own fingerprint stage, since that stage re-hashes whichever
+    /// bytes are on disk at that point.
+    /// </summary>
+    internal static void RewriteReferences(string outputDir, Dictionary<string, string> manifest)
+    {
+        if (manifest.Count == 0) return;
+
+        foreach (var htmlFile in Directory.EnumerateFiles(outputDir, "*.html", SearchOption.AllDirectories))
+            RewriteHtmlReferences(htmlFile, manifest);
+
+        var assetDir = Path.Combine(outputDir, "assets");
+        if (Directory.Exists(assetDir))
+        {
+            foreach (var cssFile in Directory.EnumerateFiles(assetDir, "*.css", SearchOption.AllDirectories))
+                RewriteCssReferences(cssFile, manifest);
+        }
     }
 
     private static void RewriteHtmlReferences(string htmlFile, Dictionary<string, string> manifest)

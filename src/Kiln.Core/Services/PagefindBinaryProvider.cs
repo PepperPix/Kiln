@@ -12,6 +12,7 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
 
     private readonly string _cacheBasePath;
     private readonly HttpMessageHandler? _httpMessageHandler;
+    private readonly string? _pathOverride;
 
     public PagefindBinaryProvider()
         : this(
@@ -26,9 +27,15 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
     }
 
     public PagefindBinaryProvider(string cacheBasePath, HttpMessageHandler? httpMessageHandler)
+        : this(cacheBasePath, httpMessageHandler, pathOverride: null)
+    {
+    }
+
+    public PagefindBinaryProvider(string cacheBasePath, HttpMessageHandler? httpMessageHandler, string? pathOverride)
     {
         _cacheBasePath = cacheBasePath;
         _httpMessageHandler = httpMessageHandler;
+        _pathOverride = pathOverride;
     }
 
     public async Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, CancellationToken ct)
@@ -40,7 +47,7 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
 
         // 2. Search PATH directories
         var binaryFileName = GetBinaryFileName(extended);
-        var pathBinary = FindInPath(binaryFileName);
+        var pathBinary = FindInPath(binaryFileName, _pathOverride);
         if (pathBinary is not null)
             return pathBinary;
 
@@ -77,9 +84,9 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
             : baseName;
     }
 
-    private static string? FindInPath(string binaryFileName)
+    private static string? FindInPath(string binaryFileName, string? pathOverride)
     {
-        var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        var pathEnv = pathOverride ?? Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
         var separator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ';' : ':';
 
         foreach (var dir in pathEnv.Split(separator, StringSplitOptions.RemoveEmptyEntries))
@@ -148,38 +155,55 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
         var cacheDir = Path.GetDirectoryName(cacheBinaryPath)!;
         Directory.CreateDirectory(cacheDir);
 
-        // Extract the binary from the tarball
+        // Extract into a temp file and move it into place, so an aborted download never leaves a partial binary at the cache path.
         var binaryFileName = Path.GetFileName(cacheBinaryPath);
-        using var tarballStream = new MemoryStream(tarballBytes);
-        using var gzip = new GZipStream(tarballStream, CompressionMode.Decompress);
-        using var tar = new TarReader(gzip);
-
-        TarEntry? entry;
-        var found = false;
-        while ((entry = await tar.GetNextEntryAsync(cancellationToken: ct).ConfigureAwait(false)) is not null)
+        var tempBinaryPath = Path.Combine(cacheDir, $"{binaryFileName}.{Guid.NewGuid():N}.tmp");
+        try
         {
-            if (string.Equals(Path.GetFileName(entry.Name), binaryFileName, StringComparison.OrdinalIgnoreCase))
+            using var tarballStream = new MemoryStream(tarballBytes);
+            using var gzip = new GZipStream(tarballStream, CompressionMode.Decompress);
+            using var tar = new TarReader(gzip);
+
+            TarEntry? entry;
+            var found = false;
+            while ((entry = await tar.GetNextEntryAsync(cancellationToken: ct).ConfigureAwait(false)) is not null)
             {
-                await entry.ExtractToFileAsync(cacheBinaryPath, overwrite: true, ct).ConfigureAwait(false);
-                found = true;
-                break;
+                if (string.Equals(Path.GetFileName(entry.Name), binaryFileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    await entry.ExtractToFileAsync(tempBinaryPath, overwrite: true, ct).ConfigureAwait(false);
+                    if (new FileInfo(tempBinaryPath).Length != entry.Length)
+                    {
+                        throw new InvalidOperationException(
+                            $"Binary '{binaryFileName}' in archive {assetName} is truncated.");
+                    }
+
+                    found = true;
+                    break;
+                }
             }
-        }
 
-        if (!found)
-        {
-            throw new InvalidOperationException(
-                $"Binary '{binaryFileName}' not found in archive {assetName}");
-        }
+            if (!found)
+            {
+                throw new InvalidOperationException(
+                    $"Binary '{binaryFileName}' not found in archive {assetName}");
+            }
 
-        // Set execute permissions on Unix systems
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            // Set execute permissions on Unix systems
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                File.SetUnixFileMode(
+                    tempBinaryPath,
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                    UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                    UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            }
+
+            File.Move(tempBinaryPath, cacheBinaryPath, overwrite: true);
+        }
+        finally
         {
-            File.SetUnixFileMode(
-                cacheBinaryPath,
-                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
-                UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            if (File.Exists(tempBinaryPath))
+                File.Delete(tempBinaryPath);
         }
     }
 }

@@ -6,7 +6,7 @@ using System.Text;
 using Kiln.Abstractions;
 using Kiln.Models;
 
-public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteConfigLoader) : IDevServer
+public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteConfigLoader, ISearchIndexer searchIndexer) : IDevServer
 {
     private const string LiveReloadEndpoint = "/__kiln/livereload";
     private const int DebounceMilliseconds = 200;
@@ -27,9 +27,15 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         var config = siteConfigLoader.Load(projectPath);
         var outputDir = Path.Combine(projectPath, config.OutputDir);
         var outputDirFullPath = Path.GetFullPath(outputDir);
+        var serveRoot = PathContainment.Normalize(outputDirFullPath);
         var outputRelativePath = config.OutputDir
             .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
             .Trim(Path.DirectorySeparatorChar);
+
+        if (config.Search.Enabled)
+        {
+            await RunSearchIndexAsync(outputDirFullPath, config.Search, ct).ConfigureAwait(false);
+        }
 
         var pendingChanges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using var rebuildSync = new SemaphoreSlim(1, 1);
@@ -38,11 +44,14 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         {
             Server = this,
             SiteBuilder = siteBuilder,
+            SearchIndexer = searchIndexer,
             PendingChanges = pendingChanges,
             DebounceLock = debounceLock,
             RebuildSync = rebuildSync,
             ProjectPath = projectPath,
+            OutputDir = outputDirFullPath,
             IncludeDrafts = includeDrafts,
+            SearchOptions = config.Search,
             CancellationToken = ct
         };
 
@@ -76,7 +85,7 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
             try
             {
                 var context = await listener.GetContextAsync().WaitAsync(ct).ConfigureAwait(false);
-                _ = Task.Run(() => ServeRequestAsync(context, outputDir, ct), CancellationToken.None);
+                _ = Task.Run(() => ServeRequestAsync(context, serveRoot, ct), CancellationToken.None);
             }
             catch (OperationCanceledException)
             {
@@ -166,6 +175,21 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
                     return;
                 }
 
+                if (state.SearchOptions.Enabled)
+                {
+                    var searchResult = await state.SearchIndexer
+                        .IndexAsync(state.OutputDir, state.SearchOptions, allowDownload: true, state.CancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (!searchResult.Success)
+                    {
+                        var message = searchResult.Errors.Count > 0
+                            ? string.Join("; ", searchResult.Errors)
+                            : "Pagefind indexing failed.";
+                        await state.Server.BroadcastEventAsync("error", $"Search index: {message}", state.CancellationToken).ConfigureAwait(false);
+                    }
+                }
+
                 var eventName = ShouldSendCssEvent(changedPaths, state.ProjectPath) ? "css" : "reload";
                 await state.Server.BroadcastEventAsync(eventName, string.Empty, state.CancellationToken).ConfigureAwait(false);
             }
@@ -173,7 +197,7 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
             {
                 // Shutdown path.
             }
-#pragma warning disable CA1031
+#pragma warning disable CA1031 // intentional graceful failure: rebuild errors must be streamed to the browser instead of killing watch mode
             catch (Exception ex)
 #pragma warning restore CA1031
             {
@@ -194,6 +218,17 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
     private async Task ServeRequestAsync(HttpListenerContext context, string outputDir, CancellationToken ct)
     {
         const int httpNotFound = 404;
+        const int httpForbidden = 403;
+
+        if (!IsAllowedHost(context.Request.Headers["Host"]))
+        {
+            context.Response.StatusCode = httpForbidden;
+            var forbidden = Utf8NoBom.GetBytes("403 - Forbidden");
+            await context.Response.OutputStream.WriteAsync(forbidden, ct).ConfigureAwait(false);
+            context.Response.Close();
+            return;
+        }
+
         var requestPath = context.Request.Url?.LocalPath ?? "/";
 
         if (string.Equals(requestPath, LiveReloadEndpoint, StringComparison.Ordinal))
@@ -205,11 +240,9 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         if (requestPath == "/")
             requestPath = "/index.html";
 
-        var filePath = Path.Combine(outputDir, requestPath.TrimStart('/'));
-        if (!File.Exists(filePath))
-            filePath = Path.Combine(outputDir, requestPath.TrimStart('/'), "index.html");
+        var filePath = ResolveFilePath(outputDir, requestPath);
 
-        if (File.Exists(filePath))
+        if (filePath is not null)
         {
             var contentType = GetMimeType(filePath);
             var content = await File.ReadAllBytesAsync(filePath, ct).ConfigureAwait(false);
@@ -232,6 +265,52 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         }
 
         context.Response.Close();
+    }
+
+    private static string? ResolveFilePath(string outputDirFullPath, string requestPath)
+    {
+        var relative = requestPath.TrimStart('/');
+        try
+        {
+            var candidate = Path.GetFullPath(Path.Combine(outputDirFullPath, relative));
+            if (PathContainment.IsSameOrDescendant(outputDirFullPath, candidate) && File.Exists(candidate))
+                return candidate;
+
+            var indexCandidate = Path.GetFullPath(Path.Combine(outputDirFullPath, relative, "index.html"));
+            if (PathContainment.IsSameOrDescendant(outputDirFullPath, indexCandidate) && File.Exists(indexCandidate))
+                return indexCandidate;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static bool IsAllowedHost(string? hostHeader)
+    {
+        if (string.IsNullOrWhiteSpace(hostHeader))
+            return false;
+
+        var host = hostHeader.Trim();
+        if (host.StartsWith('['))
+        {
+            var end = host.IndexOf(']', StringComparison.Ordinal);
+            if (end < 0)
+                return false;
+            host = host[..(end + 1)];
+        }
+        else
+        {
+            var colon = host.LastIndexOf(':');
+            if (colon >= 0)
+                host = host[..colon];
+        }
+
+        return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || host.Equals("127.0.0.1", StringComparison.Ordinal)
+            || host.Equals("[::1]", StringComparison.Ordinal);
     }
 
     private static bool ShouldSendCssEvent(IEnumerable<string> changedPaths, string projectPath)
@@ -288,6 +367,21 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
         finally
         {
             RemoveSseClient(id);
+        }
+    }
+
+    private async Task RunSearchIndexAsync(string outputDir, SearchOptions searchOptions, CancellationToken ct)
+    {
+        var searchResult = await searchIndexer
+            .IndexAsync(outputDir, searchOptions, allowDownload: true, ct)
+            .ConfigureAwait(false);
+
+        if (!searchResult.Success)
+        {
+            var message = searchResult.Errors.Count > 0
+                ? string.Join("; ", searchResult.Errors)
+                : "Pagefind indexing failed.";
+            await BroadcastEventAsync("error", $"Search index: {message}", ct).ConfigureAwait(false);
         }
     }
 
@@ -428,6 +522,8 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
 
         public required ISiteBuilder SiteBuilder { get; init; }
 
+        public required ISearchIndexer SearchIndexer { get; init; }
+
         public required HashSet<string> PendingChanges { get; init; }
 
         public required object DebounceLock { get; init; }
@@ -436,7 +532,11 @@ public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteCo
 
         public required string ProjectPath { get; init; }
 
+        public required string OutputDir { get; init; }
+
         public required bool IncludeDrafts { get; init; }
+
+        public required SearchOptions SearchOptions { get; init; }
 
         public required CancellationToken CancellationToken { get; init; }
 

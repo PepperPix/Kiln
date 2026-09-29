@@ -1,5 +1,6 @@
 namespace Kiln.Core.Tests.Configuration;
 
+using Kiln.Models;
 using Kiln.Services;
 
 public class SiteConfigLoaderTests
@@ -9,7 +10,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_ValidYaml_ParsesAllFields()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: My Site
             description: A test site
             baseUrl: https://example.com
@@ -53,26 +54,18 @@ public class SiteConfigLoaderTests
             await Assert.That(config.OutputDir).IsEqualTo("dist");
             await Assert.That(config.ThemesDir).IsEqualTo("layouts");
 
-#pragma warning disable S109
             await Assert.That(config.Collections).Count().IsEqualTo(2);
-#pragma warning restore S109
             await Assert.That(config.Collections.ContainsKey("posts")).IsTrue();
-            await Assert.That(config.Collections["posts"].Directory).IsEqualTo("content/blog");
+            await Assert.That(config.Collections["posts"].Directory).IsEqualTo(Path.Combine("content", "blog"));
             await Assert.That(config.Collections["posts"].Permalink).IsEqualTo("/blog/:slug/");
             await Assert.That(config.Collections["posts"].Sort).IsEqualTo("date desc");
             await Assert.That(config.Collections["posts"].Feed).IsTrue();
-#pragma warning disable S109
             await Assert.That(config.Collections["posts"].Paginate).IsEqualTo(5);
-#pragma warning restore S109
             await Assert.That(config.Collections["posts"].Layout).IsEqualTo("post");
 
-#pragma warning disable S109
             await Assert.That(config.Taxonomies).Count().IsEqualTo(1);
-#pragma warning restore S109
             await Assert.That(config.Taxonomies["tags"].Permalink).IsEqualTo("/t/:slug/");
-#pragma warning disable S109
             await Assert.That(config.Taxonomies["tags"].Paginate).IsEqualTo(15);
-#pragma warning restore S109
         }
         finally
         {
@@ -83,7 +76,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_MissingTitle_ThrowsWithClearMessage()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             baseUrl: https://example.com
             """);
 
@@ -102,7 +95,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_MissingBaseUrl_ThrowsWithClearMessage()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             """);
 
@@ -138,7 +131,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_MinimalYaml_UsesDefaults()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Minimal
             baseUrl: http://localhost:5555
             """);
@@ -154,6 +147,30 @@ public class SiteConfigLoaderTests
             await Assert.That(config.ThemesDir).IsEqualTo("themes");
             await Assert.That(config.Collections).IsEmpty();
             await Assert.That(config.Taxonomies).IsEmpty();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_CollectionWithoutExplicitDirectory_UsesNativeSeparator()
+    {
+        var dir = await CreateTempSiteAsync("""
+            title: Test
+            baseUrl: http://localhost
+
+            collections:
+              posts:
+                permalink: /:slug/
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Collections["posts"].Directory).IsEqualTo(Path.Combine("content", "posts"));
         }
         finally
         {
@@ -185,7 +202,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_HomePageAndCollectionSet_Throws()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             baseUrl: http://localhost
             collections:
@@ -211,7 +228,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_HomeBlockEmpty_Throws()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             baseUrl: http://localhost
             home: {}
@@ -232,7 +249,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_HomeCollectionUnknown_Throws()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             baseUrl: http://localhost
             collections:
@@ -257,7 +274,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_HomePage_MapsToConfiguration()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             baseUrl: http://localhost
             home:
@@ -281,7 +298,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_HomeCollection_MapsToConfiguration()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             baseUrl: http://localhost
             collections:
@@ -308,7 +325,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_SearchSection_ParsesAllFields()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             baseUrl: http://localhost
             search:
@@ -334,7 +351,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_SearchSectionAbsent_UsesDefaults()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             baseUrl: http://localhost
             """);
@@ -356,7 +373,7 @@ public class SiteConfigLoaderTests
     [Test]
     public async Task Load_SearchEnabledOnly_OtherFieldsDefault()
     {
-        var dir = CreateTempSite("""
+        var dir = await CreateTempSiteAsync("""
             title: Test
             baseUrl: http://localhost
             search:
@@ -377,13 +394,113 @@ public class SiteConfigLoaderTests
         }
     }
 
-    private static string CreateTempSite(string yamlContent)
+    [Test]
+    public async Task Load_ImagesSection_ParsesAllFields()
+    {
+        var dir = await CreateTempSiteAsync("""
+            title: Test
+            baseUrl: http://localhost
+            images:
+              enabled: false
+              maxWidth: 1200
+              quality: 70
+              webp: true
+              exclude:
+                - "static/hero-*.png"
+                - "static/logos/**"
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Images.Enabled).IsFalse();
+            await Assert.That(config.Images.MaxWidth).IsEqualTo(1200);
+            await Assert.That(config.Images.Quality).IsEqualTo(70);
+            await Assert.That(config.Images.Webp).IsTrue();
+            await Assert.That(config.Images.Exclude).IsEquivalentTo(["static/hero-*.png", "static/logos/**"]);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_ImagesSectionAbsent_UsesDefaults()
+    {
+        var dir = await CreateTempSiteAsync("""
+            title: Test
+            baseUrl: http://localhost
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Images.Enabled).IsTrue();
+            await Assert.That(config.Images.MaxWidth).IsEqualTo(2000);
+            await Assert.That(config.Images.Quality).IsEqualTo(82);
+            await Assert.That(config.Images.Webp).IsFalse();
+            await Assert.That(config.Images.Exclude).IsEmpty();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_CollectionTeaserWords_OverridesDefault()
+    {
+        var dir = await CreateTempSiteAsync("""
+            title: Test
+            baseUrl: http://localhost
+            collections:
+              posts:
+                teaserWords: 30
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Collections["posts"].TeaserWords).IsEqualTo(30);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_CollectionTeaserWordsAbsent_UsesDefault()
+    {
+        var dir = await CreateTempSiteAsync("""
+            title: Test
+            baseUrl: http://localhost
+            collections:
+              posts:
+                permalink: /:slug/
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Collections["posts"].TeaserWords).IsEqualTo(ContentGroup.DefaultTeaserWords);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    private static async Task<string> CreateTempSiteAsync(string yamlContent)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dir);
-#pragma warning disable S6966 // WriteAllTextAsync not applicable in non-async helper
-        File.WriteAllText(Path.Combine(dir, "site.yaml"), yamlContent);
-#pragma warning restore S6966
+        await File.WriteAllTextAsync(Path.Combine(dir, "site.yaml"), yamlContent);
         return dir;
     }
 }

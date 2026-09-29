@@ -122,6 +122,61 @@ public class SiteBuilderTests
         }
     }
 
+    [Test]
+    public async Task BuildAsync_NoIndex_AddsRobotsMetaTagForHiddenPostsAcrossBuildModes()
+    {
+        var tempDir = CreateSiteWithNoIndexPosts();
+
+        try
+        {
+            var builder = CreateBuilder();
+            foreach (var environment in new[] { BuildEnvironment.Development, BuildEnvironment.Production })
+            {
+                var result = await builder.BuildAsync(tempDir, false, environment, CancellationToken.None);
+                await Assert.That(result.Success).IsTrue();
+
+                var hiddenOutput = Path.Combine(tempDir, "_site", "blog", "hidden-post", "index.html");
+                var visibleOutput = Path.Combine(tempDir, "_site", "blog", "visible-post", "index.html");
+
+                var hiddenHtml = await File.ReadAllTextAsync(hiddenOutput);
+                var visibleHtml = await File.ReadAllTextAsync(visibleOutput);
+
+                await Assert.That(hiddenHtml).Contains("robots", StringComparison.OrdinalIgnoreCase);
+                await Assert.That(hiddenHtml).Contains("noindex", StringComparison.OrdinalIgnoreCase);
+                await Assert.That(hiddenHtml).Contains("nofollow", StringComparison.OrdinalIgnoreCase);
+                await Assert.That(visibleHtml).DoesNotContain("noindex", StringComparison.OrdinalIgnoreCase);
+                await Assert.That(visibleHtml).DoesNotContain("nofollow", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task BuildAsync_NoIndex_WithoutHeadTag_EmitsWarningAndLeavesHtmlUntouched()
+    {
+        var tempDir = CreateSiteWithNoIndexPosts(layout: "<html><body>{{ page.content }}</body></html>");
+
+        try
+        {
+            var builder = CreateBuilder();
+            var result = await builder.BuildAsync(tempDir, false, BuildEnvironment.Development, CancellationToken.None);
+
+            await Assert.That(result.Success).IsTrue();
+            await Assert.That(result.Warnings).Any(item => item.Contains("noIndex: true but no </head> tag was found"));
+
+            var hiddenOutput = Path.Combine(tempDir, "_site", "blog", "hidden-post", "index.html");
+            var hiddenHtml = await File.ReadAllTextAsync(hiddenOutput);
+            await Assert.That(hiddenHtml).DoesNotContain("<meta name=\"robots\" content=\"noindex, nofollow\">");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
     private static string CreateSiteWithThemeAsset()
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-assets-{Guid.NewGuid():N}");
@@ -236,6 +291,48 @@ public class SiteBuilderTests
         return dir;
     }
 
+    private static string CreateSiteWithNoIndexPosts(string? layout = null)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"kiln-noindex-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(dir, "content", "posts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "layouts"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "partials"));
+
+        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+            """
+            title: Test Site
+            baseUrl: http://localhost:5555
+            collections:
+              posts:
+                directory: content/posts
+                permalink: /blog/:slug/
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "posts", "visible-post.md"),
+            """
+            ---
+            title: Visible Post
+            ---
+            visible content
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "posts", "hidden-post.md"),
+            """
+            ---
+            title: Hidden Post
+            noIndex: true
+            ---
+            hidden content
+            """);
+
+        var defaultLayout = layout ?? "<html><head><title>{{ page.title }}</title></head><body>{{ page.content }}</body></html>";
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"), defaultLayout);
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html><body>Not Found</body></html>");
+
+        return dir;
+    }
+
     private static ISiteBuilder CreateBuilder()
     {
         var markdownProcessor = new MarkdownProcessor();
@@ -244,7 +341,15 @@ public class SiteBuilderTests
         var permalinkGenerator = new PermalinkGenerator();
         var configLoader = new SiteConfigLoader();
         var pluginLoader = new PluginLoader();
-        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, []);
+        return new SiteBuilder(
+            contentReader,
+            templateRenderer,
+            permalinkGenerator,
+            configLoader,
+            pluginLoader,
+            [new NuglifyAssetMinifier(), new NoOpAssetMinifier()],
+            new SkiaSharpImageOptimizer(),
+            new AssetReferenceIndexBuilder());
     }
 
     private static string CreateSiteWithNestedContent()

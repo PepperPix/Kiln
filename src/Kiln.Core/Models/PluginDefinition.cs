@@ -8,5 +8,6 @@ public sealed class PluginDefinition
     public string? Version { get; init; }
     public string? Description { get; init; }
     public Collection<string> Slots { get; init; } = [];
+    public Collection<string> Shortcodes { get; init; } = [];
     public string Directory { get; init; } = "";
 }

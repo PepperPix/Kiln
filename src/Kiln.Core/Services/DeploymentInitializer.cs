@@ -52,7 +52,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Build site
-        run: kiln build --base-url ${{ vars.SITE_URL || 'https://username.github.io/repo' }}
+        run: dotnet tool run kiln build --release --base-url ${{ vars.SITE_URL || 'https://username.github.io/repo' }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -101,7 +101,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           app_location: "/"
           output_location: "_site"
-          app_build_command: "dotnet tool restore && kiln build"
+          app_build_command: "dotnet tool restore && dotnet tool run kiln build --release"
           skip_api_build: true
 """;
 

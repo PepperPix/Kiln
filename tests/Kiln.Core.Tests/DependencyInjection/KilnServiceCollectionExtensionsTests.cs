@@ -21,6 +21,7 @@ public class KilnServiceCollectionExtensionsTests
         await Assert.That(provider.GetRequiredService<IPermalinkGenerator>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<ISiteConfigLoader>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<IPluginLoader>()).IsNotNull();
+        await Assert.That(provider.GetRequiredService<IAssetReferenceIndexBuilder>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<ISiteBuilder>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<IDevServer>()).IsNotNull();
     }

@@ -73,6 +73,46 @@ public class TemplateRendererTests
     }
 
     [Test]
+    public async Task Render_ProvidesNoIndexFlagOnPageObject()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html><head>{{ page.no_index }}</head></html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var noIndexItem = new ContentItem
+            {
+                SourcePath = item.SourcePath,
+                RelativePath = item.RelativePath,
+                Title = item.Title,
+                Date = item.Date,
+                Slug = item.Slug,
+                SectionPath = item.SectionPath,
+                Layout = item.Layout,
+                RawContent = item.RawContent,
+                HtmlContent = item.HtmlContent,
+                Url = item.Url,
+                OutputPath = item.OutputPath,
+                Collection = item.Collection,
+                NoIndex = true
+            };
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(noIndexItem, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("true");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
     public async Task Render_AssetUrlFunctionResolvesPath()
     {
         var tempTheme = CreateTempTheme(
@@ -137,6 +177,104 @@ public class TemplateRendererTests
             var result = _renderer.Render(item, shared, site, tempTheme, []);
 
             await Assert.That(result).Contains("/assets/content/posts/guides/advanced/test-post/hero.jpg");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
+    public async Task Render_AssetUrlFunction_RespectsConfiguredBasePath()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html><head>{{ asset_url 'css/style.css' }}</head></html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var site = CreateTestSite(collection, basePath: "/blog");
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("/blog/assets/css/style.css");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
+    public async Task Render_ProvidesBasePathVariableAndPrefixedPageUrl()
+    {
+        var tempTheme = CreateTempTheme(
+            layout: "<html>{{ site.base_path }}|{{ page.url }}|{{ page.collection.url }}</html>",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var site = CreateTestSite(collection, basePath: "/reponame");
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result).Contains("/reponame");
+            await Assert.That(result).Contains("/reponame/blog/test-post/");
+            await Assert.That(result).Contains("/reponame/blog/");
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
+    public async Task Render_LoopOverMoreThanDefaultLoopLimit_RendersAllIterations()
+    {
+        const int iterations = 1500;
+        var tempTheme = CreateTempTheme(
+            layout: "{{ for i in 1..1500 }}x{{ end }}",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result.Count(c => c == 'x')).IsEqualTo(iterations);
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
+    public async Task Render_ContentLargerThanDefaultStringLimit_IsNotTruncated()
+    {
+        const int contentLength = 2 * 1024 * 1024;
+        var tempTheme = CreateTempTheme(layout: "{{ page.content }}", layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem(new string('a', contentLength), collection);
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result.Length).IsEqualTo(contentLength);
         }
         finally
         {
@@ -253,10 +391,10 @@ public class TemplateRendererTests
         Collection = collection
     };
 
-    private static SiteConfiguration CreateTestSite(ContentGroup collection) => new()
+    private static SiteConfiguration CreateTestSite(ContentGroup collection, string basePath = "/") => new()
     {
         Title = "Test Site",
-        BaseUrl = new UriBuilder(Uri.UriSchemeHttp, "localhost", 5555).Uri,
+        BaseUrl = new UriBuilder(Uri.UriSchemeHttp, "localhost", 5555, basePath).Uri,
         Collections = new Dictionary<string, ContentGroup> { ["posts"] = collection }
     };
 }

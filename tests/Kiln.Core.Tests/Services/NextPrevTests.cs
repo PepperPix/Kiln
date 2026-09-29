@@ -93,9 +93,7 @@ public class NextPrevTests
                 sort: date asc
             """);
 
-#pragma warning disable S109
         for (var i = 1; i <= 3; i++)
-#pragma warning restore S109
         {
             File.WriteAllText(Path.Combine(dir, "content", "posts", $"post-0{i}.md"),
                 $"""
@@ -124,6 +122,6 @@ public class NextPrevTests
         var permalinkGenerator = new PermalinkGenerator();
         var configLoader = new SiteConfigLoader();
         var pluginLoader = new PluginLoader();
-        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, []);
+        return new SiteBuilder(contentReader, templateRenderer, permalinkGenerator, configLoader, pluginLoader, [], new SkiaSharpImageOptimizer(), new AssetReferenceIndexBuilder());
     }
 }

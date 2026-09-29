@@ -16,6 +16,8 @@ public static class KilnServiceCollectionExtensions
         services.AddSingleton<IPermalinkGenerator, PermalinkGenerator>();
         services.AddSingleton<ISiteConfigLoader, SiteConfigLoader>();
         services.AddSingleton<IPluginLoader, PluginLoader>();
+        services.AddSingleton<IShortcodeProcessor, ShortcodeProcessor>();
+        services.AddSingleton<IAssetReferenceIndexBuilder, AssetReferenceIndexBuilder>();
         services.AddSingleton<ISiteBuilder, SiteBuilder>();
         services.AddSingleton<IDevServer, DevServer>();
         services.AddSingleton<IScaffolder, Scaffolder>();
@@ -28,6 +30,9 @@ public static class KilnServiceCollectionExtensions
         services.AddSingleton<IProcessRunner, SystemProcessRunner>();
         services.AddSingleton<IPagefindBinaryProvider, PagefindBinaryProvider>();
         services.AddSingleton<ISearchIndexer, PagefindSearchIndexer>();
+        services.AddSingleton<INuGetPluginClient, NuGetPluginClient>();
+        services.AddSingleton<IPluginLockFile, PluginLockFile>();
+        services.AddSingleton<IImageOptimizer, SkiaSharpImageOptimizer>();
 
         return new KilnBuilder(services);
     }

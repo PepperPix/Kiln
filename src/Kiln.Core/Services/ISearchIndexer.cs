@@ -10,8 +10,3 @@ public interface ISearchIndexer
         bool allowDownload,
         CancellationToken ct);
 }
-
-public sealed record SearchIndexResult(
-    bool Success,
-    IReadOnlyList<string> Warnings,
-    IReadOnlyList<string> Errors);

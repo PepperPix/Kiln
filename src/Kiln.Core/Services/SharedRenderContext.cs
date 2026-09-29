@@ -27,7 +27,7 @@ public sealed class SharedRenderContext
 
         var collections = site.Collections.ToDictionary(
             kvp => kvp.Key,
-            kvp => BuildCollectionObject(kvp.Value));
+            kvp => BuildCollectionObject(kvp.Value, site.BasePath));
 
         var taxonomies = new ScriptObject();
         foreach (var (name, termList) in allTaxonomies)
@@ -36,9 +36,9 @@ public sealed class SharedRenderContext
             {
                 name = t.Name,
                 slug = t.Slug,
-                url = t.Url.OriginalString,
+                url = SiteConfiguration.ApplyBasePath(site.BasePath, t.Url),
                 count = t.Count,
-                items = t.Items.Select(BuildItemSummary).ToList()
+                items = t.Items.Select(item => BuildItemSummary(item, site.BasePath)).ToList()
             }).ToList();
 
             taxonomies.Add(name, new { terms = taxTerms });
@@ -51,6 +51,8 @@ public sealed class SharedRenderContext
                 title = site.Title,
                 description = site.Description,
                 base_url = site.BaseUrl.ToString().TrimEnd('/'),
+                origin = site.Origin,
+                base_path = site.BasePath,
                 language = site.Language,
                 asset_prefix = site.AssetPrefix,
                 search = new { enabled = site.Search.Enabled }
@@ -63,24 +65,24 @@ public sealed class SharedRenderContext
         };
     }
 
-    internal static object BuildCollectionObject(ContentGroup collection)
+    internal static object BuildCollectionObject(ContentGroup collection, string basePath = "")
     {
         return new
         {
             name = collection.Name,
-            items = collection.Items.Where(static i => !i.Draft).Select(BuildItemSummary).ToList(),
-            url = collection.IndexUrl.OriginalString,
+            items = collection.Items.Where(static i => !i.Draft).Select(item => BuildItemSummary(item, basePath)).ToList(),
+            url = SiteConfiguration.ApplyBasePath(basePath, collection.IndexUrl),
             feed = collection.Feed,
             plugins = collection.Plugins
         };
     }
 
-    internal static object BuildItemSummary(ContentItem item)
+    internal static object BuildItemSummary(ContentItem item, string basePath = "")
     {
         return new
         {
             title = item.Title,
-            url = item.Url.OriginalString,
+            url = SiteConfiguration.ApplyBasePath(basePath, item.Url),
             slug = item.Slug,
             date = item.Date,
             description = item.Description,

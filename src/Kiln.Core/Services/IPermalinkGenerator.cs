@@ -4,5 +4,5 @@ using Kiln.Models;
 
 public interface IPermalinkGenerator
 {
-    Uri Generate(ContentItem item, ContentGroup collection);
+    Uri Generate(ContentItem item, ContentGroup collection, string? basePath = null);
 }

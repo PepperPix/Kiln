@@ -7,7 +7,8 @@ using Kiln.Models;
 public static class NavigationTreeBuilder
 {
     public static IReadOnlyDictionary<string, IReadOnlyList<NavigationNode>> Build(
-        IReadOnlyList<ContentItem> publishedItems)
+        IReadOnlyList<ContentItem> publishedItems,
+        string basePath = "")
     {
         var byCollection = publishedItems
             .GroupBy(i => i.Collection.Name);
@@ -28,7 +29,7 @@ public static class NavigationTreeBuilder
                 var leaf = new NavigationNode
                 {
                     Title = item.Title,
-                    Url = item.Url,
+                    Url = new Uri(SiteConfiguration.ApplyBasePath(basePath, item.Url), UriKind.Relative),
                     Weight = item.Weight
                 };
 
@@ -55,7 +56,7 @@ public static class NavigationTreeBuilder
             // First pass: create section nodes
             foreach (var sectionPath in sectionLookup.Keys)
             {
-                EnsureSectionNode(sectionPath, sectionNodes, sectionChildren, group.First());
+                EnsureSectionNode(sectionPath, sectionNodes, sectionChildren, group.First(), basePath);
             }
 
             // Second pass: assign leaf children
@@ -131,13 +132,14 @@ public static class NavigationTreeBuilder
         string sectionPath,
         Dictionary<string, NavigationNode> sectionNodes,
         Dictionary<string, List<NavigationNode>> sectionChildren,
-        ContentItem sampleItem)
+        ContentItem sampleItem,
+        string basePath)
     {
         if (sectionNodes.ContainsKey(sectionPath))
             return;
 
         var segs = sectionPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var url = BuildSectionUrl(sampleItem, segs);
+        var url = BuildSectionUrl(sampleItem, segs, basePath);
         var title = Humanize(segs[^1]);
 
         var node = new NavigationNode
@@ -154,14 +156,15 @@ public static class NavigationTreeBuilder
         if (segs.Length > 1)
         {
             var parentPath = string.Join("/", segs[..^1]);
-            EnsureSectionNode(parentPath, sectionNodes, sectionChildren, sampleItem);
+            EnsureSectionNode(parentPath, sectionNodes, sectionChildren, sampleItem, basePath);
         }
     }
 
-    private static Uri BuildSectionUrl(ContentItem sampleItem, string[] sectionSegs)
+    private static Uri BuildSectionUrl(ContentItem sampleItem, string[] sectionSegs, string basePath)
     {
         var sep = Path.AltDirectorySeparatorChar;
-        var urlSegs = sampleItem.Url.OriginalString.Split(sep, StringSplitOptions.RemoveEmptyEntries);
+        var siteRelativeUrl = SiteConfiguration.RemoveBasePath(sampleItem.Url, basePath);
+        var urlSegs = siteRelativeUrl.Split(sep, StringSplitOptions.RemoveEmptyEntries);
         var sectionSegments = string.Join(sep, sectionSegs).Split(sep, StringSplitOptions.RemoveEmptyEntries);
 
         var itemSectionSegs = string.IsNullOrEmpty(sampleItem.SectionPath)
@@ -175,7 +178,7 @@ public static class NavigationTreeBuilder
         combined.AddRange(sectionSegments);
 
         var urlStr = sep + string.Join(sep, combined) + sep;
-        return new Uri(urlStr, UriKind.Relative);
+        return new Uri(SiteConfiguration.ApplyBasePath(basePath, new Uri(urlStr, UriKind.Relative)), UriKind.Relative);
     }
 
     internal static string Humanize(string segment)
