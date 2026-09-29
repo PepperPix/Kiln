@@ -1,3 +1,24 @@
+# [1.3.0-beta.2](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.1...v1.3.0-beta.2) (2026-09-29)
+
+
+### Bug Fixes
+
+* **core:** kill child process on cancellation ([ab06146](https://github.com/PepperPix/Kiln/commit/ab06146c931ca4d6511a675e15d52b7c5aa98208))
+* **core:** load plugins in deterministic order ([0266d1c](https://github.com/PepperPix/Kiln/commit/0266d1c37a55b9c5da05d3d0cb3813600f5d9c44))
+* **core:** observe dev server rebuild task exceptions ([c968e4f](https://github.com/PepperPix/Kiln/commit/c968e4f4b751a42a4feea366676051e6e4c10886))
+* **core:** require pagefind 1.5.0 for path binaries ([cf77952](https://github.com/PepperPix/Kiln/commit/cf77952ea987ed5ec9fd49f1ea2fcac621b8ee50))
+* **core:** skip inline code in shortcodes ([4295638](https://github.com/PepperPix/Kiln/commit/429563826a01597ab2fa7c992532618c0f6e1937))
+
+
+### Features
+
+* **cli:** keep existing deploy files unless --force ([77d09c7](https://github.com/PepperPix/Kiln/commit/77d09c76dce8bea83db2a51b025536a058a5e856))
+
+
+### Performance Improvements
+
+* **core:** cache parsed templates ([d43d093](https://github.com/PepperPix/Kiln/commit/d43d0939a7cc9d8f9924e667180b6779984750ff))
+
 # [1.3.0-beta.1](https://github.com/PepperPix/Kiln/compare/v1.2.0...v1.3.0-beta.1) (2026-09-29)
 
 
