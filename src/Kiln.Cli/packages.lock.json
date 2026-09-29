@@ -52,15 +52,15 @@
       },
       "Microsoft.OpenApi": {
         "type": "Transitive",
-        "resolved": "1.6.31",
-        "contentHash": "58ggc22i0BKvHuVoj5oVVQ7EbMkEMY0FvGeoQ/yBemk36pUbroDoj1XxRTnCi+fsgDTDuf+YZmigHkEzs5B2wA=="
+        "resolved": "3.10.2",
+        "contentHash": "qzg4a3WmgQm28Azaporbnsu+KHA+vq5sgpQQFLiJgB06Rra2S+kzGAU7pzUB8/UIwZJCSCY2JEE/M5e0hQ2K8w=="
       },
-      "Microsoft.OpenApi.Readers": {
+      "Microsoft.OpenApi.YamlReader": {
         "type": "Transitive",
-        "resolved": "1.6.31",
-        "contentHash": "MbtHhR2vYs11EE71ywvmyppzp0noC3XHKzdI6m/9mwKRzw4IVCGuHHWDnmjr1BX90CIOOxbz6WszBJt3a+WGBg==",
+        "resolved": "3.10.2",
+        "contentHash": "qVWoRH8gBWcs2C67e5crYLXPPqK3O8VbzN9G4nxC3Ykjv+Vjv6BJZXx9WyAohe2UT5ZOkHr4LdLJ/ZpaptWdZQ==",
         "dependencies": {
-          "Microsoft.OpenApi": "1.6.31",
+          "Microsoft.OpenApi": "3.10.2",
           "SharpYaml": "2.1.5"
         }
       },
@@ -203,12 +203,12 @@
           "Markdig": "[1.*, )",
           "Microsoft.Extensions.DependencyInjection": "[10.*, )",
           "Microsoft.Extensions.FileSystemGlobbing": "[10.*, )",
-          "Microsoft.OpenApi.Readers": "[1.6.31, )",
+          "Microsoft.OpenApi": "[3.10.2, )",
+          "Microsoft.OpenApi.YamlReader": "[3.10.2, )",
           "NUglify": "[1.23.3, )",
           "NuGet.Packaging": "[7.*, )",
           "NuGet.Protocol": "[7.*, )",
           "Scriban": "[7.*, )",
-          "SharpYaml": "[2.1.5, )",
           "SkiaSharp": "[4.151.1, )",
           "SkiaSharp.NativeAssets.Linux.NoDependencies": "[4.151.1, )",
           "YamlDotNet": "[18.*, )"
