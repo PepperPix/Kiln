@@ -176,7 +176,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             throw new InvalidOperationException(
                 $"Template errors in '{layoutPath}': {string.Join(", ", template.Messages)}");
 
-        var context = new TemplateContext();
+        var context = TemplateContextFactory.Create();
         var scriptObject = buildScriptObject(context);
         context.PushGlobal(scriptObject);
         return template.Render(context);

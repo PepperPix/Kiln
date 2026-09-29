@@ -111,7 +111,7 @@ public sealed partial class ShortcodeProcessor : IShortcodeProcessor
             return false;
         }
 
-        var context = new TemplateContext();
+        var context = TemplateContextFactory.Create();
         context.PushGlobal(scriptObject);
         rendered = template.Render(context);
         return true;

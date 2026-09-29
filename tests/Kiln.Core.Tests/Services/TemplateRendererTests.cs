@@ -234,6 +234,54 @@ public class TemplateRendererTests
         }
     }
 
+    [Test]
+    public async Task Render_LoopOverMoreThanDefaultLoopLimit_RendersAllIterations()
+    {
+        const int iterations = 1500;
+        var tempTheme = CreateTempTheme(
+            layout: "{{ for i in 1..1500 }}x{{ end }}",
+            layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem("<p>Hello</p>", collection);
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result.Count(c => c == 'x')).IsEqualTo(iterations);
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
+    [Test]
+    public async Task Render_ContentLargerThanDefaultStringLimit_IsNotTruncated()
+    {
+        const int contentLength = 2 * 1024 * 1024;
+        var tempTheme = CreateTempTheme(layout: "{{ page.content }}", layoutName: "default");
+
+        try
+        {
+            var collection = CreateTestCollection();
+            var item = CreateTestItem(new string('a', contentLength), collection);
+            var site = CreateTestSite(collection);
+            var shared = SharedRenderContext.Build(site, new Dictionary<string, IReadOnlyList<TaxonomyTerm>>());
+
+            var result = _renderer.Render(item, shared, site, tempTheme, []);
+
+            await Assert.That(result.Length).IsEqualTo(contentLength);
+        }
+        finally
+        {
+            Directory.Delete(tempTheme, true);
+        }
+    }
+
     private static string CreateTempTheme(string layout, string layoutName)
     {
         var dir = Path.Combine(Path.GetTempPath(), $"kiln-theme-{Guid.NewGuid():N}");

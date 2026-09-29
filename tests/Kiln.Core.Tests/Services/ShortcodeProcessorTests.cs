@@ -112,6 +112,28 @@ public class ShortcodeProcessorTests
         }
     }
 
+    [Test]
+    public async Task Process_LoopOverMoreThanDefaultLoopLimit_RendersAllIterations()
+    {
+        const int iterations = 1500;
+        var tempDir = CreatePluginWithShortcode("loops", "many", "{{ for i in 1..1500 }}x{{ end }}");
+        try
+        {
+            var warnings = new Collection<string>();
+            var processor = new ShortcodeProcessor();
+            var result = processor.Process("{% many %}",
+                [new PluginDefinition { Name = "Loops", Directory = tempDir, Shortcodes = ["many"] }],
+                warnings);
+
+            await Assert.That(result.Count(c => c == 'x')).IsEqualTo(iterations);
+            await Assert.That(warnings.Count).IsEqualTo(0);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
     private static string CreatePluginWithShortcode(string pluginName, string shortcodeName, string partialContent)
     {
         var root = Path.Combine(Path.GetTempPath(), $"kiln-shortcode-{Guid.NewGuid():N}");
