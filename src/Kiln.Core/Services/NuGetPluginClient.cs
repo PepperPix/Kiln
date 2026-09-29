@@ -49,20 +49,6 @@ public sealed class NuGetPluginClient : INuGetPluginClient
         _sourceRepository = Repository.Factory.GetCoreV3(serviceIndexUrl.ToString());
     }
 
-    [Obsolete("The HTTP message handler is ignored; use the SourceRepository constructor to customize transport.")]
-    public NuGetPluginClient(string serviceIndexUrl, HttpMessageHandler? httpMessageHandler)
-        : this(serviceIndexUrl)
-    {
-        _ = httpMessageHandler;
-    }
-
-    [Obsolete("The HTTP message handler is ignored; use the SourceRepository constructor to customize transport.")]
-    public NuGetPluginClient(Uri serviceIndexUrl, HttpMessageHandler? httpMessageHandler)
-        : this(serviceIndexUrl)
-    {
-        _ = httpMessageHandler;
-    }
-
     public NuGetPluginClient(SourceRepository sourceRepository)
     {
         _sourceRepository = sourceRepository ?? throw new ArgumentNullException(nameof(sourceRepository));
