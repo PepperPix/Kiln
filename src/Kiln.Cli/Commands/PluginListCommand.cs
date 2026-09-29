@@ -28,15 +28,18 @@ public sealed class PluginListCommand(
         table.AddColumn("Version");
         table.AddColumn("Description");
         table.AddColumn("Source");
+        table.AddColumn("Trust");
 
         foreach (var plugin in plugins)
         {
             var pluginKey = Path.GetFileName(plugin.Directory);
             var source = "manuell";
+            var trust = "manual";
 
             if (lockEntries.TryGetValue(pluginKey, out var entry) ||
                 lockEntries.TryGetValue(plugin.Name, out entry))
             {
+                trust = entry.Trust is { } level ? PluginTrustDisplay.Label(level) : "community (unknown)";
                 source = $"{entry.PackageId} {entry.Version} ({entry.Source})";
                 if (entry.ContentHash is not null && !string.Equals(entry.ContentHash, PluginContentHasher.ComputeDirectoryHash(plugin.Directory), StringComparison.OrdinalIgnoreCase))
                     source += " modified";
@@ -46,7 +49,8 @@ public sealed class PluginListCommand(
                 Markup.Escape(plugin.Name),
                 Markup.Escape(plugin.Version ?? "unknown"),
                 Markup.Escape(plugin.Description ?? string.Empty),
-                Markup.Escape(source));
+                Markup.Escape(source),
+                Markup.Escape(trust));
         }
 
         if (plugins.Count == 0)
