@@ -104,7 +104,7 @@ public sealed partial class ShortcodeProcessor : IShortcodeProcessor
         }));
         scriptObject.Add("string", stringFunctions);
 
-        var template = Template.Parse(File.ReadAllText(shortcodePath), shortcodePath);
+        var template = TemplateCache.GetOrParse(shortcodePath);
         if (template.HasErrors)
         {
             warnings.Add($"Could not render shortcode '{shortcodeName}' from '{shortcodePath}': {string.Join("; ", template.Messages.Select(m => m.Message))}");

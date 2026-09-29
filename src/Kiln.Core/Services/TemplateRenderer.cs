@@ -169,8 +169,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
         string layoutPath,
         Func<TemplateContext, ScriptObject> buildScriptObject)
     {
-        var templateSource = File.ReadAllText(layoutPath);
-        var template = Template.Parse(templateSource, layoutPath);
+        var template = TemplateCache.GetOrParse(layoutPath);
 
         if (template.HasErrors)
             throw new InvalidOperationException(
@@ -347,8 +346,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
             var partialPath = Path.Combine(partialsDir, $"{partialName}.html");
             if (!File.Exists(partialPath))
                 return $"<!-- partial '{partialName}' not found -->";
-            var partialTemplate = Template.Parse(File.ReadAllText(partialPath), partialPath);
-            return partialTemplate.Render(context);
+            return TemplateCache.GetOrParse(partialPath).Render(context);
         }));
 
         // asset_url
@@ -413,8 +411,7 @@ public sealed class TemplateRenderer : ITemplateRenderer
 
                 if (slotFilePath is null) continue;
 
-                var slotTemplate = Template.Parse(File.ReadAllText(slotFilePath), slotFilePath);
-                sb.Append(slotTemplate.Render(context));
+                sb.Append(TemplateCache.GetOrParse(slotFilePath).Render(context));
             }
             return sb.ToString();
         }));
