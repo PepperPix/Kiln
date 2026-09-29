@@ -1,6 +1,7 @@
 namespace Kiln.Services;
 
 using Kiln.Models;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -19,7 +20,10 @@ public sealed class PluginLoader : IPluginLoader
 
         var result = new List<PluginDefinition>();
 
-        foreach (var pluginDir in Directory.EnumerateDirectories(pluginsDir))
+        var pluginDirs = Directory.EnumerateDirectories(pluginsDir)
+            .OrderBy(d => Path.GetFileName(d), StringComparer.Ordinal);
+
+        foreach (var pluginDir in pluginDirs)
         {
             var yamlPath = Path.Combine(pluginDir, "plugin.yaml");
             var ymlPath = Path.Combine(pluginDir, "plugin.yml");
@@ -33,7 +37,15 @@ public sealed class PluginLoader : IPluginLoader
             if (configPath is null)
                 continue;
 
-            var dto = YamlDeserializer.Deserialize<PluginDefinitionDto>(File.ReadAllText(configPath));
+            PluginDefinitionDto dto;
+            try
+            {
+                dto = YamlDeserializer.Deserialize<PluginDefinitionDto>(File.ReadAllText(configPath));
+            }
+            catch (YamlException ex)
+            {
+                throw new InvalidOperationException($"Invalid plugin manifest '{configPath}': {ex.Message}", ex);
+            }
 
             var pluginName = Path.GetFileName(pluginDir);
             var definition = new PluginDefinition
