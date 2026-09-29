@@ -1,6 +1,7 @@
 namespace Kiln.Cli.Commands;
 
 using System.ComponentModel;
+using Kiln.Models;
 using Kiln.Services;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -24,6 +25,10 @@ public sealed class PluginUpdateCommand(
         [Description("Overwrite a plugin directory even if it has local changes.")]
         public bool Force { get; init; }
 
+        [CommandOption("-y|--yes")]
+        [Description("Update without asking for confirmation when a plugin adds external hosts or loses first-party status.")]
+        public bool Yes { get; init; }
+
         [CommandArgument(1, "[path]")]
         [Description("Project path. Defaults to the current directory.")]
         public string Path { get; init; } = ".";
@@ -45,7 +50,7 @@ public sealed class PluginUpdateCommand(
             var exitCode = 0;
             foreach (var plugin in entries)
             {
-                if (!await UpdateSingleEntryAsync(projectPath, plugin.Key, plugin.Value, settings.Force, cancellationToken).ConfigureAwait(false))
+                if (!await UpdateSingleEntryAsync(projectPath, plugin.Key, plugin.Value, settings, cancellationToken).ConfigureAwait(false))
                     exitCode = 1;
             }
             return exitCode;
@@ -63,10 +68,10 @@ public sealed class PluginUpdateCommand(
             return 1;
         }
 
-        return await UpdateSingleEntryAsync(projectPath, settings.Name, entry, settings.Force, cancellationToken).ConfigureAwait(false) ? 0 : 1;
+        return await UpdateSingleEntryAsync(projectPath, settings.Name, entry, settings, cancellationToken).ConfigureAwait(false) ? 0 : 1;
     }
 
-    private async Task<bool> UpdateSingleEntryAsync(string projectPath, string name, PluginLockEntry entry, bool force, CancellationToken cancellationToken)
+    private async Task<bool> UpdateSingleEntryAsync(string projectPath, string name, PluginLockEntry entry, Settings settings, CancellationToken cancellationToken)
     {
         var displayName = Markup.Escape(name);
         var packageId = Markup.Escape(entry.PackageId);
@@ -87,12 +92,15 @@ public sealed class PluginUpdateCommand(
 
         console.MarkupLine("[yellow]IMPORTANT:[/] This plugin can inject arbitrary HTML/JavaScript into pages. Install only plugins from trusted sources.");
 
+        if (!settings.Yes && !await ConfirmSignificantChangeAsync(projectPath, name, entry, latestVersion, cancellationToken).ConfigureAwait(false))
+            return false;
+
         PluginPackageInstallResult result;
         try
         {
             var options = new PluginInstallOptions
             {
-                Force = force,
+                Force = settings.Force,
                 ExistingLockEntries = await pluginLockFile.ReadAsync(projectPath, cancellationToken).ConfigureAwait(false),
             };
             result = await nuGetPluginClient.AddAsync(entry.PackageId, latestVersion, projectPath, options, cancellationToken).ConfigureAwait(false);
@@ -109,9 +117,67 @@ public sealed class PluginUpdateCommand(
             "nuget")
         {
             ContentHash = result.ContentHash,
+            Trust = result.Trust,
         }, cancellationToken).ConfigureAwait(false);
 
         console.MarkupLine($"[green]Updated plugin:[/] {Markup.Escape(result.PluginName)} ({Markup.Escape(result.PackageId)} {Markup.Escape(result.Version)}) at {Markup.Escape(result.InstallPath)}");
         return true;
+    }
+
+    private async Task<bool> ConfirmSignificantChangeAsync(string projectPath, string name, PluginLockEntry entry, string latestVersion, CancellationToken cancellationToken)
+    {
+        var displayName = Markup.Escape(name);
+        PluginPackageInfo info;
+        try
+        {
+            info = await nuGetPluginClient.GetInfoAsync(entry.PackageId, latestVersion, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            console.MarkupLine($"[red]ERROR:[/] Could not update '{displayName}': {Markup.Escape(ex.Message)}");
+            return false;
+        }
+
+        console.MarkupLine($"{displayName}: {Markup.Escape(entry.Version)} -> {Markup.Escape(info.Version)}");
+
+        var installedHosts = ReadInstalledHosts(projectPath, name);
+        var newHosts = info.ExternalHosts.Where(host => !installedHosts.Contains(host)).ToList();
+        var trustDropped = entry.Trust == PluginTrustLevel.FirstParty && info.Trust != PluginTrustLevel.FirstParty;
+        if (newHosts.Count == 0 && !trustDropped)
+            return true;
+
+        if (newHosts.Count > 0)
+            console.MarkupLine($"[yellow]This version references new external hosts:[/] {Markup.Escape(string.Join(", ", newHosts))}");
+
+        if (trustDropped)
+            console.MarkupLine("[yellow]This package is no longer first-party; its trust level dropped to community.[/]");
+
+        if (!console.Profile.Capabilities.Interactive)
+        {
+            console.MarkupLine($"[red]ERROR:[/] Confirmation required to update '{displayName}'. Re-run with --yes.");
+            return false;
+        }
+
+        var confirmed = await console.ConfirmAsync(
+            prompt: $"Update '{displayName}' to {Markup.Escape(info.Version)}?",
+            defaultValue: false,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (!confirmed)
+            console.MarkupLine($"[yellow]Update of '{displayName}' skipped.[/]");
+
+        return confirmed;
+    }
+
+    private static HashSet<string> ReadInstalledHosts(string projectPath, string name)
+    {
+        var hosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!PluginNames.IsSafeDirectoryName(name))
+            return hosts;
+
+        var directory = Path.Combine(projectPath, "plugins", name);
+        if (Directory.Exists(directory))
+            hosts.UnionWith(PluginContentInspector.Scan(directory).ExternalHosts);
+
+        return hosts;
     }
 }
