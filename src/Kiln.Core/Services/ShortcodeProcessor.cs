@@ -13,9 +13,6 @@ public sealed partial class ShortcodeProcessor : IShortcodeProcessor
     [GeneratedRegex(@"{%\s*(\S+)\s*(.*?)\s*%}", RegexOptions.Singleline | RegexOptions.CultureInvariant)]
     private static partial Regex ShortcodeRegex();
 
-    [GeneratedRegex(@"^\s*([`~]{3,})", RegexOptions.Multiline)]
-    private static partial Regex FenceMarkerRegex();
-
     public string Process(string markdown, IReadOnlyList<PluginDefinition> plugins, Collection<string> warnings)
     {
         ArgumentNullException.ThrowIfNull(plugins);
@@ -29,13 +26,19 @@ public sealed partial class ShortcodeProcessor : IShortcodeProcessor
             return markdown;
 
         var output = new StringBuilder(markdown.Length);
+        var codeRegions = CodeRegionScanner.Scan(markdown);
+        var regionIndex = 0;
         var lastIndex = 0;
 
         foreach (Match match in matches)
         {
             output.Append(markdown, lastIndex, match.Index - lastIndex);
 
-            if (IsInsideFencedCodeBlock(markdown, match.Index))
+            // Matches ascend, so the region pointer only moves forward.
+            while (regionIndex < codeRegions.Count && codeRegions[regionIndex].End <= match.Index)
+                regionIndex++;
+
+            if (regionIndex < codeRegions.Count && codeRegions[regionIndex].Start <= match.Index)
             {
                 output.Append(match.Value);
             }
@@ -115,35 +118,6 @@ public sealed partial class ShortcodeProcessor : IShortcodeProcessor
         context.PushGlobal(scriptObject);
         rendered = template.Render(context);
         return true;
-    }
-
-    private static bool IsInsideFencedCodeBlock(string markdown, int matchIndex)
-    {
-        var prefix = markdown[..matchIndex];
-        var inFence = false;
-        char fenceChar = '\0';
-        var fenceLength = 0;
-
-        foreach (var line in prefix.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
-        {
-            var fenceMatch = FenceMarkerRegex().Match(line);
-            if (!fenceMatch.Success)
-                continue;
-
-            var marker = fenceMatch.Groups[1].Value;
-            if (!inFence)
-            {
-                inFence = true;
-                fenceChar = marker[0];
-                fenceLength = marker.Length;
-                continue;
-            }
-
-            if (marker[0] == fenceChar && marker.Length >= fenceLength)
-                inFence = false;
-        }
-
-        return inFence;
     }
 
     private static List<string> TokenizeArguments(string rawArguments)
