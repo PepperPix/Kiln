@@ -1,23 +1,40 @@
 namespace Kiln.Services;
 
+using System.ComponentModel;
 using System.Formats.Tar;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
-public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
+public sealed partial class PagefindBinaryProvider : IPagefindBinaryProvider
 {
     public const string Version = "1.5.2";
     private const string DownloadBase = "https://github.com/Pagefind/pagefind/releases/download";
+    private const string MinimumVersion = "1.5.0";
+    private static readonly Version MinimumParsedVersion = System.Version.Parse(MinimumVersion);
+    private static readonly TimeSpan VersionCheckTimeout = TimeSpan.FromSeconds(10);
 
     private readonly string _cacheBasePath;
     private readonly HttpMessageHandler? _httpMessageHandler;
     private readonly string? _pathOverride;
+    private readonly IProcessRunner? _processRunner;
 
     public PagefindBinaryProvider()
         : this(
             Environment.GetEnvironmentVariable("KILN_PAGEFIND_CACHE_DIR")
             ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+    {
+    }
+
+    // Used by dependency injection: binaries found on PATH are only used when they report at least MinimumVersion.
+    public PagefindBinaryProvider(IProcessRunner processRunner)
+        : this(
+            Environment.GetEnvironmentVariable("KILN_PAGEFIND_CACHE_DIR")
+            ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            httpMessageHandler: null,
+            pathOverride: null,
+            processRunner)
     {
     }
 
@@ -32,24 +49,37 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
     }
 
     public PagefindBinaryProvider(string cacheBasePath, HttpMessageHandler? httpMessageHandler, string? pathOverride)
+        : this(cacheBasePath, httpMessageHandler, pathOverride, processRunner: null)
+    {
+    }
+
+    public PagefindBinaryProvider(
+        string cacheBasePath,
+        HttpMessageHandler? httpMessageHandler,
+        string? pathOverride,
+        IProcessRunner? processRunner)
     {
         _cacheBasePath = cacheBasePath;
         _httpMessageHandler = httpMessageHandler;
         _pathOverride = pathOverride;
+        _processRunner = processRunner;
     }
+
+    [GeneratedRegex(@"\d+\.\d+(\.\d+)?", RegexOptions.CultureInvariant)]
+    private static partial Regex VersionNumberRegex();
 
     public async Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, CancellationToken ct)
     {
-        // 1. Override via environment variable
+        // 1. Override via environment variable (explicit user choice: always honored, never version-checked)
         var overridePath = Environment.GetEnvironmentVariable("KILN_PAGEFIND_PATH");
         if (!string.IsNullOrEmpty(overridePath) && File.Exists(overridePath))
             return overridePath;
 
         // 2. Search PATH directories
         var binaryFileName = GetBinaryFileName(extended);
-        var pathBinary = FindInPath(binaryFileName, _pathOverride);
-        if (pathBinary is not null)
-            return pathBinary;
+        var pathSearch = await FindInPathAsync(binaryFileName, ct).ConfigureAwait(false);
+        if (pathSearch.Path is not null)
+            return pathSearch.Path;
 
         // 3. Check local cache
         var cacheBinaryPath = GetCacheBinaryPath(extended);
@@ -59,8 +89,10 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
         // 4. Download (only when permitted)
         if (!allowDownload)
         {
+            var skippedHint = pathSearch.SkippedReason is null ? string.Empty : $"{pathSearch.SkippedReason} ";
             throw new InvalidOperationException(
                 "Pagefind binary not found. " +
+                skippedHint +
                 "Install it via 'npx pagefind', download from " +
                 "https://github.com/Pagefind/pagefind/releases, " +
                 "or set the KILN_PAGEFIND_PATH environment variable to point to the binary.");
@@ -84,20 +116,67 @@ public sealed class PagefindBinaryProvider : IPagefindBinaryProvider
             : baseName;
     }
 
-    private static string? FindInPath(string binaryFileName, string? pathOverride)
+    private async Task<PathSearchResult> FindInPathAsync(string binaryFileName, CancellationToken ct)
     {
-        var pathEnv = pathOverride ?? Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        var pathEnv = _pathOverride ?? Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
         var separator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ';' : ':';
+        string? skippedReason = null;
 
         foreach (var dir in pathEnv.Split(separator, StringSplitOptions.RemoveEmptyEntries))
         {
             var fullPath = Path.Combine(dir, binaryFileName);
-            if (File.Exists(fullPath))
-                return fullPath;
+            if (!File.Exists(fullPath))
+                continue;
+
+            if (_processRunner is null)
+                return new PathSearchResult(fullPath, null);
+
+            var version = await TryReadVersionAsync(fullPath, ct).ConfigureAwait(false);
+            if (version is not null && version >= MinimumParsedVersion)
+                return new PathSearchResult(fullPath, null);
+
+            skippedReason ??= version is null
+                ? $"Skipped '{fullPath}': its version could not be determined (Kiln needs Pagefind {MinimumVersion} or newer)."
+                : $"Skipped '{fullPath}': version {version} is older than the required {MinimumVersion}.";
+        }
+
+        return new PathSearchResult(null, skippedReason);
+    }
+
+    // Returns null when the binary does not report a parseable version (not runnable, timeout, unexpected output).
+    private async Task<Version?> TryReadVersionAsync(string binaryPath, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(VersionCheckTimeout);
+
+        ProcessRunResult result;
+        try
+        {
+            result = await _processRunner!.RunAsync(binaryPath, "--version", null, timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return null;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or IOException)
+        {
+            return null;
+        }
+
+        if (result.ExitCode != 0)
+            return null;
+
+        foreach (var output in new[] { result.StdOut, result.StdErr })
+        {
+            var match = VersionNumberRegex().Match(output ?? string.Empty);
+            if (match.Success && System.Version.TryParse(match.Value, out var parsed))
+                return parsed;
         }
 
         return null;
     }
+
+    private sealed record PathSearchResult(string? Path, string? SkippedReason);
 
     private static string GetTargetTriple()
     {
