@@ -5,17 +5,17 @@
       "Microsoft.Extensions.DependencyInjection": {
         "type": "Direct",
         "requested": "[10.*, )",
-        "resolved": "10.0.11",
-        "contentHash": "PSmotV19c7E3lKed++uYo1kSiXFI+uTl37CBSrhq+CfLC3FCHjG7R91+xPnNehQfHS1b0Tzo/CCLPWH3qaEheg==",
+        "resolved": "10.0.12",
+        "contentHash": "lXyK2O5GoYvfxW8eCFcD16JFbcoSTM1sJkAM0UHS1jZyl9NYMW64Tqm6OQFT0IDBjZi+xHt95/Zg+nxZhGFhZg==",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.11"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
         }
       },
       "Microsoft.Extensions.StaticAnalysis": {
         "type": "Direct",
         "requested": "[10.*, )",
-        "resolved": "10.9.0",
-        "contentHash": "nr/qlyyeJI+NTEQ9DbWBwK0bZcmztw9N6lIwhKlANaZLH/LGf5G1T2kgOcPyE/w9viYu/+54gq/J8p8zpbKyAg==",
+        "resolved": "10.10.0",
+        "contentHash": "MnUBTyalxH+t/6n/Kt6nuYGVFfJY9eGtBZ5P2gQNx2yRtPCec/jeiN+PCm16zpl+q3mdf/xEqoO/J3KBioMRCQ==",
         "dependencies": {
           "Microsoft.VisualStudio.Threading.Analyzers": "17.14.15",
           "SonarAnalyzer.CSharp": "10.16.0.128591"
@@ -32,23 +32,23 @@
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.7.3",
-        "contentHash": "I8TpSvgOPAVQHjVvXaROZOkIGZdX0tn+e9CUix6mv5pMqfyKO+/zm/dofsXgsxVTJl/sSTnEMFwrdnqxTt2axQ=="
+        "resolved": "1.8.2",
+        "contentHash": "iRlkfBIhi+gTgTxBlYNT4PlmaiVEy7+qX3BmprAK4cYE1UjfSNFI4mEDyxC1qgtAKYg5rjGYgL3tJlzGF+Ukdg=="
       },
       "Markdig": {
         "type": "Transitive",
-        "resolved": "1.3.2",
-        "contentHash": "fZgOC/3CswUrndjDTac70aQpYdtxbW5+5bRumR7vzvI2HJbkmgKisB1c9oT+GA6v0jB/JDR9BLa9FiPzQmaK6A=="
+        "resolved": "1.4.0",
+        "contentHash": "lLhaiI/mNDTNzgLqnmknhf4LjgTqOAyjx5+GNz0X3AxYMxUhmFppF2WVMdER+SDqwhE5wUF1pzs/cuLwFxs7xA=="
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
-        "resolved": "10.0.11",
-        "contentHash": "/a1aJz4m7ylhEDf25ugQChLQoN5XwoGjWw/BoR/ZWWKsO1v4DdJElS1uyngahz4B/eOzjFk1KNTkarRLE5wsIg=="
+        "resolved": "10.0.12",
+        "contentHash": "9/qymSh7hVDMGTGwrLz8MRp5zRyXy9adGDOs4HwRdnLil3oZGYuWeZjbmHgCQ9BL1qBroVfgUK3U/nb61617Cw=="
       },
       "Microsoft.Extensions.FileSystemGlobbing": {
         "type": "Transitive",
-        "resolved": "10.0.11",
-        "contentHash": "2i6rtW/B5rCnWCnhdmWWEmaM9O0HD0zsPY9eRqa++y4tclI3Uw8zvGbBvhY/LjAdtf8gUHhUPcAWj3DRlWMXmQ=="
+        "resolved": "10.0.12",
+        "contentHash": "45cV+UeI0chPAIXrx9Wv7K4PJXuuIR2pnOur5MOAo6kOFclBHSLLDrvGAxMfWRMtUvpv/kQZkxlgaUN56jwzSQ=="
       },
       "Microsoft.OpenApi": {
         "type": "Transitive",
@@ -122,13 +122,13 @@
       },
       "NUglify": {
         "type": "Transitive",
-        "resolved": "1.22.4",
-        "contentHash": "/kNA+4k7krf3hCQ0n707+FyGmjKM6crcOCjhppbT7AWZzl2ntDkEUcKFpKwonbdu7RdcYoD6AksUdqKqBKXZFQ=="
+        "resolved": "1.23.3",
+        "contentHash": "QdHmq6ApqCIxvbGPF4C9gY3A+n0DGsD74Hye0aivvf8hJqBanlsKysqTADSsWdzhvKx+XjG7zXHn/HAV6eLuuQ=="
       },
       "Scriban": {
         "type": "Transitive",
-        "resolved": "7.4.0",
-        "contentHash": "h5QYOAKw7F4ajVNxeScBsq0c7en6YWyKDSC4ZnZIlrkeJrl0ekHk1PlpqP5C4peqkt6NoXl9dlwK3pI4oDC5oA=="
+        "resolved": "7.5.0",
+        "contentHash": "5Dk6VXG6dimWQFRtCs202cYYkdE1GeOqpUgCwNSp4C4NhpjeMaVNssxe6Ifb1Z3HCfabvrbk9XLbvQXeZXG91w=="
       },
       "SharpYaml": {
         "type": "Transitive",
@@ -199,12 +199,12 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.*, )",
-          "Kiln.Abstractions": "[1.2.0-beta.6, )",
+          "Kiln.Abstractions": "[1.2.0-beta.9, )",
           "Markdig": "[1.*, )",
           "Microsoft.Extensions.DependencyInjection": "[10.*, )",
           "Microsoft.Extensions.FileSystemGlobbing": "[10.*, )",
           "Microsoft.OpenApi.Readers": "[1.6.31, )",
-          "NUglify": "[1.22.4, )",
+          "NUglify": "[1.23.3, )",
           "NuGet.Packaging": "[7.*, )",
           "NuGet.Protocol": "[7.*, )",
           "Scriban": "[7.*, )",

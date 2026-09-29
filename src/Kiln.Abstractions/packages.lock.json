@@ -5,8 +5,8 @@
       "Microsoft.Extensions.StaticAnalysis": {
         "type": "Direct",
         "requested": "[10.*, )",
-        "resolved": "10.8.0",
-        "contentHash": "sw4EtjMMdss1ncQDoURorjpvfSyk0tBEHa+SqP+ZwnnmRskpfAE5v+NSlK1vXgIp279LMyuO8B8QoiVWHBJf2A==",
+        "resolved": "10.10.0",
+        "contentHash": "MnUBTyalxH+t/6n/Kt6nuYGVFfJY9eGtBZ5P2gQNx2yRtPCec/jeiN+PCm16zpl+q3mdf/xEqoO/J3KBioMRCQ==",
         "dependencies": {
           "Microsoft.VisualStudio.Threading.Analyzers": "17.14.15",
           "SonarAnalyzer.CSharp": "10.16.0.128591"
