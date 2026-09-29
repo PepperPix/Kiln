@@ -262,7 +262,7 @@ public class PluginCommandAppTests
                 },
             };
 
-            var (app, console) = CreateApp(client, lockFile);
+            var (app, _) = CreateApp(client, lockFile);
             var result = await app.RunAsync(["plugin", "add", "Contoso.Widget", "--force", projectDir]);
 
             await Assert.That(result.ExitCode).IsEqualTo(0);
