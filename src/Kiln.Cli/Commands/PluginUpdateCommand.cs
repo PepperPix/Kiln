@@ -92,7 +92,6 @@ public sealed class PluginUpdateCommand(
         {
             var options = new PluginInstallOptions
             {
-                AllowAnyPackage = entry.Unverified,
                 Force = force,
                 ExistingLockEntries = await pluginLockFile.ReadAsync(projectPath, cancellationToken).ConfigureAwait(false),
             };
@@ -110,7 +109,6 @@ public sealed class PluginUpdateCommand(
             "nuget")
         {
             ContentHash = result.ContentHash,
-            Unverified = result.Unverified,
         }, cancellationToken).ConfigureAwait(false);
 
         console.MarkupLine($"[green]Updated plugin:[/] {Markup.Escape(result.PluginName)} ({Markup.Escape(result.PackageId)} {Markup.Escape(result.Version)}) at {Markup.Escape(result.InstallPath)}");

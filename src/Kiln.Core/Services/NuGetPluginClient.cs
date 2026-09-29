@@ -150,15 +150,6 @@ public sealed class NuGetPluginClient : INuGetPluginClient
 
     private async Task<PluginPackageInstallResult> AddCoreAsync(string normalizedPackageId, string? version, string projectPath, PluginInstallOptions options, CancellationToken ct)
     {
-        var unverified = false;
-        if (!HasPluginIdConvention(normalizedPackageId))
-        {
-            if (!options.AllowAnyPackage)
-                throw new InvalidOperationException($"Package '{normalizedPackageId}' does not follow the '{PluginIdPrefix}<Name>' naming convention. Use --allow-any-package to install it anyway.");
-
-            unverified = true;
-        }
-
         var resolvedVersion = string.IsNullOrWhiteSpace(version)
             ? await GetLatestVersionCoreAsync(normalizedPackageId, ct).ConfigureAwait(false)
             : version;
@@ -194,12 +185,7 @@ public sealed class NuGetPluginClient : INuGetPluginClient
         {
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
             if (!HasPluginTag(archive))
-            {
-                if (!options.AllowAnyPackage)
-                    throw new InvalidOperationException($"Package '{normalizedPackageId}' does not carry the '{PluginTag}' tag. Use --allow-any-package to install it anyway.");
-
-                unverified = true;
-            }
+                throw new InvalidOperationException($"Package '{normalizedPackageId}' does not carry the '{PluginTag}' tag and cannot be installed as a Kiln plugin.");
 
             var contentEntries = archive.Entries
                 .Where(e => e.FullName.StartsWith(ContentPrefix, StringComparison.OrdinalIgnoreCase))
@@ -271,7 +257,6 @@ public sealed class NuGetPluginClient : INuGetPluginClient
                 destinationDir)
             {
                 ContentHash = PluginContentHasher.ComputeDirectoryHash(destinationDir),
-                Unverified = unverified,
             };
         }
         finally
@@ -280,9 +265,6 @@ public sealed class NuGetPluginClient : INuGetPluginClient
                 Directory.Delete(tempRoot, recursive: true);
         }
     }
-
-    private static bool HasPluginIdConvention(string packageId)
-        => packageId.Length > PluginIdPrefix.Length && packageId.StartsWith(PluginIdPrefix, StringComparison.OrdinalIgnoreCase);
 
     private static bool HasPluginTag(ZipArchive archive)
     {

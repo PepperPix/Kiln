@@ -82,7 +82,7 @@ public class PluginLockFileTests
     }
 
     [Test]
-    public async Task ReadAsync_WithLegacyLockFileWithoutHashOrUnverified_ReadsDefaults()
+    public async Task ReadAsync_WithLegacyLockFileWithoutHash_ReadsDefaults()
     {
         var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-lock-{Guid.NewGuid():N}");
         Directory.CreateDirectory(Path.Combine(projectDir, ".kiln"));
@@ -97,7 +97,6 @@ public class PluginLockFileTests
 
             await Assert.That(entries["email-protect"].PackageId).IsEqualTo("Kiln.Plugin.EmailProtect");
             await Assert.That(entries["email-protect"].ContentHash).IsNull();
-            await Assert.That(entries["email-protect"].Unverified).IsFalse();
         }
         finally
         {
@@ -106,7 +105,7 @@ public class PluginLockFileTests
     }
 
     [Test]
-    public async Task SetAsync_PersistsContentHashAndUnverifiedFlag()
+    public async Task SetAsync_PersistsContentHash()
     {
         var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-lock-{Guid.NewGuid():N}");
         Directory.CreateDirectory(projectDir);
@@ -117,16 +116,13 @@ public class PluginLockFileTests
             await lockFile.SetAsync(projectDir, "widget", new PluginLockEntry("Contoso.Widget", "1.0.0", "nuget")
             {
                 ContentHash = "abc123",
-                Unverified = true,
             });
 
             var entries = await lockFile.ReadAsync(projectDir);
             await Assert.That(entries["widget"].ContentHash).IsEqualTo("abc123");
-            await Assert.That(entries["widget"].Unverified).IsTrue();
 
             var json = await File.ReadAllTextAsync(Path.Combine(projectDir, ".kiln", "plugins.lock.json"));
             await Assert.That(json).Contains("\"contentHash\": \"abc123\"");
-            await Assert.That(json).Contains("\"unverified\": true");
         }
         finally
         {
@@ -135,7 +131,7 @@ public class PluginLockFileTests
     }
 
     [Test]
-    public async Task SetAsync_WithoutHashOrUnverified_DoesNotWriteThoseFields()
+    public async Task SetAsync_WithoutHash_DoesNotWriteHashField()
     {
         var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-lock-{Guid.NewGuid():N}");
         Directory.CreateDirectory(projectDir);
@@ -146,7 +142,6 @@ public class PluginLockFileTests
 
             var json = await File.ReadAllTextAsync(Path.Combine(projectDir, ".kiln", "plugins.lock.json"));
             await Assert.That(json).DoesNotContain("contentHash");
-            await Assert.That(json).DoesNotContain("unverified");
         }
         finally
         {

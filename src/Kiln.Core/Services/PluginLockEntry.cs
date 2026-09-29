@@ -13,11 +13,4 @@ public sealed record PluginLockEntry(
     [JsonPropertyName("contentHash")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ContentHash { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether the package was installed although it did not meet the plugin naming/tag convention.
-    /// </summary>
-    [JsonPropertyName("unverified")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool Unverified { get; init; }
 }

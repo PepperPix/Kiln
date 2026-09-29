@@ -245,7 +245,7 @@ public class PluginCommandAppTests
     }
 
     [Test]
-    public async Task PluginAddCommand_PassesOptionsAndStoresHashAndUnverifiedFlag()
+    public async Task PluginAddCommand_PassesForceAndLockEntries_AndStoresHash()
     {
         var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-plugin-add-opts-{Guid.NewGuid():N}");
         Directory.CreateDirectory(projectDir);
@@ -259,21 +259,17 @@ public class PluginCommandAppTests
                 InstallResult = new PluginPackageInstallResult("Contoso.Widget", "2.0.0", "widget", Path.Combine(projectDir, "plugins", "widget"))
                 {
                     ContentHash = "hash-1",
-                    Unverified = true,
                 },
             };
 
             var (app, console) = CreateApp(client, lockFile);
-            var result = await app.RunAsync(["plugin", "add", "Contoso.Widget", "--allow-any-package", "--force", projectDir]);
+            var result = await app.RunAsync(["plugin", "add", "Contoso.Widget", "--force", projectDir]);
 
             await Assert.That(result.ExitCode).IsEqualTo(0);
-            await Assert.That(console.Output).Contains("--allow-any-package");
-            await Assert.That(client.LastOptions!.AllowAnyPackage).IsTrue();
-            await Assert.That(client.LastOptions.Force).IsTrue();
+            await Assert.That(client.LastOptions!.Force).IsTrue();
             await Assert.That(client.LastOptions.ExistingLockEntries!).ContainsKey("other");
             var entries = await lockFile.ReadAsync(projectDir);
             await Assert.That(entries["widget"].ContentHash).IsEqualTo("hash-1");
-            await Assert.That(entries["widget"].Unverified).IsTrue();
         }
         finally
         {
@@ -282,7 +278,7 @@ public class PluginCommandAppTests
     }
 
     [Test]
-    public async Task PluginAddCommand_WithoutFlags_DoesNotAllowAnyPackageOrForce()
+    public async Task PluginAddCommand_WithoutFlags_DoesNotForce()
     {
         var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-plugin-add-default-{Guid.NewGuid():N}");
         Directory.CreateDirectory(projectDir);
@@ -294,8 +290,34 @@ public class PluginCommandAppTests
             var result = await app.RunAsync(["plugin", "add", "Kiln.Plugin.Good", projectDir]);
 
             await Assert.That(result.ExitCode).IsEqualTo(0);
-            await Assert.That(client.LastOptions!.AllowAnyPackage).IsFalse();
-            await Assert.That(client.LastOptions.Force).IsFalse();
+            await Assert.That(client.LastOptions!.Force).IsFalse();
+        }
+        finally
+        {
+            Directory.Delete(projectDir, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task PluginAddCommand_ForUntaggedPackage_ExitsNonZeroAndDoesNotWriteLock()
+    {
+        var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-plugin-add-untagged-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(projectDir);
+
+        try
+        {
+            var client = new FakeNuGetPluginClient
+            {
+                AddException = new InvalidOperationException("Package 'Contoso.Widget' does not carry the 'kiln-plugin' tag and cannot be installed as a Kiln plugin."),
+            };
+            var lockFile = new PluginLockFile();
+            var (app, console) = CreateApp(client, lockFile);
+            var result = await app.RunAsync(["plugin", "add", "Contoso.Widget", projectDir]);
+
+            await Assert.That(result.ExitCode).IsEqualTo(1);
+            await Assert.That(console.Output).Contains("kiln-plugin");
+            await Assert.That(console.Output).DoesNotContain("Use --");
+            await Assert.That(await lockFile.ReadAsync(projectDir)).IsEmpty();
         }
         finally
         {
@@ -328,7 +350,7 @@ public class PluginCommandAppTests
     }
 
     [Test]
-    public async Task PluginUpdateCommand_PassesUnverifiedAndForce_AndStoresNewHash()
+    public async Task PluginUpdateCommand_PassesForce_AndStoresNewHash()
     {
         var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-plugin-update-opts-{Guid.NewGuid():N}");
         Directory.CreateDirectory(projectDir);
@@ -336,14 +358,13 @@ public class PluginCommandAppTests
         try
         {
             var lockFile = new PluginLockFile();
-            await lockFile.SetAsync(projectDir, "widget", new PluginLockEntry("Contoso.Widget", "1.0.0", "nuget") { Unverified = true, ContentHash = "old" });
+            await lockFile.SetAsync(projectDir, "widget", new PluginLockEntry("Contoso.Widget", "1.0.0", "nuget") { ContentHash = "old" });
             var client = new FakeNuGetPluginClient
             {
                 LatestVersion = "2.0.0",
                 InstallResult = new PluginPackageInstallResult("Contoso.Widget", "2.0.0", "widget", Path.Combine(projectDir, "plugins", "widget"))
                 {
                     ContentHash = "new",
-                    Unverified = true,
                 },
             };
 
@@ -351,36 +372,9 @@ public class PluginCommandAppTests
             var result = await app.RunAsync(["plugin", "update", "widget", "--force", projectDir]);
 
             await Assert.That(result.ExitCode).IsEqualTo(0);
-            await Assert.That(client.LastOptions!.AllowAnyPackage).IsTrue();
-            await Assert.That(client.LastOptions.Force).IsTrue();
+            await Assert.That(client.LastOptions!.Force).IsTrue();
             var entries = await lockFile.ReadAsync(projectDir);
             await Assert.That(entries["widget"].ContentHash).IsEqualTo("new");
-            await Assert.That(entries["widget"].Unverified).IsTrue();
-        }
-        finally
-        {
-            Directory.Delete(projectDir, recursive: true);
-        }
-    }
-
-    [Test]
-    public async Task PluginUpdateCommand_ForVerifiedEntry_DoesNotAllowAnyPackage()
-    {
-        var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-plugin-update-verified-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(projectDir);
-
-        try
-        {
-            var lockFile = new PluginLockFile();
-            await lockFile.SetAsync(projectDir, "good", new PluginLockEntry("Kiln.Plugin.Good", "1.0.0", "nuget"));
-            var client = new FakeNuGetPluginClient { LatestVersion = "2.0.0" };
-
-            var (app, _) = CreateApp(client, lockFile);
-            var result = await app.RunAsync(["plugin", "update", "good", projectDir]);
-
-            await Assert.That(result.ExitCode).IsEqualTo(0);
-            await Assert.That(client.LastOptions!.AllowAnyPackage).IsFalse();
-            await Assert.That(client.LastOptions.Force).IsFalse();
         }
         finally
         {

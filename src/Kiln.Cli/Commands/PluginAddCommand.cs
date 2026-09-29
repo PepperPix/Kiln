@@ -20,10 +20,6 @@ public sealed class PluginAddCommand(
         [Description("Package version to install. Defaults to latest stable release.")]
         public string? Version { get; init; }
 
-        [CommandOption("--allow-any-package")]
-        [Description("Allow packages that do not follow the Kiln.Plugin.* naming convention or lack the kiln-plugin tag.")]
-        public bool AllowAnyPackage { get; init; }
-
         [CommandOption("--force")]
         [Description("Overwrite an existing plugin directory even if it has local changes.")]
         public bool Force { get; init; }
@@ -38,15 +34,12 @@ public sealed class PluginAddCommand(
         var projectPath = Path.GetFullPath(settings.Path);
 
         console.MarkupLine("[yellow]IMPORTANT:[/] This plugin can inject arbitrary HTML/JavaScript into pages. Install only from a trustworthy source.");
-        if (settings.AllowAnyPackage)
-            console.MarkupLine("[yellow]WARNING:[/] --allow-any-package skips the plugin naming and tag checks. The package is not recognized as a Kiln plugin.");
 
         PluginPackageInstallResult installResult;
         try
         {
             var options = new PluginInstallOptions
             {
-                AllowAnyPackage = settings.AllowAnyPackage,
                 Force = settings.Force,
                 ExistingLockEntries = await pluginLockFile.ReadAsync(projectPath, cancellationToken).ConfigureAwait(false),
             };
@@ -64,7 +57,6 @@ public sealed class PluginAddCommand(
             "nuget")
         {
             ContentHash = installResult.ContentHash,
-            Unverified = installResult.Unverified,
         }, cancellationToken).ConfigureAwait(false);
 
         var package = $"{Markup.Escape(installResult.PackageId)} {Markup.Escape(installResult.Version)}";
