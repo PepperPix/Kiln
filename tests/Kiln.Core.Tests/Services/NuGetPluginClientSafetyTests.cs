@@ -21,8 +21,6 @@ public class NuGetPluginClientSafetyTests
     [Arguments("..")]
     [Arguments("Evil Name")]
     [Arguments("UPPER")]
-    [Arguments("")]
-    [Arguments("   ")]
     public async Task AddAsync_WithInvalidManifestName_ThrowsAndWritesNothing(string manifestName)
     {
         using var env = new TestEnvironment();
@@ -137,14 +135,208 @@ public class NuGetPluginClientSafetyTests
     }
 
     [Test]
-    public async Task AddAsync_WithoutManifestName_AndInvalidPackageShortName_Throws()
+    [Arguments("Kiln.Plugin.EmailProtect", "email-protect")]
+    [Arguments("Kiln.Plugin.Seo", "seo")]
+    [Arguments("Kiln.Plugin.MyXMLTool", "my-xml-tool")]
+    [Arguments("Kiln.Plugin.Foo2Bar", "foo2-bar")]
+    [Arguments("Kiln.Plugin.Already-kebab", "already-kebab")]
+    public async Task AddAsync_WithoutManifestName_FallsBackToKebabCaseOfPackageShortName(string packageId, string expectedName)
     {
         using var env = new TestEnvironment();
-        env.AddPackage("Kiln.Plugin.EmailProtect", "version: 1.0.0\n", []);
+        env.AddPackage(packageId, "version: 1.0.0\n", []);
 
-        var error = await TryAddAsync(env, "Kiln.Plugin.EmailProtect");
+        var result = await env.Client.AddAsync(packageId, null, env.ProjectDir);
+
+        await Assert.That(result.PluginName).IsEqualTo(expectedName);
+        await Assert.That(Directory.Exists(Path.Combine(env.ProjectDir, "plugins", expectedName))).IsTrue();
+    }
+
+    [Test]
+    public async Task AddAsync_WithoutManifestName_AndUnusableShortName_Throws()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Bad$Name", "version: 1.0.0\n", []);
+
+        var error = await TryAddAsync(env, "Kiln.Plugin.Bad$Name");
 
         await Assert.That(error).IsTypeOf<InvalidOperationException>();
+        await Assert.That(Directory.Exists(Path.Combine(env.ProjectDir, "plugins"))).IsFalse();
+    }
+
+    [Test]
+    public async Task AddAsync_WithNonConventionPackageId_ThrowsAndInstallsNothing()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Contoso.Widget", "name: widget\n", []);
+        var before = env.Snapshot();
+
+        var error = await TryAddAsync(env, "Contoso.Widget");
+
+        await Assert.That(error).IsTypeOf<InvalidOperationException>();
+        await Assert.That(error!.Message).Contains("naming convention");
+        await Assert.That(env.Snapshot()).IsEquivalentTo(before);
+    }
+
+    [Test]
+    public async Task AddAsync_WithNonConventionPackageId_AndAllowAnyPackage_InstallsAsUnverified()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Contoso.Widget", "name: widget\n", []);
+
+        var result = await env.Client.AddAsync("Contoso.Widget", null, env.ProjectDir, new PluginInstallOptions { AllowAnyPackage = true });
+
+        await Assert.That(result.Unverified).IsTrue();
+        await Assert.That(Directory.Exists(Path.Combine(env.ProjectDir, "plugins", "widget"))).IsTrue();
+    }
+
+    [Test]
+    public async Task AddAsync_WithoutPluginTag_ThrowsAndInstallsNothing()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Untagged", "name: untagged\n", [], tags: "email privacy");
+        var before = env.Snapshot();
+
+        var error = await TryAddAsync(env, "Kiln.Plugin.Untagged");
+
+        await Assert.That(error).IsTypeOf<InvalidOperationException>();
+        await Assert.That(error!.Message).Contains("kiln-plugin");
+        await Assert.That(env.Snapshot()).IsEquivalentTo(before);
+    }
+
+    [Test]
+    public async Task AddAsync_WithoutPluginTag_AndAllowAnyPackage_InstallsAsUnverified()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Untagged", "name: untagged\n", [], tags: null);
+
+        var result = await env.Client.AddAsync("Kiln.Plugin.Untagged", null, env.ProjectDir, new PluginInstallOptions { AllowAnyPackage = true });
+
+        await Assert.That(result.Unverified).IsTrue();
+        await Assert.That(Directory.Exists(Path.Combine(env.ProjectDir, "plugins", "untagged"))).IsTrue();
+    }
+
+    [Test]
+    public async Task AddAsync_WithConventionAndTag_IsVerifiedAndReportsContentHash()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Good", "name: good\n", [new ArchiveEntry("content/static/a.js", "a")], tags: "Seo KILN-PLUGIN");
+
+        var result = await env.Client.AddAsync("Kiln.Plugin.Good", null, env.ProjectDir);
+
+        await Assert.That(result.Unverified).IsFalse();
+        await Assert.That(result.ContentHash).IsNotNull();
+        await Assert.That(result.ContentHash).IsEqualTo(PluginContentHasher.ComputeDirectoryHash(result.InstallPath));
+    }
+
+    [Test]
+    public async Task AddAsync_ExistingUnmodifiedInstall_WithLockEntries_IsReplaced()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Good", "name: good\n", [new ArchiveEntry("content/new.txt", "new")]);
+        var pluginDir = Path.Combine(env.ProjectDir, "plugins", "good");
+        Directory.CreateDirectory(pluginDir);
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "old.txt"), "old");
+        var locked = new PluginLockEntry("Kiln.Plugin.Good", "0.9.0", "nuget") { ContentHash = PluginContentHasher.ComputeDirectoryHash(pluginDir) };
+
+        await env.Client.AddAsync("Kiln.Plugin.Good", null, env.ProjectDir, LockOptions(("good", locked)));
+
+        await Assert.That(File.Exists(Path.Combine(pluginDir, "old.txt"))).IsFalse();
+        await Assert.That(File.Exists(Path.Combine(pluginDir, "new.txt"))).IsTrue();
+    }
+
+    [Test]
+    public async Task AddAsync_ExistingModifiedInstall_WithLockEntries_ThrowsAndKeepsLocalFiles()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Good", "name: good\n", [new ArchiveEntry("content/new.txt", "new")]);
+        var pluginDir = Path.Combine(env.ProjectDir, "plugins", "good");
+        Directory.CreateDirectory(pluginDir);
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "old.txt"), "old");
+        var locked = new PluginLockEntry("Kiln.Plugin.Good", "0.9.0", "nuget") { ContentHash = PluginContentHasher.ComputeDirectoryHash(pluginDir) };
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "old.txt"), "locally edited");
+        var before = env.Snapshot();
+
+        var error = await TryAddAsync(env, "Kiln.Plugin.Good", LockOptions(("good", locked)));
+
+        await Assert.That(error).IsTypeOf<InvalidOperationException>();
+        await Assert.That(error!.Message).Contains("--force");
+        await Assert.That(env.Snapshot()).IsEquivalentTo(before);
+        await Assert.That(await File.ReadAllTextAsync(Path.Combine(pluginDir, "old.txt"))).IsEqualTo("locally edited");
+    }
+
+    [Test]
+    public async Task AddAsync_ExistingModifiedInstall_WithForce_IsReplaced()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Good", "name: good\n", [new ArchiveEntry("content/new.txt", "new")]);
+        var pluginDir = Path.Combine(env.ProjectDir, "plugins", "good");
+        Directory.CreateDirectory(pluginDir);
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "old.txt"), "locally edited");
+        var locked = new PluginLockEntry("Kiln.Plugin.Good", "0.9.0", "nuget") { ContentHash = new string('0', 64) };
+        var options = new PluginInstallOptions { Force = true, ExistingLockEntries = new Dictionary<string, PluginLockEntry> { ["good"] = locked } };
+
+        await env.Client.AddAsync("Kiln.Plugin.Good", null, env.ProjectDir, options);
+
+        await Assert.That(File.Exists(Path.Combine(pluginDir, "old.txt"))).IsFalse();
+        await Assert.That(File.Exists(Path.Combine(pluginDir, "new.txt"))).IsTrue();
+    }
+
+    [Test]
+    public async Task AddAsync_ExistingInstallWithoutLockEntry_WithLockEntries_ThrowsAndKeepsLocalFiles()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Good", "name: good\n", []);
+        var pluginDir = Path.Combine(env.ProjectDir, "plugins", "good");
+        Directory.CreateDirectory(pluginDir);
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "mine.txt"), "mine");
+        var before = env.Snapshot();
+
+        var error = await TryAddAsync(env, "Kiln.Plugin.Good", LockOptions());
+
+        await Assert.That(error).IsTypeOf<InvalidOperationException>();
+        await Assert.That(error!.Message).Contains("--force");
+        await Assert.That(env.Snapshot()).IsEquivalentTo(before);
+    }
+
+    [Test]
+    public async Task AddAsync_ExistingInstall_WithLegacyLockEntryWithoutHash_IsReplaced()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Good", "name: good\n", [new ArchiveEntry("content/new.txt", "new")]);
+        var pluginDir = Path.Combine(env.ProjectDir, "plugins", "good");
+        Directory.CreateDirectory(pluginDir);
+        await File.WriteAllTextAsync(Path.Combine(pluginDir, "old.txt"), "old");
+        var legacy = new PluginLockEntry("Kiln.Plugin.Good", "0.9.0", "nuget");
+
+        var result = await env.Client.AddAsync("Kiln.Plugin.Good", null, env.ProjectDir, LockOptions(("good", legacy)));
+
+        await Assert.That(File.Exists(Path.Combine(pluginDir, "old.txt"))).IsFalse();
+        await Assert.That(result.ContentHash).IsNotNull();
+    }
+
+    [Test]
+    public async Task AddAsync_WithUnknownPackage_ThrowsClearNotFoundMessage()
+    {
+        using var env = new TestEnvironment();
+
+        var error = await TryAddAsync(env, "Kiln.Plugin.DoesNotExist");
+
+        await Assert.That(error).IsTypeOf<InvalidOperationException>();
+        await Assert.That(error!.Message).Contains("was not found");
+        await Assert.That(error.Message).Contains("Kiln.Plugin.DoesNotExist");
+    }
+
+    [Test]
+    public async Task AddAsync_WithUnknownVersion_ThrowsClearNotFoundMessage()
+    {
+        using var env = new TestEnvironment();
+        env.AddPackage("Kiln.Plugin.Good", "name: good\n", []);
+
+        var error = await TryAddAsync(env, "Kiln.Plugin.Good", version: "9.9.9");
+
+        await Assert.That(error).IsTypeOf<InvalidOperationException>();
+        await Assert.That(error!.Message).Contains("9.9.9");
+        await Assert.That(error.Message).Contains("was not found");
         await Assert.That(Directory.Exists(Path.Combine(env.ProjectDir, "plugins"))).IsFalse();
     }
 
@@ -169,11 +361,14 @@ public class NuGetPluginClientSafetyTests
         await Assert.That(File.Exists(Path.Combine(sibling, "keep.txt"))).IsTrue();
     }
 
-    private static async Task<Exception?> TryAddAsync(TestEnvironment env, string packageId)
+    private static PluginInstallOptions LockOptions(params (string Name, PluginLockEntry Entry)[] entries)
+        => new() { ExistingLockEntries = entries.ToDictionary(e => e.Name, e => e.Entry, StringComparer.OrdinalIgnoreCase) };
+
+    private static async Task<Exception?> TryAddAsync(TestEnvironment env, string packageId, PluginInstallOptions? options = null, string? version = null)
     {
         try
         {
-            await env.Client.AddAsync(packageId, null, env.ProjectDir);
+            await env.Client.AddAsync(packageId, version, env.ProjectDir, options ?? PluginInstallOptions.Default);
             return null;
         }
         catch (InvalidOperationException ex)
@@ -212,15 +407,16 @@ public class NuGetPluginClientSafetyTests
 
         public NuGetPluginClient Client { get; }
 
-        public void AddPackage(string id, string manifest, IReadOnlyList<ArchiveEntry> contentEntries)
+        public void AddPackage(string id, string manifest, IReadOnlyList<ArchiveEntry> contentEntries, string? tags = "kiln-plugin")
         {
             using var stream = File.Create(Path.Combine(_feedDir, $"{id}.1.0.0.nupkg"));
             using var archive = new ZipArchive(stream, ZipArchiveMode.Create);
 
+            var tagsElement = tags is null ? string.Empty : $"<tags>{tags}</tags>";
             WriteEntry(archive, $"{id}.nuspec", Encoding.UTF8.GetBytes(
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?><package><metadata>" +
                 $"<id>{id}</id><version>1.0.0</version><description>test</description>" +
-                "<tags>kiln-plugin</tags><authors>Test</authors></metadata></package>"));
+                $"{tagsElement}<authors>Test</authors></metadata></package>"));
             WriteEntry(archive, "content/plugin.yaml", Encoding.UTF8.GetBytes(manifest));
             foreach (var entry in contentEntries)
                 WriteEntry(archive, entry.Name, entry.Data);

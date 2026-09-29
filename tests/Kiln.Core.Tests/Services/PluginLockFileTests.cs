@@ -80,4 +80,77 @@ public class PluginLockFileTests
             Directory.Delete(projectDir, recursive: true);
         }
     }
+
+    [Test]
+    public async Task ReadAsync_WithLegacyLockFileWithoutHashOrUnverified_ReadsDefaults()
+    {
+        var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-lock-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(projectDir, ".kiln"));
+
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(projectDir, ".kiln", "plugins.lock.json"),
+                "{\"plugins\":{\"email-protect\":{\"packageId\":\"Kiln.Plugin.EmailProtect\",\"version\":\"1.0.0\",\"source\":\"nuget\"}}}");
+
+            var entries = await new PluginLockFile().ReadAsync(projectDir);
+
+            await Assert.That(entries["email-protect"].PackageId).IsEqualTo("Kiln.Plugin.EmailProtect");
+            await Assert.That(entries["email-protect"].ContentHash).IsNull();
+            await Assert.That(entries["email-protect"].Unverified).IsFalse();
+        }
+        finally
+        {
+            Directory.Delete(projectDir, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task SetAsync_PersistsContentHashAndUnverifiedFlag()
+    {
+        var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-lock-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(projectDir);
+
+        try
+        {
+            var lockFile = new PluginLockFile();
+            await lockFile.SetAsync(projectDir, "widget", new PluginLockEntry("Contoso.Widget", "1.0.0", "nuget")
+            {
+                ContentHash = "abc123",
+                Unverified = true,
+            });
+
+            var entries = await lockFile.ReadAsync(projectDir);
+            await Assert.That(entries["widget"].ContentHash).IsEqualTo("abc123");
+            await Assert.That(entries["widget"].Unverified).IsTrue();
+
+            var json = await File.ReadAllTextAsync(Path.Combine(projectDir, ".kiln", "plugins.lock.json"));
+            await Assert.That(json).Contains("\"contentHash\": \"abc123\"");
+            await Assert.That(json).Contains("\"unverified\": true");
+        }
+        finally
+        {
+            Directory.Delete(projectDir, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task SetAsync_WithoutHashOrUnverified_DoesNotWriteThoseFields()
+    {
+        var projectDir = Path.Combine(Path.GetTempPath(), $"kiln-lock-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(projectDir);
+
+        try
+        {
+            await new PluginLockFile().SetAsync(projectDir, "alpha", new PluginLockEntry("Alpha.Plugin", "1.0.0", "nuget"));
+
+            var json = await File.ReadAllTextAsync(Path.Combine(projectDir, ".kiln", "plugins.lock.json"));
+            await Assert.That(json).DoesNotContain("contentHash");
+            await Assert.That(json).DoesNotContain("unverified");
+        }
+        finally
+        {
+            Directory.Delete(projectDir, recursive: true);
+        }
+    }
 }
