@@ -236,7 +236,7 @@ Enable it in `site.yaml`:
 search:
   enabled: true      # default: false
   extended: false    # use the Pagefind extended binary (multilingual support)
-  binaryPath: null   # optional explicit path to a pagefind binary
+  binaryPath: null   # parsed, but not used to locate the binary (see below)
 ```
 
 Build the index after `kiln build`:
@@ -248,12 +248,29 @@ kiln search index
 
 The Pagefind binary is resolved in this order:
 
-1. `KILN_PAGEFIND_PATH` environment variable, if set and the file exists.
-2. The system `PATH`.
+1. `KILN_PAGEFIND_PATH` environment variable, if set and the file exists. This is an explicit
+   choice and the binary is never version-checked.
+2. The system `PATH`. A binary found there is only used if `--version` reports Pagefind 1.5.0 or
+   newer; otherwise it is skipped and the reason is included in the error if nothing else is found.
 3. The local cache at `~/.kiln/tools/pagefind/<version>/` (override the cache root with
    `KILN_PAGEFIND_CACHE_DIR`).
-4. Automatic download from the Pagefind GitHub releases, with SHA256 verification (use
-   `--no-download` to disable this and fail instead).
+4. Automatic download of the Pagefind version pinned by Kiln (currently 1.5.2) from the Pagefind
+   GitHub releases, with SHA256 verification (use `--no-download` to disable this and fail
+   instead). The archive is extracted to a temporary file and moved into the cache only when
+   complete.
+
+The `search.binaryPath` setting is currently read from `site.yaml` but not used when resolving the
+binary; use `KILN_PAGEFIND_PATH` instead. Binaries from `KILN_PAGEFIND_PATH` are not version-checked,
+so make sure they are Pagefind 1.5.0 or newer, the minimum version Kiln requires.
+
+### Trust model
+
+A downloaded binary comes from the official Pagefind GitHub release of the version pinned by Kiln.
+The SHA256 checksum is fetched from the same release as the archive, so it protects against
+corrupted or truncated downloads, but not against a compromised release or GitHub account. If you
+cannot accept that, pass `--no-download` and provide the binary yourself, either through
+`KILN_PAGEFIND_PATH` (you are responsible for verifying it) or by installing it through a channel
+you trust.
 
 Search is disabled by default and `kiln serve` never triggers indexing or a download. The default
 theme ships with an opt-in search UI that is self-guarded and requires no extra setup once search is

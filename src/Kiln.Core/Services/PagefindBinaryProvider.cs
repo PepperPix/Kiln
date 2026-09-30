@@ -215,6 +215,7 @@ public sealed partial class PagefindBinaryProvider : IPagefindBinaryProvider
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Kiln-SSG/1.0");
 
         // Fetch checksum first
+        // The checksum comes from the same release as the archive: it detects corruption, not a compromised release.
         var sha256Response = (await http.GetStringAsync(new Uri(sha256Url), ct).ConfigureAwait(false)).Trim();
         var expectedHash = sha256Response.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0]
             .ToUpperInvariant();
