@@ -1,3 +1,10 @@
+# [1.3.0-beta.3](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.2...v1.3.0-beta.3) (2026-09-30)
+
+
+### Bug Fixes
+
+* **core:** honor search.binaryPath when resolving the Pagefind binary ([3ea9180](https://github.com/PepperPix/Kiln/commit/3ea9180520c803e3938409ed75232f864156321d))
+
 # [1.3.0-beta.2](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.1...v1.3.0-beta.2) (2026-09-29)
 
 
