@@ -108,4 +108,84 @@ public class GenDotNetXmlCommandAppTests
                 Directory.Delete(tempDir, true);
         }
     }
+
+    [Test]
+    public async Task GenDotNetXmlCommand_AssemblyFileNotFound_ExitsOneWithNotFoundMessage()
+    {
+        var (app, console, generator) = CreateApp();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-genxml-apptest-{Guid.NewGuid():N}");
+        var xmlPath = Path.Combine(tempDir, "doc.xml");
+
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            await File.WriteAllTextAsync(xmlPath, "<doc></doc>");
+
+            var result = await app.RunAsync(["dotnet-xml", "--xml", xmlPath, "--assembly", Path.Combine(tempDir, "missing.dll")]);
+
+            await Assert.That(result.ExitCode).IsEqualTo(1);
+            await Assert.That(console.Output).Contains("Assembly not found");
+            await Assert.That(generator.LastOptions).IsNull();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task GenDotNetXmlCommand_WithAssembly_PassesPathToGeneratorAndShowsNotes()
+    {
+        var (app, console, generator) = CreateApp();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-genxml-apptest-{Guid.NewGuid():N}");
+        var xmlPath = Path.Combine(tempDir, "doc.xml");
+        var assemblyPath = Path.Combine(tempDir, "Lib.dll");
+
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            await File.WriteAllTextAsync(xmlPath, "<doc></doc>");
+            await File.WriteAllTextAsync(assemblyPath, "stub");
+            generator.ResultFactory = () => new DocGenReport([], [], [], []) { Notes = ["Left out 2 non-public types and 5 non-public members."] };
+
+            var result = await app.RunAsync(["dotnet-xml", "--xml", xmlPath, "--assembly", assemblyPath, "--project", tempDir]);
+
+            await Assert.That(result.ExitCode).IsEqualTo(0);
+            await Assert.That(generator.LastOptions?.AssemblyPath).IsEqualTo(Path.GetFullPath(assemblyPath));
+            await Assert.That(console.Output).Contains("Left out 2 non-public types");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task GenDotNetXmlCommand_InvalidAssembly_ExitsOneWithMessage()
+    {
+        var (app, console, generator) = CreateApp();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-genxml-apptest-{Guid.NewGuid():N}");
+        var xmlPath = Path.Combine(tempDir, "doc.xml");
+        var assemblyPath = Path.Combine(tempDir, "Lib.dll");
+
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            await File.WriteAllTextAsync(xmlPath, "<doc></doc>");
+            await File.WriteAllTextAsync(assemblyPath, "stub");
+            generator.ExceptionToThrow = new InvalidDataException("'Lib.dll' is not a valid managed assembly.");
+
+            var result = await app.RunAsync(["dotnet-xml", "--xml", xmlPath, "--assembly", assemblyPath, "--project", tempDir]);
+
+            await Assert.That(result.ExitCode).IsEqualTo(1);
+            await Assert.That(console.Output).Contains("not a valid managed assembly");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
 }

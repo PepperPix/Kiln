@@ -57,6 +57,12 @@ dotnet_diagnostic.S109.severity = none
 dotnet_diagnostic.S1075.severity = none
 dotnet_diagnostic.CA2000.severity = none
 
+# Visibility fixtures are intentionally empty, unused and instance-shaped: the tests read only their metadata.
+[tests/Kiln.Core.Tests/Services/ApiSurfaceFixtures.cs]
+dotnet_diagnostic.S1186.severity = none
+dotnet_diagnostic.S1144.severity = none
+dotnet_diagnostic.CA1822.severity = none
+
 # Encoded image payload stays as raw bytes until written to disk.
 [src/Kiln.Core/Services/ImageOptimizationOutput.cs]
 dotnet_diagnostic.CA1819.severity = none
