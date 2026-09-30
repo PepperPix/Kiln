@@ -11,4 +11,8 @@ public sealed record DocGenReport(
     IReadOnlyList<string> Written,
     IReadOnlyList<string> Skipped,
     IReadOnlyList<string> Conflicts,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings)
+{
+    /// <summary>Informational summary lines, for example how many non-public types and members were left out.</summary>
+    public IReadOnlyList<string> Notes { get; init; } = [];
+}

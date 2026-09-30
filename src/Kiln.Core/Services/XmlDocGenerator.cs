@@ -13,7 +13,20 @@ public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGen
 {
     private readonly IGeneratedContentWriter _writer = writer;
 
-    public DocGenReport Generate(string xmlDocPath, string outputDir)
+    /// <inheritdoc/>
+    public DocGenReport Generate(string xmlDocPath, string outputDir) =>
+        GenerateCore(xmlDocPath, outputDir, surface: null);
+
+    /// <inheritdoc/>
+    public DocGenReport Generate(string xmlDocPath, string outputDir, XmlDocGenerationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        var surface = options.AssemblyPath is null ? null : AssemblyApiSurface.Read(options.AssemblyPath);
+        return GenerateCore(xmlDocPath, outputDir, surface);
+    }
+
+    private DocGenReport GenerateCore(string xmlDocPath, string outputDir, AssemblyApiSurface? surface)
     {
         ArgumentNullException.ThrowIfNull(xmlDocPath);
         ArgumentNullException.ThrowIfNull(outputDir);
@@ -45,17 +58,13 @@ public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGen
         var skipped = new List<string>();
         var conflicts = new List<string>();
 
-        var typeGroups = parseResult.Members
-            .GroupBy(m => m.OwnerTypeFullName, StringComparer.Ordinal)
-            .OrderBy(g => g.Key, StringComparer.Ordinal);
+        var (pages, skippedTypes, skippedMembers) = SelectPages(parseResult.Members, surface);
 
         var weight = 0;
-        foreach (var typeGroup in typeGroups)
+        foreach (var (fullTypeName, members, apiType) in pages)
         {
             weight++;
 
-            var fullTypeName = typeGroup.Key;
-            var members = typeGroup.ToList();
             var typeMember = members.Find(m => m.Kind == XmlDocMemberKind.Type);
 
             var (namespaceName, displayTypeName) = SplitTypeName(fullTypeName);
@@ -65,19 +74,24 @@ public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGen
                 ? string.Join(Path.AltDirectorySeparatorChar, segments[..^1]) + Path.AltDirectorySeparatorChar + segments[^1] + ".md"
                 : segments[0] + ".md";
 
+            var extra = new Dictionary<string, string>
+            {
+                ["namespace"] = namespaceName,
+                ["assembly"] = parseResult.AssemblyName ?? "",
+            };
+            var kindLabel = apiType is null ? null : KindLabel(apiType.Kind);
+            if (kindLabel is not null)
+                extra["kind"] = kindLabel;
+
             var frontMatter = new List<(string Key, object Value)>
             {
                 ("title", displayTypeName),
                 ("weight", weight),
                 ("generated", true),
-                ("extra", new Dictionary<string, string>
-                {
-                    ["namespace"] = namespaceName,
-                    ["assembly"] = parseResult.AssemblyName ?? "",
-                }),
+                ("extra", extra),
             };
 
-            var body = BuildBody(displayTypeName, fullTypeName, typeMember, members);
+            var body = BuildBody(displayTypeName, fullTypeName, typeMember, members, kindLabel);
             var file = new GeneratedContentFile(relativePath, frontMatter, body);
 
             var result = _writer.Write(outputDir, file);
@@ -95,8 +109,67 @@ public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGen
             }
         }
 
-        return new DocGenReport(written, skipped, conflicts, warnings);
+        IReadOnlyList<string> notes = surface is null
+            ? []
+            : [$"Left out {skippedTypes} non-public types and {skippedMembers} non-public members."];
+
+        return new DocGenReport(written, skipped, conflicts, warnings) { Notes = notes };
     }
+
+    private static (List<(string FullTypeName, List<XmlDocMember> Members, ApiTypeInfo? ApiType)> Pages, int SkippedTypes, int SkippedMembers) SelectPages(
+        IReadOnlyList<XmlDocMember> allMembers,
+        AssemblyApiSurface? surface)
+    {
+        var pages = new List<(string, List<XmlDocMember>, ApiTypeInfo?)>();
+        var skippedTypes = 0;
+        var skippedMembers = 0;
+
+        var typeGroups = allMembers
+            .GroupBy(m => m.OwnerTypeFullName, StringComparer.Ordinal)
+            .OrderBy(g => g.Key, StringComparer.Ordinal);
+
+        foreach (var typeGroup in typeGroups)
+        {
+            var members = typeGroup.ToList();
+            if (surface is null)
+            {
+                pages.Add((typeGroup.Key, members, null));
+                continue;
+            }
+
+            var apiType = surface.Find(typeGroup.Key);
+            var kept = apiType is null ? [] : members.FindAll(m => IsVisible(apiType, m));
+            skippedMembers += members.Count(m => m.Kind != XmlDocMemberKind.Type) - kept.Count(m => m.Kind != XmlDocMemberKind.Type);
+
+            if (apiType is null)
+                skippedTypes++;
+            else
+                pages.Add((typeGroup.Key, kept, apiType));
+        }
+
+        return (pages, skippedTypes, skippedMembers);
+    }
+
+    private static bool IsVisible(ApiTypeInfo apiType, XmlDocMember member)
+    {
+        if (member.Kind == XmlDocMemberKind.Type)
+            return true;
+
+        var name = member.MemberSignature;
+        var end = name.IndexOfAny(['(', '`']);
+        return apiType.MemberNames.Contains(end >= 0 ? name[..end] : name);
+    }
+
+    private static string KindLabel(ApiTypeKind kind) => kind switch
+    {
+        ApiTypeKind.Interface => "interface",
+        ApiTypeKind.Enum => "enum",
+        ApiTypeKind.Struct => "struct",
+        ApiTypeKind.Delegate => "delegate",
+        ApiTypeKind.Record => "record",
+        ApiTypeKind.StaticClass => "static class",
+        _ => "class",
+    };
 
     private static (string Namespace, string DisplayName) SplitTypeName(string fullTypeName)
     {
@@ -110,11 +183,14 @@ public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGen
         string displayTypeName,
         string fullTypeName,
         XmlDocMember? typeMember,
-        IReadOnlyList<XmlDocMember> members)
+        IReadOnlyList<XmlDocMember> members,
+        string? kindLabel)
     {
         var sb = new StringBuilder();
         sb.Append("# ").Append(displayTypeName).Append('\n');
         sb.Append('\n');
+        if (kindLabel is not null)
+            sb.Append("*(").Append(kindLabel).Append(")*\n\n");
         sb.Append('`').Append(fullTypeName).Append("`\n");
 
         if (typeMember is not null)
