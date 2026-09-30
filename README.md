@@ -45,6 +45,18 @@ tests/
 └── Kiln.Cli.Tests/
 ```
 
+## API stability
+
+The `Kiln.Core` and `Kiln.Abstractions` packages follow semantic versioning for the following supported surface:
+
+- everything in `Kiln.Abstractions`
+- all interfaces (including `ISiteConfigLoader`)
+- all types in the `Kiln.Models` namespace
+- `AddKiln()` and `IKilnBuilder`
+
+Concrete classes in `Kiln.Services` (for example `SiteBuilder`, `DevServer`, `NuGetPluginClient`) are public for compatibility
+but are **not** covered by this guarantee; they may change in any release. New members on interfaces are added as default interface members.
+
 ## CLI Reference
 
 Common commands (exact names):
