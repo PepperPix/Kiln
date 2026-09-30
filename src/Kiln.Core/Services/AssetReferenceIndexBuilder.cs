@@ -11,6 +11,9 @@ using Kiln.Models;
 /// and Site-<c>static/</c>-referenced images already use the <c>/assets/</c> convention by the
 /// time HtmlContent is built, so no separate Markdown parsing is needed here.
 /// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IAssetReferenceIndexBuilder"/> instead.
+/// </remarks>
 public sealed partial class AssetReferenceIndexBuilder : IAssetReferenceIndexBuilder
 {
     public IReadOnlyDictionary<string, IReadOnlyList<ContentItemRef>> Build(IReadOnlyList<ContentItem> items)

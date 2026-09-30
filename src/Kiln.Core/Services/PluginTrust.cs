@@ -5,6 +5,9 @@ using Kiln.Models;
 /// <summary>
 /// Classifies plugin packages into trust levels.
 /// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on the interfaces in Kiln.Abstractions and Kiln.Services instead.
+/// </remarks>
 public static class PluginTrust
 {
     /// <summary>

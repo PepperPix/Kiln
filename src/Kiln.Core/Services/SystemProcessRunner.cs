@@ -3,6 +3,12 @@ namespace Kiln.Services;
 using System.ComponentModel;
 using System.Diagnostics;
 
+/// <summary>
+/// Default <see cref="IProcessRunner"/> implementation based on <see cref="System.Diagnostics.Process"/>.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IProcessRunner"/> instead.
+/// </remarks>
 public sealed class SystemProcessRunner : IProcessRunner
 {
     public async Task<ProcessRunResult> RunAsync(

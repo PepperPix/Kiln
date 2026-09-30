@@ -3,6 +3,12 @@ namespace Kiln.Services;
 using System.Text.Json.Serialization;
 using Kiln.Models;
 
+/// <summary>
+/// An entry of the plugin lock file that records an installed plugin package.
+/// </summary>
+/// <param name="PackageId">The NuGet package ID.</param>
+/// <param name="Version">The installed package version.</param>
+/// <param name="Source">The kind of source the package was installed from, for example <c>nuget</c>.</param>
 public sealed record PluginLockEntry(
     [property: JsonPropertyName("packageId")] string PackageId,
     [property: JsonPropertyName("version")] string Version,

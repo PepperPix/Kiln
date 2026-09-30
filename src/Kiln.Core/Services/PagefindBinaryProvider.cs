@@ -7,6 +7,13 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
+/// <summary>
+/// Default <see cref="IPagefindBinaryProvider"/> implementation. It looks for the executable in this order: the
+/// <c>KILN_PAGEFIND_PATH</c> environment variable, the configured <c>search.binaryPath</c>, the <c>PATH</c>, a local cache and, if allowed, a download.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IPagefindBinaryProvider"/> instead.
+/// </remarks>
 public sealed partial class PagefindBinaryProvider : IPagefindBinaryProvider
 {
     public const string Version = "1.5.2";

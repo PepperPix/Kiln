@@ -3,12 +3,24 @@ namespace Kiln.Services;
 using Kiln.Models;
 using Scriban.Runtime;
 
+/// <summary>
+/// The render data that is shared by all pages of a build and passed to <see cref="ITemplateRenderer"/>.
+/// </summary>
 public sealed class SharedRenderContext
 {
+    /// <summary>Gets the site-level values that templates read through <c>site</c>.</summary>
     public required object Site { get; init; }
+
+    /// <summary>Gets the template representation of each collection, keyed by collection name. Drafts are not included.</summary>
     public required IReadOnlyDictionary<string, object> Collections { get; init; }
+
+    /// <summary>Gets the taxonomies with their terms, keyed by taxonomy name.</summary>
     public required ScriptObject Taxonomies { get; init; }
+
+    /// <summary>Gets the site-level plugin settings, keyed by plugin name.</summary>
     public required IReadOnlyDictionary<string, object> Plugins { get; init; }
+
+    /// <summary>Gets the theme settings from <see cref="SiteConfiguration.ThemeConfig"/>.</summary>
     public required IReadOnlyDictionary<string, object> Theme { get; init; }
 
     /// <summary>
@@ -17,6 +29,14 @@ public sealed class SharedRenderContext
     /// </summary>
     public required IReadOnlyDictionary<string, IReadOnlyList<NavigationNode>> NavTree { get; init; }
 
+    /// <summary>
+    /// Creates the shared render context of a build.
+    /// </summary>
+    /// <param name="site">The site configuration.</param>
+    /// <param name="allTaxonomies">The terms of each taxonomy, keyed by taxonomy name.</param>
+    /// <param name="navTree">The navigation tree of each collection, or <see langword="null"/> for none.</param>
+    /// <returns>The shared render context.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="site"/> or <paramref name="allTaxonomies"/> is <see langword="null"/>.</exception>
     public static SharedRenderContext Build(
         SiteConfiguration site,
         IReadOnlyDictionary<string, IReadOnlyList<TaxonomyTerm>> allTaxonomies,

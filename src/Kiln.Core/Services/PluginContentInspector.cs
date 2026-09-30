@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 /// <summary>
 /// Inventories a plugin directory and lists the external hosts its files refer to.
 /// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on the interfaces in Kiln.Abstractions and Kiln.Services instead.
+/// </remarks>
 public static partial class PluginContentInspector
 {
     private const int RegexTimeoutMilliseconds = 2000;

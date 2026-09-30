@@ -5,6 +5,12 @@ using Kiln.Abstractions;
 using NUglify;
 using NUglify.Html;
 
+/// <summary>
+/// An <see cref="IAssetMinifier"/> with the identifier <c>nuglify</c> that minifies CSS, JavaScript, HTML and SVG.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IAssetMinifier"/> instead.
+/// </remarks>
 public sealed partial class NuglifyAssetMinifier : IAssetMinifier
 {
     private readonly bool _htmlAggressive;

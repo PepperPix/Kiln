@@ -5,6 +5,12 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Kiln.Models;
 
+/// <summary>
+/// Parses compiler-generated XML documentation files into <see cref="XmlDocMember"/> entries, converting the text to Markdown.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on the interfaces in Kiln.Abstractions and Kiln.Services instead.
+/// </remarks>
 public static partial class XmlDocParser
 {
     private const int MemberNamePrefixLength = 2;

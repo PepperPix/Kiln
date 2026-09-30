@@ -5,6 +5,12 @@ using System.Reflection;
 using System.Text;
 using Kiln.Models;
 
+/// <summary>
+/// Default <see cref="IScaffolder"/> implementation that creates a site from the embedded default templates.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IScaffolder"/> instead.
+/// </remarks>
 public sealed class Scaffolder : IScaffolder
 {
     private static readonly (string Resource, string Target)[] TemplateEntries =

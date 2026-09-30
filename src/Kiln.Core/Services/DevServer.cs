@@ -6,6 +6,12 @@ using System.Text;
 using Kiln.Abstractions;
 using Kiln.Models;
 
+/// <summary>
+/// Default <see cref="IDevServer"/> implementation that serves the output directory over HTTP, rebuilds the site when files change and notifies connected browsers.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IDevServer"/> instead.
+/// </remarks>
 public sealed class DevServer(ISiteBuilder siteBuilder, ISiteConfigLoader siteConfigLoader, ISearchIndexer searchIndexer) : IDevServer
 {
     private const string LiveReloadEndpoint = "/__kiln/livereload";

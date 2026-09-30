@@ -10,6 +10,12 @@ using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
+/// <summary>
+/// Default <see cref="INuGetPluginClient"/> implementation backed by a NuGet v3 feed (nuget.org unless another feed is given).
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="INuGetPluginClient"/> instead.
+/// </remarks>
 public sealed class NuGetPluginClient : INuGetPluginClient
 {
     private const int MaxContentEntries = 2000;

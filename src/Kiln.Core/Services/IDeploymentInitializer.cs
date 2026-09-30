@@ -2,6 +2,9 @@ namespace Kiln.Services;
 
 using Kiln.Models;
 
+/// <summary>
+/// Creates the files needed to deploy a site to a hosting target.
+/// </summary>
 public interface IDeploymentInitializer
 {
     /// <summary>Creates the deployment files for <paramref name="target"/>; existing files are left untouched.</summary>

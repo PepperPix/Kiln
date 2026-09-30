@@ -8,6 +8,12 @@ using Kiln.Models;
 using Scriban;
 using Scriban.Runtime;
 
+/// <summary>
+/// Default <see cref="ITemplateRenderer"/> implementation that renders the layouts of a theme as Scriban templates.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="ITemplateRenderer"/> instead.
+/// </remarks>
 public sealed class TemplateRenderer : ITemplateRenderer
 {
     public string Render(ContentItem item, SharedRenderContext sharedContext, SiteConfiguration site, string themePath, IReadOnlyList<PluginDefinition> plugins)

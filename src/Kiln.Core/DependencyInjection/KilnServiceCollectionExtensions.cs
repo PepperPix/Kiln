@@ -4,8 +4,17 @@ using Kiln.Abstractions;
 using Kiln.Services;
 using Microsoft.Extensions.DependencyInjection;
 
+/// <summary>
+/// Extension methods for registering Kiln with a dependency injection container.
+/// </summary>
 public static class KilnServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers the Kiln services as singletons, including the default asset minifiers <c>nuglify</c> and <c>noop</c>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <returns>A builder for customizing the registration, for example with a different minifier.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
     public static IKilnBuilder AddKiln(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);

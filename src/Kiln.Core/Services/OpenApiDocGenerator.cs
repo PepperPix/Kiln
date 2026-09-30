@@ -5,6 +5,12 @@ using Kiln.Models;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 
+/// <summary>
+/// Default <see cref="IOpenApiDocGenerator"/> implementation that writes one Markdown page per operation of an OpenAPI specification.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IOpenApiDocGenerator"/> instead.
+/// </remarks>
 public sealed class OpenApiDocGenerator(IGeneratedContentWriter writer) : IOpenApiDocGenerator
 {
     private readonly IGeneratedContentWriter _writer = writer;

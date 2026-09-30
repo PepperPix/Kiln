@@ -8,6 +8,12 @@ using Kiln.Models;
 using Scriban;
 using Scriban.Runtime;
 
+/// <summary>
+/// Default <see cref="IShortcodeProcessor"/> implementation that renders shortcodes with the templates of the plugins.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IShortcodeProcessor"/> instead.
+/// </remarks>
 public sealed partial class ShortcodeProcessor : IShortcodeProcessor
 {
     [GeneratedRegex(@"{%\s*(\S+)\s*(.*?)\s*%}", RegexOptions.Singleline | RegexOptions.CultureInvariant)]

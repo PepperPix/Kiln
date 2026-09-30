@@ -5,6 +5,12 @@ using Kiln.Models;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
+/// <summary>
+/// Default <see cref="ISiteConfigLoader"/> implementation that reads <c>site.yaml</c> or <c>site.yml</c>.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="ISiteConfigLoader"/> instead.
+/// </remarks>
 public sealed class SiteConfigLoader : ISiteConfigLoader
 {
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
