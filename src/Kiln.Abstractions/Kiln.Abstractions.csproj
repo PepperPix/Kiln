@@ -12,6 +12,7 @@
     <PackageProjectUrl>https://github.com/PepperPix/Kiln</PackageProjectUrl>
     <PackageTags>static-site-generator;ssg;kiln;abstractions</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageValidationBaselineVersion>1.2.0</PackageValidationBaselineVersion>
   </PropertyGroup>
