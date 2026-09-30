@@ -55,7 +55,7 @@ public class XmlDocGeneratorAssemblyFilterTests
 
     private static string NewTempPath() => Path.Combine(Path.GetTempPath(), $"kiln-xmlasm-{Guid.NewGuid():N}");
 
-    private static async Task<T> WithFixtureAsync<T>(Func<string, string, Task<T>> action)
+    private static async Task WithFixtureAsync(Func<string, string, Task> action)
     {
         var tempDir = NewTempPath();
         var xmlPath = tempDir + ".xml";
@@ -63,7 +63,7 @@ public class XmlDocGeneratorAssemblyFilterTests
         {
             Directory.CreateDirectory(tempDir);
             await File.WriteAllTextAsync(xmlPath, FixtureXml);
-            return await action(tempDir, xmlPath);
+            await action(tempDir, xmlPath);
         }
         finally
         {
@@ -91,7 +91,6 @@ public class XmlDocGeneratorAssemblyFilterTests
             await Assert.That(File.Exists(PagePath(tempDir, "HiddenType.md"))).IsFalse();
             await Assert.That(File.Exists(PagePath(tempDir, Path.Combine("HiddenType", "InnerOfHidden.md")))).IsFalse();
             await Assert.That(File.Exists(PagePath(tempDir, Path.Combine("PublicClass", "NestedInternal.md")))).IsFalse();
-            return true;
         });
     }
 
@@ -111,7 +110,6 @@ public class XmlDocGeneratorAssemblyFilterTests
 
             var sealedClass = await File.ReadAllTextAsync(PagePath(tempDir, "SealedClass.md"));
             await Assert.That(sealedClass).DoesNotContain("Hook");
-            return true;
         });
     }
 
@@ -132,7 +130,6 @@ public class XmlDocGeneratorAssemblyFilterTests
             var content = await File.ReadAllTextAsync(PagePath(tempDir, page));
             await Assert.That(content).Contains($"kind: {expectedKind}");
             await Assert.That(content).Contains($"*({expectedKind})*");
-            return true;
         });
     }
 
@@ -150,7 +147,6 @@ public class XmlDocGeneratorAssemblyFilterTests
 
             var nested = await File.ReadAllTextAsync(PagePath(tempDir, Path.Combine("PublicClass", "NestedPublic.md")));
             await Assert.That(nested).Contains("### Ping()");
-            return true;
         });
     }
 
@@ -178,7 +174,6 @@ public class XmlDocGeneratorAssemblyFilterTests
                 await Assert.That(actual).DoesNotContain("*(");
             }
 
-            return true;
         });
     }
 
@@ -192,7 +187,6 @@ public class XmlDocGeneratorAssemblyFilterTests
             var content = await File.ReadAllTextAsync(PagePath(tempDir, "PublicStruct.md"));
             await Assert.That(content).StartsWith("---\ntitle: PublicStruct\n");
             await Assert.That(content).Contains("\n---\n\n# PublicStruct\n\n`Kiln.Core.Tests.Fixtures.ApiSurfaceFixtures.PublicStruct`\n\nA struct.\n\n## Fields\n\n### Size\n\nThe size.\n");
-            return true;
         });
     }
 
@@ -206,7 +200,6 @@ public class XmlDocGeneratorAssemblyFilterTests
             await Assert.That(() => CreateGenerator().Generate(xmlPath, tempDir, new XmlDocGenerationOptions(missing)))
                 .Throws<FileNotFoundException>();
             await Assert.That(Directory.GetFileSystemEntries(tempDir)).IsEmpty();
-            return true;
         });
     }
 
@@ -228,7 +221,6 @@ public class XmlDocGeneratorAssemblyFilterTests
                 File.Delete(bogus);
             }
 
-            return true;
         });
     }
 
@@ -252,7 +244,6 @@ public class XmlDocGeneratorAssemblyFilterTests
 
             await Assert.That(third.Conflicts.Count).IsEqualTo(1);
             await Assert.That(File.Exists(pagePath + ".regenerated")).IsTrue();
-            return true;
         });
     }
 }

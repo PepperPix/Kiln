@@ -62,6 +62,9 @@ dotnet_diagnostic.CA2000.severity = none
 dotnet_diagnostic.S1186.severity = none
 dotnet_diagnostic.S1144.severity = none
 dotnet_diagnostic.CA1822.severity = none
+resharper_not_accessed_positional_property_global_highlighting = none
+resharper_not_accessed_field_local_highlighting = none
+resharper_unused_auto_property_accessor_global_highlighting = none
 
 # Encoded image payload stays as raw bytes until written to disk.
 [src/Kiln.Core/Services/ImageOptimizationOutput.cs]
