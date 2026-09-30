@@ -29,10 +29,10 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         var dto = YamlDeserializer.Deserialize<SiteConfigDto>(content)
             ?? throw new InvalidOperationException($"Failed to parse site configuration: {configPath}");
 
-        return MapToConfig(dto);
+        return MapToConfig(dto, projectPath);
     }
 
-    private static SiteConfiguration MapToConfig(SiteConfigDto dto)
+    private static SiteConfiguration MapToConfig(SiteConfigDto dto, string projectPath)
     {
         if (string.IsNullOrWhiteSpace(dto.Title))
             throw new InvalidOperationException("site.yaml is missing required field: title");
@@ -113,7 +113,7 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
             Home = home,
             Build = MapBuildOptions(dto.Build),
             Assets = new AssetsOptions { Minifier = dto.Assets?.Minifier ?? "nuglify" },
-            Search = MapSearchOptions(dto.Search),
+            Search = MapSearchOptions(dto.Search, projectPath),
             Images = MapImageOptions(dto.Images),
         };
     }
@@ -166,15 +166,22 @@ public sealed class SiteConfigLoader : ISiteConfigLoader
         };
     }
 
-    private static SearchOptions MapSearchOptions(SearchDto? dto)
+    private static SearchOptions MapSearchOptions(SearchDto? dto, string projectPath)
     {
         if (dto is null) return new SearchOptions();
         return new SearchOptions
         {
             Enabled = dto.Enabled ?? false,
             Extended = dto.Extended ?? false,
-            BinaryPath = dto.BinaryPath,
+            BinaryPath = ResolveBinaryPath(dto.BinaryPath, projectPath),
         };
+    }
+
+    // Rooted values stay untouched (also on Windows, where "/x" is rooted but not fully qualified).
+    private static string? ResolveBinaryPath(string? value, string projectPath)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return Path.IsPathRooted(value) ? value : Path.GetFullPath(value, Path.GetFullPath(projectPath));
     }
 
     private static ImageOptions MapImageOptions(ImageDto? dto)

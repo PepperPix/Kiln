@@ -68,25 +68,37 @@ public sealed partial class PagefindBinaryProvider : IPagefindBinaryProvider
     [GeneratedRegex(@"\d+\.\d+(\.\d+)?", RegexOptions.CultureInvariant)]
     private static partial Regex VersionNumberRegex();
 
-    public async Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, CancellationToken ct)
+    public Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, CancellationToken ct)
+        => GetBinaryPathAsync(extended, allowDownload, configuredPath: null, ct);
+
+    public async Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, string? configuredPath, CancellationToken ct)
     {
         // 1. Override via environment variable (explicit user choice: always honored, never version-checked)
         var overridePath = Environment.GetEnvironmentVariable("KILN_PAGEFIND_PATH");
         if (!string.IsNullOrEmpty(overridePath) && File.Exists(overridePath))
             return overridePath;
 
-        // 2. Search PATH directories
+        // 2. search.binaryPath (explicit user choice: never version-checked, a missing file is an error and never falls back)
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+        {
+            if (File.Exists(configuredPath))
+                return configuredPath;
+
+            throw new InvalidOperationException($"search.binaryPath '{configuredPath}' does not exist.");
+        }
+
+        // 3. Search PATH directories
         var binaryFileName = GetBinaryFileName(extended);
         var pathSearch = await FindInPathAsync(binaryFileName, ct).ConfigureAwait(false);
         if (pathSearch.Path is not null)
             return pathSearch.Path;
 
-        // 3. Check local cache
+        // 4. Check local cache
         var cacheBinaryPath = GetCacheBinaryPath(extended);
         if (File.Exists(cacheBinaryPath))
             return cacheBinaryPath;
 
-        // 4. Download (only when permitted)
+        // 5. Download (only when permitted)
         if (!allowDownload)
         {
             var skippedHint = pathSearch.SkippedReason is null ? string.Empty : $"{pathSearch.SkippedReason} ";

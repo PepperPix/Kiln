@@ -26,7 +26,7 @@ public sealed class PagefindSearchIndexer(
         try
         {
             binaryPath = await binaryProvider
-                .GetBinaryPathAsync(options.Extended, allowDownload, ct)
+                .GetBinaryPathAsync(options.Extended, allowDownload, options.BinaryPath, ct)
                 .ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)

@@ -349,6 +349,77 @@ public class SiteConfigLoaderTests
     }
 
     [Test]
+    public async Task Load_SearchBinaryPathRelative_ResolvesAgainstProjectDirectory()
+    {
+        var dir = await CreateTempSiteAsync("""
+            title: Test
+            baseUrl: http://localhost
+            search:
+              enabled: true
+              binaryPath: tools/pagefind
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Search.BinaryPath).IsEqualTo(Path.Combine(dir, "tools", "pagefind"));
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    public async Task Load_SearchBinaryPathAbsolute_IsUnchanged()
+    {
+        var absolute = Path.Combine(Path.GetTempPath(), "somewhere", "pagefind");
+        var dir = await CreateTempSiteAsync($"""
+            title: Test
+            baseUrl: http://localhost
+            search:
+              binaryPath: '{absolute}'
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Search.BinaryPath).IsEqualTo(absolute);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
+    [Arguments("binaryPath: ''")]
+    [Arguments("binaryPath: '   '")]
+    [Arguments("enabled: true")]
+    public async Task Load_SearchBinaryPathBlankOrMissing_IsNull(string searchLine)
+    {
+        var dir = await CreateTempSiteAsync($"""
+            title: Test
+            baseUrl: http://localhost
+            search:
+              {searchLine}
+            """);
+
+        try
+        {
+            var config = _loader.Load(dir);
+
+            await Assert.That(config.Search.BinaryPath).IsNull();
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
     public async Task Load_SearchSectionAbsent_UsesDefaults()
     {
         var dir = await CreateTempSiteAsync("""
