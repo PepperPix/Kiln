@@ -131,7 +131,7 @@ public sealed class SiteBuilder(
             return earlyResult;
 
         if (generatedFiles is not null)
-            PruneStaleOutputs(projectPath, outputDir, generatedFiles);
+            BuildOutputFiles.PruneStaleOutputs(projectPath, outputDir, generatedFiles);
 
         stopwatch.Stop();
         return MakeResult(allItems.Count, rendered, skippedDrafts, stopwatch.Elapsed, outputDir, warnings, errors);
@@ -297,7 +297,7 @@ public sealed class SiteBuilder(
                 }
 
                 var outputPath = Path.Combine(render.OutputDir, item.OutputPath);
-                await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
+                await BuildOutputFiles.WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                 rendered++;
             }
 #pragma warning disable CA1031 // Intentional: one file error should not abort the entire build
@@ -351,7 +351,7 @@ public sealed class SiteBuilder(
                         ? indexBase
                         : $"{indexBase.TrimEnd('/')}/page/{paginator.Page}/";
                     var outputPath = Path.Combine(render.OutputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative), render.Config.BasePath));
-                    await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
+                    await BuildOutputFiles.WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                     rendered++;
                 }
 #pragma warning disable CA1031 // Intentional: one collection index page error should not abort the entire build
@@ -385,7 +385,7 @@ public sealed class SiteBuilder(
                 var overviewUrl = TemplateRenderer.GetTaxonomyOverviewUrl(taxDef);
                 var html = templateRenderer.RenderTaxonomyOverview(taxDef, terms, render.SharedContext, render.Config, render.ThemePath, render.Plugins);
                 var outputPath = Path.Combine(render.OutputDir, ToOutputPath(overviewUrl, render.Config.BasePath));
-                await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
+                await BuildOutputFiles.WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                 rendered++;
             }
 #pragma warning disable CA1031 // Intentional: one taxonomy overview error should not abort the entire build
@@ -412,7 +412,7 @@ public sealed class SiteBuilder(
                             ? term.Url.OriginalString
                             : $"{term.Url.OriginalString.TrimEnd('/')}/page/{paginator.Page}/";
                         var outputPath = Path.Combine(render.OutputDir, ToOutputPath(new Uri(pageUrl, UriKind.Relative), render.Config.BasePath));
-                        await WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
+                        await BuildOutputFiles.WriteOutputTextAsync(outputPath, html, render.GeneratedFiles, ct).ConfigureAwait(false);
                         rendered++;
                     }
 #pragma warning disable CA1031 // Intentional: one taxonomy term page error should not abort the entire build
@@ -445,7 +445,7 @@ public sealed class SiteBuilder(
         {
             var notFoundHtml = templateRenderer.RenderNotFound(render.SharedContext, render.Config, render.ThemePath, render.Plugins);
             var notFoundPath = Path.Combine(render.OutputDir, "404.html");
-            await WriteOutputTextAsync(notFoundPath, notFoundHtml, render.GeneratedFiles, ct).ConfigureAwait(false);
+            await BuildOutputFiles.WriteOutputTextAsync(notFoundPath, notFoundHtml, render.GeneratedFiles, ct).ConfigureAwait(false);
         }
 #pragma warning disable CA1031 // Intentional: a 404 page rendering error should not abort the entire build
         catch (Exception ex)
@@ -466,7 +466,7 @@ public sealed class SiteBuilder(
     {
         // Generate sitemap.xml
         var sitemapContent = SitemapGenerator.Generate(config, allItems, allTaxonomyTerms, includeDrafts);
-        await WriteOutputTextAsync(Path.Combine(outputDir, "sitemap.xml"), sitemapContent, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
+        await BuildOutputFiles.WriteOutputTextAsync(Path.Combine(outputDir, "sitemap.xml"), sitemapContent, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
 
         // Generate Atom feeds for collections with feed: true
         foreach (var collection in config.Collections.Values)
@@ -478,12 +478,12 @@ public sealed class SiteBuilder(
                 ? outputDir
                 : Path.Combine(outputDir, indexRelPath);
             Directory.CreateDirectory(feedDir);
-            await WriteOutputTextAsync(Path.Combine(feedDir, "feed.xml"), feedContent, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
+            await BuildOutputFiles.WriteOutputTextAsync(Path.Combine(feedDir, "feed.xml"), feedContent, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
         }
 
         // Generate robots.txt
         var robotsTxt = $"User-agent: *\nAllow: /\n\nSitemap: {config.BaseUrl.ToString().TrimEnd('/')}/sitemap.xml\n";
-        await WriteOutputTextAsync(Path.Combine(outputDir, "robots.txt"), robotsTxt, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
+        await BuildOutputFiles.WriteOutputTextAsync(Path.Combine(outputDir, "robots.txt"), robotsTxt, generatedFiles, ct, Encoding.UTF8).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -541,44 +541,5 @@ public sealed class SiteBuilder(
             Warnings = warnings,
             Errors = errors
         };
-    }
-
-    private static async Task WriteOutputTextAsync(
-        string outputPath,
-        string content,
-        HashSet<string>? generatedFiles,
-        CancellationToken ct,
-        Encoding? encoding = null)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-        if (encoding is null)
-            await File.WriteAllTextAsync(outputPath, content, ct).ConfigureAwait(false);
-        else
-            await File.WriteAllTextAsync(outputPath, content, encoding, ct).ConfigureAwait(false);
-
-        generatedFiles?.Add(Path.GetFullPath(outputPath));
-    }
-
-    private static void PruneStaleOutputs(string projectPath, string outputDir, HashSet<string> generatedFiles)
-    {
-        OutputDirectoryGuard.EnsureNotProjectRootOrAncestor(projectPath, outputDir);
-
-        if (!Directory.Exists(outputDir))
-            return;
-
-        foreach (var file in Directory.GetFiles(outputDir, "*", SearchOption.AllDirectories))
-        {
-            var fullPath = Path.GetFullPath(file);
-            if (!generatedFiles.Contains(fullPath))
-                File.Delete(fullPath);
-        }
-
-        foreach (var directory in Directory.GetDirectories(outputDir, "*", SearchOption.AllDirectories)
-                     .OrderByDescending(static path => path.Length))
-        {
-            if (Directory.EnumerateFileSystemEntries(directory).Any())
-                continue;
-            Directory.Delete(directory);
-        }
     }
 }
