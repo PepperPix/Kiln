@@ -56,6 +56,17 @@ enum). Nested types are allowed only as a deliberate encapsulation aid (for exam
 Spectre.Console.Cli `CommandSettings`). If a file currently contains multiple top-level types,
 split them into separate files rather than introducing new nested types.
 
+## Public API compatibility
+
+CI runs NuGet package validation for `Kiln.Core` and `Kiln.Abstractions` against the last stable release (the baseline
+version in both `.csproj` files). A pull request that breaks the public API fails the pack step.
+
+- Add new members to interfaces as default interface members.
+- Intentional breaks of concrete classes (not part of the supported surface, see "API stability" in the README) go into
+  `src/Kiln.Core/CompatibilitySuppressions.xml` with an explanatory comment.
+- Breaks of the supported surface (`Kiln.Abstractions`, interfaces, `Kiln.Models`, `AddKiln()` / `IKilnBuilder`) require a major version.
+- After each stable release, raise `PackageValidationBaselineVersion` in both `.csproj` files to that release and empty the suppressions file.
+
 ## Dependency Lockfiles
 
 This repository uses `RestorePackagesWithLockFile`. If your change adds or updates a NuGet package
