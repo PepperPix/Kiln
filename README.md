@@ -239,7 +239,7 @@ The Pagefind binary is resolved in this order:
 1. `KILN_PAGEFIND_PATH` environment variable, if set and the file exists. This is an explicit
    choice and the binary is never version-checked.
 2. The system `PATH`. A binary found there is only used if `--version` reports Pagefind 1.5.0 or
-   newer; otherwise it is skipped and the reason is included in the error if nothing else is found.
+   newer; otherwise it is skipped, and with `--no-download` the reason is included in the error if nothing else is found.
 3. The local cache at `~/.kiln/tools/pagefind/<version>/` (override the cache root with
    `KILN_PAGEFIND_CACHE_DIR`).
 4. Automatic download of the Pagefind version pinned by Kiln (currently 1.5.2) from the Pagefind
