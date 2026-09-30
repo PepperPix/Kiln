@@ -7,6 +7,12 @@ using Kiln.Abstractions;
 using Kiln.Models;
 
 #pragma warning disable S107 // 8 DI-injected services; no sensible split without a facade.
+/// <summary>
+/// Default <see cref="ISiteBuilder"/> implementation that reads the content, renders the pages and runs the asset pipeline.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="ISiteBuilder"/> instead.
+/// </remarks>
 public sealed class SiteBuilder(
     IContentReader contentReader,
     ITemplateRenderer templateRenderer,

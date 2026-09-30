@@ -7,6 +7,9 @@ using SkiaSharp;
 /// recompression at a target quality, and optional conversion to WebP. Vector (SVG) and
 /// animated (GIF) formats are intentionally excluded — see <see cref="CanOptimize"/>.
 /// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IImageOptimizer"/> instead.
+/// </remarks>
 public sealed class SkiaSharpImageOptimizer : IImageOptimizer
 {
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)

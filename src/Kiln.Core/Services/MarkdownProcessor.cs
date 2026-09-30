@@ -3,6 +3,12 @@ namespace Kiln.Services;
 using System.Text.RegularExpressions;
 using Markdig;
 
+/// <summary>
+/// Default <see cref="IMarkdownProcessor"/> implementation based on Markdig with its advanced extensions.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IMarkdownProcessor"/> instead.
+/// </remarks>
 public sealed partial class MarkdownProcessor : IMarkdownProcessor
 {
     private readonly MarkdownPipeline _pipeline;

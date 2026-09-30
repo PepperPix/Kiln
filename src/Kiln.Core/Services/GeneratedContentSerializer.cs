@@ -6,6 +6,12 @@ using System.Text;
 using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 
+/// <summary>
+/// Serializes generated Markdown pages (YAML front matter and body) and computes the body hash used to detect manual edits.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on the interfaces in Kiln.Abstractions and Kiln.Services instead.
+/// </remarks>
 public static class GeneratedContentSerializer
 {
     public static string Serialize(IReadOnlyList<(string Key, object Value)> frontMatter, string body)

@@ -5,6 +5,12 @@ using Kiln.Models;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
+/// <summary>
+/// Default <see cref="IContentReader"/> implementation that reads Markdown files with YAML front matter.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IContentReader"/> instead.
+/// </remarks>
 public sealed class ContentReader(IMarkdownProcessor markdownProcessor, IShortcodeProcessor? shortcodeProcessor = null) : IContentReader
 {
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()

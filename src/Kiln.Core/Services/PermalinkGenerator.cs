@@ -4,6 +4,12 @@ using System.Globalization;
 using System.Text;
 using Kiln.Models;
 
+/// <summary>
+/// Default <see cref="IPermalinkGenerator"/> implementation that applies front matter URLs and collection permalink patterns.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IPermalinkGenerator"/> instead.
+/// </remarks>
 public sealed class PermalinkGenerator : IPermalinkGenerator
 {
     public Uri Generate(ContentItem item, ContentGroup collection, string? basePath = null)

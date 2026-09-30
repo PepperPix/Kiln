@@ -6,6 +6,9 @@ using System.Text;
 /// <summary>
 /// Computes a deterministic content hash over an installed plugin directory.
 /// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on the interfaces in Kiln.Abstractions and Kiln.Services instead.
+/// </remarks>
 public static class PluginContentHasher
 {
     /// <summary>

@@ -1,5 +1,8 @@
 namespace Kiln.Services;
 
+/// <summary>
+/// Converts Markdown content.
+/// </summary>
 public interface IMarkdownProcessor
 {
     /// <summary>

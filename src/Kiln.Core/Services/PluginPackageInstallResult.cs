@@ -2,6 +2,13 @@ namespace Kiln.Services;
 
 using Kiln.Models;
 
+/// <summary>
+/// The outcome of installing a plugin package.
+/// </summary>
+/// <param name="PackageId">The NuGet package ID.</param>
+/// <param name="Version">The installed package version.</param>
+/// <param name="PluginName">The plugin name, which is also the name of the installation directory.</param>
+/// <param name="InstallPath">The full path of the installation directory.</param>
 public sealed record PluginPackageInstallResult(string PackageId, string Version, string PluginName, string InstallPath)
 {
     /// <summary>

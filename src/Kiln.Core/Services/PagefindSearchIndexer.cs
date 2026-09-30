@@ -2,6 +2,12 @@ namespace Kiln.Services;
 
 using Kiln.Models;
 
+/// <summary>
+/// Default <see cref="ISearchIndexer"/> implementation that runs Pagefind against the output directory.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="ISearchIndexer"/> instead.
+/// </remarks>
 public sealed class PagefindSearchIndexer(
     IPagefindBinaryProvider binaryProvider,
     IProcessRunner processRunner) : ISearchIndexer

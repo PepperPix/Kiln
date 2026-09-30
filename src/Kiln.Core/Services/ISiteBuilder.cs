@@ -3,6 +3,9 @@ namespace Kiln.Services;
 using Kiln.Abstractions;
 using Kiln.Models;
 
+/// <summary>
+/// Builds a site from its sources into the output directory.
+/// </summary>
 public interface ISiteBuilder
 {
     /// <summary>

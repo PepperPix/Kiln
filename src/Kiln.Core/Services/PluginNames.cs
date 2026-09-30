@@ -5,6 +5,9 @@ using System.Text.RegularExpressions;
 /// <summary>
 /// Validates plugin directory names so that a name can never escape the <c>plugins</c> directory.
 /// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on the interfaces in Kiln.Abstractions and Kiln.Services instead.
+/// </remarks>
 public static partial class PluginNames
 {
     private const int MaxSafeDirectoryNameLength = 128;

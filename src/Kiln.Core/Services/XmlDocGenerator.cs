@@ -3,6 +3,12 @@ namespace Kiln.Services;
 using System.Text;
 using Kiln.Models;
 
+/// <summary>
+/// Default <see cref="IXmlDocGenerator"/> implementation that writes one Markdown page per documented type.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IXmlDocGenerator"/> instead.
+/// </remarks>
 public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGenerator
 {
     private readonly IGeneratedContentWriter _writer = writer;

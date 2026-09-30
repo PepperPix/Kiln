@@ -5,6 +5,12 @@ using System.Text.RegularExpressions;
 using Kiln.Models;
 using YamlDotNet.Core;
 
+/// <summary>
+/// Default <see cref="IDeploymentInitializer"/> implementation that writes the deployment files for GitHub Pages and Azure Static Web Apps.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IDeploymentInitializer"/> instead.
+/// </remarks>
 public sealed partial class DeploymentInitializer : IDeploymentInitializer
 {
     private const string DefaultOutputDir = "_site";

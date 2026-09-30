@@ -3,6 +3,12 @@ namespace Kiln.Services;
 using System.Text;
 using Kiln.Models;
 
+/// <summary>
+/// Default <see cref="IGeneratedContentWriter"/> implementation that stores a hash of the body in the front matter to detect manual edits.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IGeneratedContentWriter"/> instead.
+/// </remarks>
 public sealed class GeneratedContentWriter : IGeneratedContentWriter
 {
     public WriteResult Write(string outputDir, GeneratedContentFile file)

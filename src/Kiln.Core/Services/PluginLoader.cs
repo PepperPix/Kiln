@@ -5,6 +5,12 @@ using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
+/// <summary>
+/// Default <see cref="IPluginLoader"/> implementation that reads the <c>plugin.yaml</c> manifests in the <c>plugins</c> directory.
+/// </summary>
+/// <remarks>
+/// This type is public for compatibility but is not part of the supported API surface; it may change in any release. Depend on <see cref="IPluginLoader"/> instead.
+/// </remarks>
 public sealed class PluginLoader : IPluginLoader
 {
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
