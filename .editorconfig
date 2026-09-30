@@ -64,3 +64,17 @@ dotnet_diagnostic.CA1819.severity = none
 # Spectre.Console.Cli Settings properties are bound via reflection from CLI args.
 [src/Kiln.Cli/Commands/*.cs]
 resharper_unused_auto_property_accessor_global_highlighting = none
+
+# Public API must be documented (CS1591 is an error via TreatWarningsAsErrors) ...
+[src/Kiln.Abstractions/**.cs]
+dotnet_diagnostic.CS1591.severity = warning
+
+[src/Kiln.Core/**.cs]
+dotnet_diagnostic.CS1591.severity = warning
+
+# ... except concrete classes that are public for compatibility only; their members need no comments.
+[src/Kiln.Core/Configuration/SiteConfigLoader.cs]
+dotnet_diagnostic.CS1591.severity = none
+
+[src/Kiln.Core/Services/{AssetReferenceIndexBuilder,ContentReader,DeploymentInitializer,DevServer,GeneratedContentSerializer,GeneratedContentWriter,MarkdownProcessor,NavigationTreeBuilder,NoOpAssetMinifier,NuGetPluginClient,NuglifyAssetMinifier,OpenApiDocGenerator,PagefindBinaryProvider,PagefindSearchIndexer,PermalinkGenerator,PluginContentHasher,PluginContentInspector,PluginLoader,PluginLockFile,PluginNames,PluginTrust,Scaffolder,ShortcodeProcessor,SiteBuilder,SkiaSharpImageOptimizer,SystemProcessRunner,TemplateRenderer,XmlDocGenerator,XmlDocParser}.cs]
+dotnet_diagnostic.CS1591.severity = none
