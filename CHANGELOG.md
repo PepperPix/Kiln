@@ -1,3 +1,10 @@
+# [1.3.0-beta.4](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.3...v1.3.0-beta.4) (2026-09-30)
+
+
+### Features
+
+* **core:** ship XML documentation with the packages ([7c2b623](https://github.com/PepperPix/Kiln/commit/7c2b6230d6191e1908c2e16d107356bb66d1efef))
+
 # [1.3.0-beta.3](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.2...v1.3.0-beta.3) (2026-09-30)
 
 
