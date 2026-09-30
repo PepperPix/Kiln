@@ -1,3 +1,11 @@
+# [1.3.0-beta.5](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.4...v1.3.0-beta.5) (2026-09-30)
+
+
+### Features
+
+* **cli:** add --assembly option to gen dotnet-xml ([3dd8b10](https://github.com/PepperPix/Kiln/commit/3dd8b10653658e997cf05577668cac95e9a862b6))
+* **core:** filter generated .NET reference pages by assembly visibility ([e8826db](https://github.com/PepperPix/Kiln/commit/e8826db62dd58dde84d67dd29b2c7ea479bd460a))
+
 # [1.3.0-beta.4](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.3...v1.3.0-beta.4) (2026-09-30)
 
 
