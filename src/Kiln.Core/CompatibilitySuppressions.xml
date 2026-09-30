@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
+<Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <!-- Intentional breaks of concrete classes (not part of the supported API surface).
+       NuGetPluginClient is a concrete class; its unused HttpMessageHandler parameter was removed. -->
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Kiln.Services.NuGetPluginClient.#ctor(System.String,System.Net.Http.HttpMessageHandler)</Target>
+    <Left>lib/net10.0/Kiln.Core.dll</Left>
+    <Right>lib/net10.0/Kiln.Core.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Kiln.Services.NuGetPluginClient.#ctor(System.Uri,System.Net.Http.HttpMessageHandler)</Target>
+    <Left>lib/net10.0/Kiln.Core.dll</Left>
+    <Right>lib/net10.0/Kiln.Core.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+</Suppressions>
