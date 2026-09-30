@@ -92,6 +92,30 @@ public class SiteBuilderTests
     }
 
     [Test]
+    public async Task BuildAsync_SiteStaticOverridesThemeAsset_WarnsAndUsesSiteFile()
+    {
+        var tempDir = CreateSiteWithThemeAsset();
+
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(tempDir, "static", "css"));
+            await File.WriteAllTextAsync(Path.Combine(tempDir, "static", "css", "style.css"), "body { color: blue; }");
+
+            var builder = CreateBuilder();
+            var result = await builder.BuildAsync(tempDir);
+
+            await Assert.That(result.Success).IsTrue();
+            await Assert.That(result.Warnings).Any(item => item.Contains("overrides same file from theme 'default'"));
+            var output = await File.ReadAllTextAsync(Path.Combine(tempDir, "_site", "assets", "css", "style.css"));
+            await Assert.That(output).Contains("color: blue");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
     public async Task BuildAsync_Development_PrunesDeletedOutputFiles()
     {
         var tempDir = CreateSiteWithTwoPosts();

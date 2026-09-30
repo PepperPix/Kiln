@@ -68,6 +68,31 @@ public class PaginatorTests
     }
 
     [Test]
+    public async Task BuildAsync_ThreePages_LinkNeighbouringPages()
+    {
+        var dir = CreateSiteWithManyPosts(25, pageSize: 10);
+
+        try
+        {
+            var builder = CreateBuilder();
+            var result = await builder.BuildAsync(dir);
+
+            await Assert.That(result.Success).IsTrue();
+            var page1 = await File.ReadAllTextAsync(Path.Combine(dir, "_site", "blog", "index.html"));
+            var page2 = await File.ReadAllTextAsync(Path.Combine(dir, "_site", "blog", "page", "2", "index.html"));
+            var page3 = await File.ReadAllTextAsync(Path.Combine(dir, "_site", "blog", "page", "3", "index.html"));
+
+            await Assert.That(page1).Contains("page=1 next_url=/blog/page/2/ prev_url=");
+            await Assert.That(page2).Contains("page=2 next_url=/blog/page/3/ prev_url=/blog");
+            await Assert.That(page3).Contains("page=3 next_url= prev_url=/blog/page/2/");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Test]
     public async Task BuildAsync_CollectionNoPaginate_NoIndexPage()
     {
         var dir = CreateSiteWithManyPosts(5, pageSize: 0);
