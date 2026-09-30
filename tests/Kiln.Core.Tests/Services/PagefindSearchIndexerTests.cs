@@ -108,6 +108,58 @@ public class PagefindSearchIndexerTests
         await Assert.That(result.Errors[0]).Contains("binary not found");
     }
 
+    [Test]
+    public async Task IndexAsync_PassesConfiguredBinaryPathToProvider()
+    {
+        var provider = new RecordingBinaryProvider("/configured/pagefind");
+        var runner = new RecordingProcessRunner(new ProcessRunResult(0, string.Empty, string.Empty));
+        var indexer = new PagefindSearchIndexer(provider, runner);
+
+        var result = await indexer.IndexAsync(
+            "/some/site",
+            new SearchOptions { Enabled = true, BinaryPath = "/configured/pagefind" },
+            allowDownload: true,
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(provider.ConfiguredPath).IsEqualTo("/configured/pagefind");
+        await Assert.That(provider.AllowDownload).IsTrue();
+    }
+
+    [Test]
+    public async Task IndexAsync_ConfiguredBinaryPathMissing_ReturnsErrorWithMessage()
+    {
+        var provider = new ThrowingBinaryProvider("search.binaryPath '/nope/pagefind' does not exist.");
+        var runner = new FakeProcessRunner(new ProcessRunResult(0, string.Empty, string.Empty));
+        var indexer = new PagefindSearchIndexer(provider, runner);
+
+        var result = await indexer.IndexAsync(
+            "/some/site",
+            new SearchOptions { Enabled = true, BinaryPath = "/nope/pagefind" },
+            allowDownload: true,
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Errors[0]).IsEqualTo("search.binaryPath '/nope/pagefind' does not exist.");
+    }
+
+    private sealed class RecordingBinaryProvider(string path) : IPagefindBinaryProvider
+    {
+        public string? ConfiguredPath { get; private set; }
+
+        public bool? AllowDownload { get; private set; }
+
+        public Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, CancellationToken ct)
+            => throw new InvalidOperationException("The overload with the configured path must be used.");
+
+        public Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, string? configuredPath, CancellationToken ct)
+        {
+            ConfiguredPath = configuredPath;
+            AllowDownload = allowDownload;
+            return Task.FromResult(path);
+        }
+    }
+
     private sealed class FakeBinaryProvider(string path) : IPagefindBinaryProvider
     {
         public Task<string> GetBinaryPathAsync(bool extended, bool allowDownload, CancellationToken ct)
