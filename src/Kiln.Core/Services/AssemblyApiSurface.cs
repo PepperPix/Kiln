@@ -68,7 +68,7 @@ internal sealed class AssemblyApiSurface
         var qualifier = parentFullName ?? ns;
         var fullName = qualifier.Length == 0 ? name : $"{qualifier}.{name}";
 
-        types[fullName] = new ApiTypeInfo(fullName, GetKind(reader, definition), CollectMemberNames(reader, definition));
+        types[fullName] = new ApiTypeInfo { Kind = GetKind(reader, definition), MemberNames = CollectMemberNames(reader, definition) };
 
         foreach (var nested in definition.GetNestedTypes())
             Visit(reader, reader.GetTypeDefinition(nested), fullName, types);
