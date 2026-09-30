@@ -184,7 +184,7 @@ public class XmlDocGeneratorAssemblyFilterTests
         {
             CreateGenerator().Generate(xmlPath, tempDir);
 
-            var content = await File.ReadAllTextAsync(PagePath(tempDir, "PublicStruct.md"));
+            var content = (await File.ReadAllTextAsync(PagePath(tempDir, "PublicStruct.md"))).ReplaceLineEndings("\n");
             await Assert.That(content).StartsWith("---\ntitle: PublicStruct\n");
             await Assert.That(content).Contains("\n---\n\n# PublicStruct\n\n`Kiln.Core.Tests.Fixtures.ApiSurfaceFixtures.PublicStruct`\n\nA struct.\n\n## Fields\n\n### Size\n\nThe size.\n");
         });
