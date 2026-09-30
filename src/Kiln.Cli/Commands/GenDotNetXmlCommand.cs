@@ -1,6 +1,7 @@
 namespace Kiln.Cli.Commands;
 
 using System.ComponentModel;
+using Kiln.Models;
 using Kiln.Services;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -15,6 +16,10 @@ public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator, IAnsiConsole
         [CommandOption("--xml <path>")]
         [Description("Path to the .NET XML documentation file.")]
         public string? Xml { get; init; }
+
+        [CommandOption("--assembly <path>")]
+        [Description("Path to the compiled assembly; restricts the output to publicly visible types and members.")]
+        public string? Assembly { get; init; }
 
         [CommandOption("--output <dir>")]
         [Description("Output directory for generated content files. Defaults to content/api-dotnet.")]
@@ -40,17 +45,42 @@ public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator, IAnsiConsole
             return 1;
         }
 
+        string? assemblyPath = null;
+        if (!string.IsNullOrWhiteSpace(settings.Assembly))
+        {
+            assemblyPath = Path.GetFullPath(settings.Assembly);
+            if (!File.Exists(assemblyPath))
+            {
+                _console.MarkupLine($"[red]Error:[/] Assembly not found: {Markup.Escape(assemblyPath)}");
+                return 1;
+            }
+        }
+
         var projectPath = Path.GetFullPath(settings.Project);
         var outputDir = Path.IsPathRooted(settings.Output)
             ? settings.Output
             : Path.Combine(projectPath, settings.Output);
 
-        var report = await Task.Run(
-            () => _generator.Generate(xmlPath, outputDir),
-            cancellationToken).ConfigureAwait(false);
+        DocGenReport report;
+        try
+        {
+            report = await Task.Run(
+                () => assemblyPath is null
+                    ? _generator.Generate(xmlPath, outputDir)
+                    : _generator.Generate(xmlPath, outputDir, new XmlDocGenerationOptions(assemblyPath)),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidDataException ex)
+        {
+            _console.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            return 1;
+        }
 
         foreach (var warning in report.Warnings)
             _console.MarkupLine($"[yellow]WARN:[/] {warning}");
+
+        foreach (var note in report.Notes)
+            _console.MarkupLine($"[dim]{Markup.Escape(note)}[/]");
 
         foreach (var file in report.Written)
             _console.MarkupLine($"[green]written[/] {file}");
