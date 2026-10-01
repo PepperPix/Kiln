@@ -11,31 +11,32 @@ func api_namespace(url)
     end
     ret ''
 end
-
-func api_items(nodes)
-    $out = ''
-    for $n in nodes
-        if $n.children.size == 0
-            $cur = $n.is_active ? ' aria-current="page"' : ''
-            $out = $out + '<li><a href="' + $n.url + '"' + $cur + '>' + ($n.title | html.escape) + '</a></li>'
-        else
-            $label = ''
-            for $c in $n.children
-                if $label == '' && $c.children.size == 0
-                    $label = api_namespace($c.url)
-                end
-            end
-            if $label == ''
-                $out = $out + api_items($n.children)
-            else
-                $open = ($n.is_ancestor || $n.is_active) ? ' open' : ''
-                $out = $out + '<li><details' + $open + '><summary>' + ($label | html.escape) + '</summary><ul>' + api_items($n.children) + '</ul></details></li>'
-            end
-        end
-    end
-    ret $out
-end
 ~}}
+{{~ func api_items(nodes) ~}}
+{{~ for $n in nodes ~}}
+{{~ if $n.children.size == 0 ~}}
+{{~ if $n.is_active ~}}
+<li><a href="{{ $n.url }}" aria-current="page">{{ $n.title | html.escape }}</a></li>
+{{~ else ~}}
+<li><a href="{{ $n.url }}">{{ $n.title | html.escape }}</a></li>
+{{~ end ~}}
+{{~ else ~}}
+{{~ $label = '' ~}}
+{{~ for $c in $n.children ~}}
+{{~ if $label == '' && $c.children.size == 0 ~}}
+{{~ $label = api_namespace($c.url) ~}}
+{{~ end ~}}
+{{~ end ~}}
+{{~ if $label == '' ~}}
+{{ api_items($n.children) }}
+{{~ else if $n.is_ancestor || $n.is_active ~}}
+<li><details open><summary>{{ $label | html.escape }}</summary><ul>{{ api_items($n.children) }}</ul></details></li>
+{{~ else ~}}
+<li><details><summary>{{ $label | html.escape }}</summary><ul>{{ api_items($n.children) }}</ul></details></li>
+{{~ end ~}}
+{{~ end ~}}
+{{~ end ~}}
+{{~ end ~}}
 <!DOCTYPE html>
 <html lang="{{ site.language }}">
 
