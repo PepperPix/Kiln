@@ -25,6 +25,7 @@ public static class NavigationTreeBuilder
         {
             var rootNodes = new List<NavigationNode>();
             var sectionLookup = new Dictionary<string, List<NavigationNode>>(StringComparer.Ordinal);
+            var sectionSampleItems = new Dictionary<string, ContentItem>(StringComparer.Ordinal);
 
             foreach (var item in group.OrderBy(i => i.Weight).ThenBy(i => i.Title, StringComparer.OrdinalIgnoreCase))
             {
@@ -52,6 +53,8 @@ public static class NavigationTreeBuilder
                         sectionLookup[fullPath] = list;
                     }
                     list.Add(leaf);
+
+                    UpdateSectionSampleItem(sectionSampleItems, fullPath, item);
                 }
             }
 
@@ -62,7 +65,8 @@ public static class NavigationTreeBuilder
             // First pass: create section nodes
             foreach (var sectionPath in sectionLookup.Keys)
             {
-                EnsureSectionNode(sectionPath, sectionNodes, sectionChildren, group.First(), basePath);
+                var sampleItem = sectionSampleItems.TryGetValue(sectionPath, out var item) ? item : group.First();
+                EnsureSectionNode(sectionPath, sectionNodes, sectionChildren, sampleItem, basePath);
             }
 
             // Second pass: assign leaf children
@@ -166,6 +170,10 @@ public static class NavigationTreeBuilder
         }
     }
 
+    /// <summary>
+    /// Builds the URL for a section node derived from the URL structure of a sample item belonging to that section subtree.
+    /// If all items in a section have URL overrides, the sample item's overridden URL is used as fallback.
+    /// </summary>
     private static Uri BuildSectionUrl(ContentItem sampleItem, string[] sectionSegs, string basePath)
     {
         var sep = Path.AltDirectorySeparatorChar;
@@ -196,4 +204,26 @@ public static class NavigationTreeBuilder
         var textInfo = CultureInfo.InvariantCulture.TextInfo;
         return textInfo.ToTitleCase(withSpaces);
     }
+
+    private static void UpdateSectionSampleItem(
+        Dictionary<string, ContentItem> sectionSampleItems,
+        string fullPath,
+        ContentItem item)
+    {
+        if (!sectionSampleItems.TryGetValue(fullPath, out var currentSample))
+        {
+            sectionSampleItems[fullPath] = item;
+            return;
+        }
+
+        if (!HasPermalinkOverride(item) && HasPermalinkOverride(currentSample))
+        {
+            sectionSampleItems[fullPath] = item;
+        }
+    }
+
+    private static bool HasPermalinkOverride(ContentItem item) =>
+        item.Extra.TryGetValue("permalink_override", out var overrideObj)
+        && overrideObj is string urlOverride
+        && !string.IsNullOrEmpty(urlOverride);
 }

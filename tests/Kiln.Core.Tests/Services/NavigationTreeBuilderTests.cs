@@ -110,9 +110,113 @@ public class NavigationTreeBuilderTests
         await Assert.That(result["pages"]).Count().IsEqualTo(1);
     }
 
-    private static ContentItem MakeItem(string title, string url, int weight, string sectionPath = "", ContentGroup? collection = null)
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task Build_RootItemWithUrlOverride_SectionNodesDeriveCorrectUrlsRegardlessOfOrder(bool rootItemFirst)
+    {
+        var apiCol = new ContentGroup
+        {
+            Name = "api",
+            Permalink = "/api/:slug/"
+        };
+
+        var rootItem = MakeItem(
+            "API Overview",
+            "/api/",
+            weight: 0,
+            collection: apiCol,
+            permalinkOverride: "/api/");
+
+        var servicesItem = MakeItem(
+            "SiteBuilder",
+            "/api/Kiln/Services/SiteBuilder/",
+            weight: 10,
+            sectionPath: "Kiln/Services",
+            collection: apiCol);
+
+        var modelsItem = MakeItem(
+            "BuildResult",
+            "/api/Kiln/Models/BuildResult/",
+            weight: 20,
+            sectionPath: "Kiln/Models",
+            collection: apiCol);
+
+        var items = rootItemFirst
+            ? new List<ContentItem> { rootItem, servicesItem, modelsItem }
+            : new List<ContentItem> { servicesItem, modelsItem, rootItem };
+
+        var result = NavigationTreeBuilder.Build(items);
+
+        await Assert.That(result).ContainsKey("api");
+        var roots = result["api"];
+        // In the root list, we have the rootItem and the Kiln section node
+        var kilnNode = roots.FirstOrDefault(n => n.Title == "Kiln");
+        await Assert.That(kilnNode).IsNotNull();
+        await Assert.That(kilnNode!.Url.OriginalString).IsEqualTo("/api/Kiln/");
+
+        var modelsNode = kilnNode.Children.FirstOrDefault(c => c.Title == "Models");
+        await Assert.That(modelsNode).IsNotNull();
+        await Assert.That(modelsNode!.Url.OriginalString).IsEqualTo("/api/Kiln/Models/");
+
+        var servicesNode = kilnNode.Children.FirstOrDefault(c => c.Title == "Services");
+        await Assert.That(servicesNode).IsNotNull();
+        await Assert.That(servicesNode!.Url.OriginalString).IsEqualTo("/api/Kiln/Services/");
+    }
+
+    [Test]
+    public async Task Build_RootItemWithUrlOverride_WithBasePath_SectionNodesIncludeBasePath()
+    {
+        var apiCol = new ContentGroup
+        {
+            Name = "api",
+            Permalink = "/api/:slug/"
+        };
+
+        var rootItem = MakeItem(
+            "API Overview",
+            "/site/api/",
+            weight: 0,
+            collection: apiCol,
+            permalinkOverride: "/api/");
+
+        var servicesItem = MakeItem(
+            "SiteBuilder",
+            "/site/api/Kiln/Services/SiteBuilder/",
+            weight: 10,
+            sectionPath: "Kiln/Services",
+            collection: apiCol);
+
+        var items = new List<ContentItem> { rootItem, servicesItem };
+
+        var result = NavigationTreeBuilder.Build(items, basePath: "/site");
+
+        await Assert.That(result).ContainsKey("api");
+        var roots = result["api"];
+        var kilnNode = roots.FirstOrDefault(n => n.Title == "Kiln");
+        await Assert.That(kilnNode).IsNotNull();
+        await Assert.That(kilnNode!.Url.OriginalString).IsEqualTo("/site/api/Kiln/");
+
+        var servicesNode = kilnNode.Children.FirstOrDefault(c => c.Title == "Services");
+        await Assert.That(servicesNode).IsNotNull();
+        await Assert.That(servicesNode!.Url.OriginalString).IsEqualTo("/site/api/Kiln/Services/");
+    }
+
+    private static ContentItem MakeItem(
+        string title,
+        string url,
+        int weight,
+        string sectionPath = "",
+        ContentGroup? collection = null,
+        string? permalinkOverride = null)
     {
         var col = collection ?? MakeCollection();
+        var extra = new Dictionary<string, object>();
+        if (!string.IsNullOrEmpty(permalinkOverride))
+        {
+            extra["permalink_override"] = permalinkOverride;
+        }
+
         return new ContentItem
         {
             Title = title,
@@ -125,7 +229,8 @@ public class NavigationTreeBuilderTests
             HtmlContent = "",
             Url = new Uri(url, UriKind.Relative),
             OutputPath = url.Trim('/') + "/index.html",
-            Collection = col
+            Collection = col,
+            Extra = extra
         };
     }
 
