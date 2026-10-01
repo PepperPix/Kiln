@@ -1,19 +1,16 @@
 name: CI
 
 on:
-  push:
-    branches-ignore: [main, beta]
   pull_request:
     branches: [main, beta]
+  workflow_dispatch:
 
-# A push to a branch with an open PR fires BOTH the push and pull_request triggers above for the
-# same commit, producing two separate check runs of the same name. If either one hits a flake,
-# GitHub reports mergeStateStatus: BLOCKED even though the other run (same commit) is green. Group
-# both event types by branch name (github.head_ref is only set for pull_request; ref_name gives the
-# short branch name for push, matching head_ref's format) so the newer run cancels the older
-# in-progress one instead of both running to completion independently.
+# CI runs once per pull request update. A push trigger on top of pull_request ran every
+# commit twice and the concurrency group then cancelled one of the runs, which left red
+# "cancelled" checks on the PR. Pushes to main/beta are handled by the release workflow;
+# use "Run workflow" to run CI on a branch without a pull request.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
