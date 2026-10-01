@@ -1,3 +1,10 @@
+# [1.3.0-beta.6](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.5...v1.3.0-beta.6) (2026-10-01)
+
+
+### Bug Fixes
+
+* **core:** derive navigation section URLs from an item of that section ([d25c024](https://github.com/PepperPix/Kiln/commit/d25c02417ebaec8766d511918a1b17a92a7524db))
+
 # [1.3.0-beta.5](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.4...v1.3.0-beta.5) (2026-09-30)
 
 
