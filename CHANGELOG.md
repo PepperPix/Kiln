@@ -1,3 +1,10 @@
+# [1.3.0-beta.7](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.6...v1.3.0-beta.7) (2026-10-01)
+
+
+### Features
+
+* **cli:** add --package-version to gen dotnet-xml ([cebd0e5](https://github.com/PepperPix/Kiln/commit/cebd0e55130735689e62971d4acce02d5ab2af54))
+
 # [1.3.0-beta.6](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.5...v1.3.0-beta.6) (2026-10-01)
 
 
