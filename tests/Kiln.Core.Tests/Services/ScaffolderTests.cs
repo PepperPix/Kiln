@@ -23,6 +23,8 @@ public class ScaffolderTests
             await Assert.That(result.CreatedFiles).Contains("content/index.md");
             await Assert.That(result.CreatedFiles).Contains("themes/default/layouts/home.html");
             await Assert.That(result.CreatedFiles).Contains("themes/default/layouts/404.html");
+            await Assert.That(result.CreatedFiles).Contains("themes/default/layouts/api.html");
+            await Assert.That(result.CreatedFiles).Contains("themes/default/static/css/api.css");
             await Assert.That(result.CreatedFiles).Contains("themes/default/partials/recent-posts.html");
             await Assert.That(result.CreatedFiles).Contains("themes/default/partials/search.html");
 

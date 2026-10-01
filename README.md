@@ -151,6 +151,8 @@ Kiln uses Scriban templates for layouts, partials and helpers. Basic concepts:
 - Partials: reusable template fragments
 - Slots: named insertion points for plugins and themes
 
+The default theme includes an `api` layout (`themes/default/layouts/api.html`) and dedicated stylesheet (`themes/default/static/css/api.css`) designed for reference documentation. It features a sticky sidebar with collapsible namespaces, breadcrumbs, and badges for type kinds and package versions. When creating a site with `kiln new`, theme files are copied into the project directory; existing projects can copy `api.html` and `api.css` manually.
+
 Refer to `templates/default` in the project for a minimal theme layout and examples.
 
 ## Content Plugin Shortcodes
@@ -235,7 +237,21 @@ Pass `--package-version <version>` to record the package version in the front ma
 enabling themes to display the version of the documented package.
 
 The output directory must be registered as a collection in `site.yaml` to be included in the build;
-both commands print a warning if it is not.
+both commands print a warning if it is not. Use `layout: api` to render reference pages with the built-in reference documentation layout:
+
+```yaml
+collections:
+  api:
+    directory: content/api
+    permalink: /api/:slug/
+    sort: weight asc
+    layout: api
+
+menus:
+  main:
+    - title: API
+      url: /api/
+```
 
 ## Search
 

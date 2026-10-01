@@ -35,6 +35,7 @@ public sealed class Scaffolder : IScaffolder
         ("content/pages/about.md.template", "content/pages/about.md"),
         ("content/pages/privacy.md.template", "content/pages/privacy.md"),
         ("themes/default/layouts/default.html", "themes/default/layouts/default.html"),
+        ("themes/default/layouts/api.html", "themes/default/layouts/api.html"),
         ("themes/default/layouts/post.html", "themes/default/layouts/post.html"),
         ("themes/default/layouts/posts-index.html", "themes/default/layouts/posts-index.html"),
         ("themes/default/layouts/taxonomy.html", "themes/default/layouts/taxonomy.html"),
@@ -49,6 +50,7 @@ public sealed class Scaffolder : IScaffolder
         ("themes/default/partials/recent-posts.html", "themes/default/partials/recent-posts.html"),
         ("themes/default/static/css/style.css", "themes/default/static/css/style.css"),
         ("themes/default/static/css/prism-ember.css", "themes/default/static/css/prism-ember.css"),
+        ("themes/default/static/css/api.css", "themes/default/static/css/api.css"),
         ("themes/default/static/favicon.svg", "themes/default/static/favicon.svg"),
     ];
 
