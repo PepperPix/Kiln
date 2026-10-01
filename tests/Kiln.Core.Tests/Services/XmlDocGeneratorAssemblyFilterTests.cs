@@ -246,4 +246,73 @@ public class XmlDocGeneratorAssemblyFilterTests
             await Assert.That(File.Exists(pagePath + ".regenerated")).IsTrue();
         });
     }
+
+    [Test]
+    public async Task Generate_WithPackageVersionAndAssembly_WritesVersionBetweenAssemblyAndKindInFrontMatter()
+    {
+        await WithFixtureAsync(async (tempDir, xmlPath) =>
+        {
+            const string version = "1.3.0-beta.5";
+            var options = new XmlDocGenerationOptions(FixtureAssemblyPath)
+            {
+                PackageVersion = version
+            };
+
+            CreateGenerator().Generate(xmlPath, tempDir, options);
+
+            var content = (await File.ReadAllTextAsync(PagePath(tempDir, "PublicClass.md"))).ReplaceLineEndings("\n");
+            await Assert.That(content).Contains($"version: {version}");
+
+            var expectedExtraBlock = string.Join("\n",
+                "extra:",
+                $"  namespace: {Ns}",
+                "  assembly: Kiln.Core.Tests",
+                $"  version: {version}",
+                "  kind: class");
+            await Assert.That(content).Contains(expectedExtraBlock);
+        });
+    }
+
+    [Test]
+    public async Task Generate_WithPackageVersionWithoutAssembly_WritesVersionToExtra()
+    {
+        await WithFixtureAsync(async (tempDir, xmlPath) =>
+        {
+            const string version = "2.0.0";
+            var options = new XmlDocGenerationOptions
+            {
+                PackageVersion = version
+            };
+
+            CreateGenerator().Generate(xmlPath, tempDir, options);
+
+            var content = (await File.ReadAllTextAsync(PagePath(tempDir, "PublicClass.md"))).ReplaceLineEndings("\n");
+            var expectedExtraBlock = string.Join("\n",
+                "extra:",
+                $"  namespace: {Ns}",
+                "  assembly: Kiln.Core.Tests",
+                $"  version: {version}");
+            await Assert.That(content).Contains(expectedExtraBlock);
+            await Assert.That(content).DoesNotContain("kind:");
+        });
+    }
+
+    [Test]
+    public async Task Generate_WithEmptyOrWhitespacePackageVersion_OmitsVersionKey()
+    {
+        await WithFixtureAsync(async (tempDir, xmlPath) =>
+        {
+            var plainDir = Path.Combine(tempDir, "plain");
+            var emptyVersionDir = Path.Combine(tempDir, "empty");
+
+            CreateGenerator().Generate(xmlPath, plainDir, new XmlDocGenerationOptions(FixtureAssemblyPath));
+            CreateGenerator().Generate(xmlPath, emptyVersionDir, new XmlDocGenerationOptions(FixtureAssemblyPath) { PackageVersion = "   " });
+
+            var plainContent = (await File.ReadAllTextAsync(PagePath(plainDir, "PublicClass.md"))).ReplaceLineEndings("\n");
+            var emptyContent = (await File.ReadAllTextAsync(PagePath(emptyVersionDir, "PublicClass.md"))).ReplaceLineEndings("\n");
+
+            await Assert.That(emptyContent).DoesNotContain("version:");
+            await Assert.That(emptyContent).IsEqualTo(plainContent);
+        });
+    }
 }

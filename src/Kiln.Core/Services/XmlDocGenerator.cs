@@ -15,7 +15,7 @@ public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGen
 
     /// <inheritdoc/>
     public DocGenReport Generate(string xmlDocPath, string outputDir) =>
-        GenerateCore(xmlDocPath, outputDir, surface: null);
+        Generate(xmlDocPath, outputDir, new XmlDocGenerationOptions());
 
     /// <inheritdoc/>
     public DocGenReport Generate(string xmlDocPath, string outputDir, XmlDocGenerationOptions options)
@@ -23,10 +23,10 @@ public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGen
         ArgumentNullException.ThrowIfNull(options);
 
         var surface = options.AssemblyPath is null ? null : AssemblyApiSurface.Read(options.AssemblyPath);
-        return GenerateCore(xmlDocPath, outputDir, surface);
+        return GenerateCore(xmlDocPath, outputDir, surface, options);
     }
 
-    private DocGenReport GenerateCore(string xmlDocPath, string outputDir, AssemblyApiSurface? surface)
+    private DocGenReport GenerateCore(string xmlDocPath, string outputDir, AssemblyApiSurface? surface, XmlDocGenerationOptions options)
     {
         ArgumentNullException.ThrowIfNull(xmlDocPath);
         ArgumentNullException.ThrowIfNull(outputDir);
@@ -79,6 +79,8 @@ public sealed class XmlDocGenerator(IGeneratedContentWriter writer) : IXmlDocGen
                 ["namespace"] = namespaceName,
                 ["assembly"] = parseResult.AssemblyName ?? "",
             };
+            if (!string.IsNullOrWhiteSpace(options.PackageVersion))
+                extra["version"] = options.PackageVersion.Trim();
             var kindLabel = apiType is null ? null : KindLabel(apiType.Kind);
             if (kindLabel is not null)
                 extra["kind"] = kindLabel;

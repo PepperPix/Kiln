@@ -188,4 +188,82 @@ public class GenDotNetXmlCommandAppTests
                 Directory.Delete(tempDir, true);
         }
     }
+
+    [Test]
+    public async Task GenDotNetXmlCommand_WithPackageVersion_PassesVersionToGenerator()
+    {
+        var (app, _, generator) = CreateApp();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-genxml-apptest-{Guid.NewGuid():N}");
+        var xmlPath = Path.Combine(tempDir, "doc.xml");
+
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            await File.WriteAllTextAsync(xmlPath, "<doc></doc>");
+
+            const string version = "1.3.0-beta.5";
+            var result = await app.RunAsync(["dotnet-xml", "--xml", xmlPath, "--package-version", version, "--project", tempDir]);
+
+            await Assert.That(result.ExitCode).IsEqualTo(0);
+            await Assert.That(generator.LastOptions?.PackageVersion).IsEqualTo(version);
+            await Assert.That(generator.LastOptions?.AssemblyPath).IsNull();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task GenDotNetXmlCommand_WithPackageVersionAndAssembly_PassesBothToGenerator()
+    {
+        var (app, _, generator) = CreateApp();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-genxml-apptest-{Guid.NewGuid():N}");
+        var xmlPath = Path.Combine(tempDir, "doc.xml");
+        var assemblyPath = Path.Combine(tempDir, "Lib.dll");
+
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            await File.WriteAllTextAsync(xmlPath, "<doc></doc>");
+            await File.WriteAllTextAsync(assemblyPath, "stub");
+
+            const string version = "1.3.0-beta.5";
+            var result = await app.RunAsync(["dotnet-xml", "--xml", xmlPath, "--assembly", assemblyPath, "--package-version", version, "--project", tempDir]);
+
+            await Assert.That(result.ExitCode).IsEqualTo(0);
+            await Assert.That(generator.LastOptions?.PackageVersion).IsEqualTo(version);
+            await Assert.That(generator.LastOptions?.AssemblyPath).IsEqualTo(Path.GetFullPath(assemblyPath));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Test]
+    public async Task GenDotNetXmlCommand_WithEmptyPackageVersion_NormalizesToNull()
+    {
+        var (app, _, generator) = CreateApp();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kiln-genxml-apptest-{Guid.NewGuid():N}");
+        var xmlPath = Path.Combine(tempDir, "doc.xml");
+
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            await File.WriteAllTextAsync(xmlPath, "<doc></doc>");
+
+            var result = await app.RunAsync(["dotnet-xml", "--xml", xmlPath, "--package-version", "   ", "--project", tempDir]);
+
+            await Assert.That(result.ExitCode).IsEqualTo(0);
+            await Assert.That(generator.LastOptions).IsNull();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
 }
