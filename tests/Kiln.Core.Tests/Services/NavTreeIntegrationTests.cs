@@ -82,6 +82,49 @@ public class NavTreeIntegrationTests
         }
     }
 
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task Build_ApiCollectionWithRootOverride_NavTreeMarkersAreAncestorForSectionPages(bool rootItemFirst)
+    {
+        var dir = CreateSiteWithApiCollection(rootItemFirst);
+
+        try
+        {
+            var builder = CreateBuilder();
+            var result = await builder.BuildAsync(dir);
+
+            await Assert.That(result.Success).IsTrue();
+
+            var serviceHtml = await File.ReadAllTextAsync(
+                Path.Combine(dir, "_site", "api", "Kiln", "Services", "SiteBuilder", "index.html"));
+
+            // On the SiteBuilder page:
+            // SiteBuilder should be active
+            await Assert.That(serviceHtml).Contains("NODE_TITLE:SiteBuilder");
+            await Assert.That(serviceHtml).Contains("NODE_ACTIVE:true");
+            await Assert.That(serviceHtml).Contains("NODE_URL:/api/Kiln/Services/SiteBuilder/");
+
+            // Kiln and Services section nodes must have proper URLs and is_ancestor == true
+            await Assert.That(serviceHtml).Contains("NODE_TITLE:Kiln");
+            await Assert.That(serviceHtml).Contains("NODE_URL:/api/Kiln/");
+            await Assert.That(serviceHtml).Contains("NODE_ANCESTOR:true");
+
+            await Assert.That(serviceHtml).Contains("NODE_TITLE:Services");
+            await Assert.That(serviceHtml).Contains("NODE_URL:/api/Kiln/Services/");
+            await Assert.That(serviceHtml).Contains("NODE_ANCESTOR:true");
+
+            // Models section node should NOT be an ancestor
+            await Assert.That(serviceHtml).Contains("NODE_TITLE:Models");
+            await Assert.That(serviceHtml).Contains("NODE_URL:/api/Kiln/Models/");
+            await Assert.That(serviceHtml).Contains("NODE_ANCESTOR:false");
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static string CreateSiteWithNavLayout()
@@ -151,6 +194,86 @@ public class NavTreeIntegrationTests
             {{ page.content }}
             </html>
             """);
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
+            "<html>Not Found</html>");
+
+        return dir;
+    }
+
+    private static string CreateSiteWithApiCollection(bool rootItemFirst)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"kiln-nav-api-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(dir, "content", "api", "Kiln", "Services"));
+        Directory.CreateDirectory(Path.Combine(dir, "content", "api", "Kiln", "Models"));
+        Directory.CreateDirectory(Path.Combine(dir, "themes", "default", "layouts"));
+
+        File.WriteAllText(Path.Combine(dir, "site.yaml"),
+            """
+            title: API Test Site
+            baseUrl: http://localhost:5555
+            collections:
+              api:
+                directory: content/api
+                permalink: /api/:slug/
+            """);
+
+        var rootWeight = rootItemFirst ? 0 : 50;
+        const int serviceWeight = 10;
+        const int modelWeight = 20;
+
+        File.WriteAllText(Path.Combine(dir, "content", "api", "index.md"),
+            $$"""
+            ---
+            title: API Overview
+            url: /api/
+            weight: {{rootWeight}}
+            ---
+            API Root
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "api", "Kiln", "Services", "SiteBuilder.md"),
+            $$"""
+            ---
+            title: SiteBuilder
+            weight: {{serviceWeight}}
+            ---
+            SiteBuilder doc
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "content", "api", "Kiln", "Models", "BuildResult.md"),
+            $$"""
+            ---
+            title: BuildResult
+            weight: {{modelWeight}}
+            ---
+            BuildResult doc
+            """);
+
+        File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "default.html"),
+            """
+            <html>
+            {{ for node in navtree.api }}
+            NODE_TITLE:{{ node.title }}
+            NODE_URL:{{ node.url }}
+            NODE_ACTIVE:{{ node.is_active }}
+            NODE_ANCESTOR:{{ node.is_ancestor }}
+            {{ for child in node.children }}
+            NODE_TITLE:{{ child.title }}
+            NODE_URL:{{ child.url }}
+            NODE_ACTIVE:{{ child.is_active }}
+            NODE_ANCESTOR:{{ child.is_ancestor }}
+            {{ for grandchild in child.children }}
+            NODE_TITLE:{{ grandchild.title }}
+            NODE_URL:{{ grandchild.url }}
+            NODE_ACTIVE:{{ grandchild.is_active }}
+            NODE_ANCESTOR:{{ grandchild.is_ancestor }}
+            {{ end }}
+            {{ end }}
+            {{ end }}
+            {{ page.content }}
+            </html>
+            """);
+
         File.WriteAllText(Path.Combine(dir, "themes", "default", "layouts", "404.html"),
             "<html>Not Found</html>");
 
