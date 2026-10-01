@@ -222,6 +222,7 @@ Both adapters share a three-tier ownership model for generated content files:
 kiln gen docs --openapi openapi.json --output content/api
 kiln gen dotnet-xml --xml bin/Release/net10.0/MyLib.xml --output content/api-dotnet
 kiln gen dotnet-xml --xml bin/Release/net10.0/MyLib.xml --assembly bin/Release/net10.0/MyLib.dll --output content/api-dotnet
+kiln gen dotnet-xml --xml bin/Release/net10.0/MyLib.xml --assembly bin/Release/net10.0/MyLib.dll --package-version 1.0.0 --output content/api-dotnet
 ```
 
 The compiler's XML file also contains comments of `internal` and `private` members. Pass
@@ -229,6 +230,9 @@ The compiler's XML file also contains comments of `internal` and `private` membe
 members; each page then also names the kind of the type (`class`, `record`, `struct`, `interface`,
 `enum`, `delegate`, `static class`). Members are matched by name only, so an `internal` overload that
 shares its name with a public member is not told apart. The assembly is only read, not loaded.
+
+Pass `--package-version <version>` to record the package version in the front matter (`extra.version`),
+enabling themes to display the version of the documented package.
 
 The output directory must be registered as a collection in `site.yaml` to be included in the build;
 both commands print a warning if it is not.

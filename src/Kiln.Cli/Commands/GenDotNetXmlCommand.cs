@@ -21,6 +21,10 @@ public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator, IAnsiConsole
         [Description("Path to the compiled assembly; restricts the output to publicly visible types and members.")]
         public string? Assembly { get; init; }
 
+        [CommandOption("--package-version <version>")]
+        [Description("Package version to record in front matter (extra.version).")]
+        public string? PackageVersion { get; init; }
+
         [CommandOption("--output <dir>")]
         [Description("Output directory for generated content files. Defaults to content/api-dotnet.")]
         public string Output { get; init; } = "content/api-dotnet";
@@ -61,13 +65,22 @@ public sealed class GenDotNetXmlCommand(IXmlDocGenerator generator, IAnsiConsole
             ? settings.Output
             : Path.Combine(projectPath, settings.Output);
 
+        var packageVersion = string.IsNullOrWhiteSpace(settings.PackageVersion)
+            ? null
+            : settings.PackageVersion.Trim();
+
+        var options = new XmlDocGenerationOptions(assemblyPath)
+        {
+            PackageVersion = packageVersion
+        };
+
         DocGenReport report;
         try
         {
             report = await Task.Run(
-                () => assemblyPath is null
+                () => assemblyPath is null && packageVersion is null
                     ? _generator.Generate(xmlPath, outputDir)
-                    : _generator.Generate(xmlPath, outputDir, new XmlDocGenerationOptions(assemblyPath)),
+                    : _generator.Generate(xmlPath, outputDir, options),
                 cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidDataException ex)
