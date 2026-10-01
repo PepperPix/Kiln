@@ -1,0 +1,85 @@
+{{~
+# Section nodes are folders without a page and carry a humanized title; the real namespace comes from a child page.
+func api_namespace(url)
+    $col = collections[page.collection.name]
+    if $col
+        for $it in $col.items
+            if $it.url == url
+                ret $it.extra.namespace
+            end
+        end
+    end
+    ret ''
+end
+
+func api_items(nodes)
+    $out = ''
+    for $n in nodes
+        if $n.children.size == 0
+            $cur = $n.is_active ? ' aria-current="page"' : ''
+            $out = $out + '<li><a href="' + $n.url + '"' + $cur + '>' + ($n.title | html.escape) + '</a></li>'
+        else
+            $label = ''
+            for $c in $n.children
+                if $label == '' && $c.children.size == 0
+                    $label = api_namespace($c.url)
+                end
+            end
+            if $label == ''
+                $out = $out + api_items($n.children)
+            else
+                $open = ($n.is_ancestor || $n.is_active) ? ' open' : ''
+                $out = $out + '<li><details' + $open + '><summary>' + ($label | html.escape) + '</summary><ul>' + api_items($n.children) + '</ul></details></li>'
+            end
+        end
+    end
+    ret $out
+end
+~}}
+<!DOCTYPE html>
+<html lang="{{ site.language }}">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page.title | html.escape }} &mdash; {{ page.collection.name | html.escape }} &mdash; {{ site.title }}</title>
+    {{ include 'head' }}
+    <link rel="stylesheet" href="{{ asset_url 'css/api.css' }}">
+    {{ slot 'head' }}
+</head>
+
+<body>
+    {{ slot 'body_start' }}
+    {{ include 'header' }}
+    <main class="api-layout">
+        <nav class="api-nav" aria-label="API reference">
+            <ul>{{ api_items(navtree[page.collection.name]) }}</ul>
+        </nav>
+        <article class="api-content">
+            {{ slot 'before_content' }}
+            {{~ if page.ancestors.size > 1 ~}}
+            <nav class="api-breadcrumbs" aria-label="Breadcrumb">
+                <ol>
+                    <li><a href="{{ page.collection.url }}">{{ page.collection.name | html.escape }}</a></li>
+                    {{~ if page.extra.namespace ~}}
+                    <li>{{ page.extra.namespace | html.escape }}</li>
+                    {{~ end ~}}
+                    <li aria-current="page">{{ page.title | html.escape }}</li>
+                </ol>
+            </nav>
+            {{~ end ~}}
+            {{~ if page.extra.kind ~}}
+            <p class="api-meta"><span class="api-kind">{{ page.extra.kind | html.escape }}</span>
+                {{~ if page.extra.assembly }} Package: {{ page.extra.assembly | html.escape }}{{ if page.extra.version }} {{ page.extra.version | html.escape }}{{ end }}{{ end }}</p>
+            {{~ else ~}}
+            <h1>{{ page.title | html.escape }}</h1>
+            {{~ end ~}}
+            {{ page.content }}
+            {{ slot 'after_content' }}
+        </article>
+    </main>
+    {{ include 'footer' }}
+    {{ slot 'body_end' }}
+</body>
+
+</html>
