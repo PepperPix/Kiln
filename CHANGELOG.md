@@ -1,3 +1,10 @@
+# [1.3.0-beta.8](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.7...v1.3.0-beta.8) (2026-10-01)
+
+
+### Features
+
+* **core:** ship an api layout in the default theme ([5c83d29](https://github.com/PepperPix/Kiln/commit/5c83d29129d3e23f8ee285ef15dcf2d21bf619c5))
+
 # [1.3.0-beta.7](https://github.com/PepperPix/Kiln/compare/v1.3.0-beta.6...v1.3.0-beta.7) (2026-10-01)
 
 
